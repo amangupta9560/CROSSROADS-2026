@@ -49,6 +49,74 @@ const Footer = () => {
 
       <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         <div className="max-w-7xl mx-auto">
+          {/* Institutional Partners / Host & Co-powered Logos (Above Footer) */}
+          <div className="border-b border-slate-800/80 pb-8 mb-8">
+            <div className="text-center mb-5">
+              <span className="text-[11px] uppercase tracking-widest font-mono text-cyan-400 font-bold px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 inline-block mb-1.5">
+                Organized & Powered By
+              </span>
+              <h3 className="text-base sm:text-lg font-bold text-white">
+                Host Institution & Academic Partner
+              </h3>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 max-w-3xl mx-auto">
+              {/* HIET Logo Card */}
+              <a
+                href="https://hiet.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3.5 px-5 py-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-orange-500/50 hover:bg-slate-850 transition-all duration-300 shadow-lg hover:shadow-orange-500/10 hover:-translate-y-0.5"
+              >
+                <div className="bg-white p-2 rounded-xl flex items-center justify-center shadow-md">
+                  <img
+                    src="/hiet.png"
+                    alt="HI-TECH Institute of Engineering & Technology"
+                    className="h-9 sm:h-11 w-auto object-contain max-w-[130px]"
+                  />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-orange-400 font-bold block">
+                    Host Institution
+                  </span>
+                  <span className="text-sm font-bold text-white group-hover:text-orange-300 transition-colors block">
+                    HIET Ghaziabad
+                  </span>
+                  <span className="text-[11px] text-gray-400 block">
+                    Engineering & Technology
+                  </span>
+                </div>
+              </a>
+
+              {/* Sunstone Logo Card */}
+              <a
+                href="https://sunstone.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3.5 px-5 py-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-pink-500/50 hover:bg-slate-850 transition-all duration-300 shadow-lg hover:shadow-pink-500/10 hover:-translate-y-0.5"
+              >
+                <div className="bg-white p-2 rounded-xl flex items-center justify-center shadow-md">
+                  <img
+                    src="/sunstone.jpg"
+                    alt="Sunstone"
+                    className="h-9 sm:h-11 w-auto object-contain max-w-[130px]"
+                  />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-pink-400 font-bold block">
+                    Academic Partner
+                  </span>
+                  <span className="text-sm font-bold text-white group-hover:text-pink-300 transition-colors block">
+                    Sunstone
+                  </span>
+                  <span className="text-[11px] text-gray-400 block">
+                    Higher Education & Careers
+                  </span>
+                </div>
+              </a>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 mb-6">
             
             <div className="space-y-3">

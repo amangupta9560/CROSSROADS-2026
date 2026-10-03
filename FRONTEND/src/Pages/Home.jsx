@@ -24,6 +24,17 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import chairman from "../Teams/chairman.jpg";
+import director from "../Teams/director.jpeg";
+import secratory from "../Teams/secratory.jpg";
+import hodcs from "../Teams/hodcs.png";
+import sunstone from "../Teams/sunstone.png";
+import hodmca from "../Teams/hodmca.png";
+import hodee from "../Teams/hodee.png";
+import sac from '../Teams/sac.jpg';
+import aman from '../Teams/aman.jpg';
+import mam from '../Teams/mam.jpeg';
+
 const Home = () => {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -35,6 +46,7 @@ const Home = () => {
 
   const [openFAQ, setOpenFAQ] = useState(null);
   const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [teamCategory, setTeamCategory] = useState('All');
 
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -172,6 +184,89 @@ const Home = () => {
       color: 'text-emerald-400',
       bgGradient: 'from-emerald-500/20 to-teal-500/10'
     }
+  ];
+
+  const teamMembers = [
+    {
+      name: "Mr. Anand Prakash",
+      role: "Chairman",
+      dept: "Governing Body",
+      image: chairman,
+      category: "Leadership",
+      featured: true,
+    },
+    {
+      name: "Dr. Pankaj Kumar Mishra",
+      role: "Director",
+      dept: "Governing Body",
+      image: director,
+      category: "Leadership",
+      featured: true,
+    },
+    {
+      name: "Ms. Renu Goel",
+      role: "Secretary",
+      dept: "Administration",
+      image: secratory,
+      category: "Leadership",
+      featured: true,
+    },
+    {
+      name: "Mr. Manikantan",
+      role: "Governing Body",
+      dept: "Administration",
+      image: sunstone,
+      category: "Leadership",
+      featured: true,
+    },
+    {
+      name: "Dr. Tripti Choudhary",
+      role: "HOD - CSE",
+      dept: "Computer Science",
+      image: hodcs,
+      category: "Faculty",
+      featured: false,
+    },
+    {
+      name: "Mr. Bhaskar Sharma",
+      role: "HOD - MCA",
+      dept: "Master of Computer Applications",
+      image: hodmca,
+      category: "Faculty",
+      featured: false,
+    },
+    {
+      name: "Mr. Aman Srivastava",
+      role: "HOD - EE",
+      dept: "Electrical Engineering",
+      image: hodee,
+      category: "Faculty",
+      featured: false,
+    },
+    {
+      name: "Mr. Manjula Shukla",
+      role: "Invitation Committee",
+      dept: "CSE",
+      image: mam,
+      category: "Faculty",
+      featured: false,
+    },
+    {
+      name: "Aman Gupta",
+      role: "Website Lead Developer",
+      dept: "CSE",
+      image: aman,
+      category: "Core Leads",
+      featured: false,
+    },
+    {
+      name: "Sachchidanand Yadav",
+      role: "Helpdesk Lead",
+      dept: "CSE",
+      image: sac,
+      category: "Core Leads",
+      featured: false,
+    },
   ];
 
   const faqs = [
@@ -529,6 +624,85 @@ const Home = () => {
             <Sparkles size={18} className="text-black" />
             <span>Enter the Competition</span>
           </Link>
+        </div>
+      </section>
+
+      {/* MEET OUR TEAM & LEADERSHIP SECTION */}
+      <section className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-slate-800 bg-[#070b18]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-blue-950/70 border border-blue-500/30 text-blue-300 font-mono text-xs uppercase tracking-widest font-semibold mb-3">
+              Leadership & Mentorship
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+              Meet Our <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">Team & Leadership</span>
+            </h2>
+            <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mt-3">
+              Visionary leaders, department heads, and core coordinators driving innovation and excellence at CROSSROADS 2026.
+            </p>
+
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-8">
+              {['All', 'Leadership', 'Faculty', 'Core Leads'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setTeamCategory(cat)}
+                  className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer ${
+                    teamCategory === cat
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg shadow-blue-500/25 scale-105'
+                      : 'bg-slate-900/80 text-gray-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                  }`}
+                >
+                  {cat === 'All' ? 'All Members' : cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {teamMembers
+              .filter((m) => teamCategory === 'All' || m.category === teamCategory)
+              .map((member) => (
+                <div
+                  key={member.name}
+                  className="group relative rounded-2xl overflow-hidden bg-slate-900/80 border border-slate-800 hover:border-blue-500/50 transition-all duration-500 shadow-xl shadow-black/50 hover:shadow-blue-950/40 hover:-translate-y-1.5 flex flex-col"
+                >
+                  {member.featured && (
+                    <div className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 shadow-lg">
+                      <span className="text-[10px] font-extrabold text-slate-950 flex items-center gap-1 uppercase tracking-wider">
+                        <Sparkles size={11} />
+                        Leadership
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="relative h-64 sm:h-72 overflow-hidden bg-slate-950">
+                    <img
+                      src={member.image}
+                      alt={member.name}
+                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0d1326] via-[#0d1326]/30 to-transparent opacity-90 group-hover:opacity-70 transition-opacity" />
+                  </div>
+
+                  <div className="p-5 text-center relative -mt-6 bg-[#0d1326] rounded-t-2xl border-t border-slate-800/80 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-blue-300 transition-colors leading-snug">
+                        {member.name}
+                      </h3>
+                      <div className="inline-block px-3 py-1 rounded-full bg-blue-950/70 border border-blue-800/40 my-2">
+                        <span className="text-blue-300 font-semibold text-xs font-mono">
+                          {member.role}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-gray-400 text-xs mt-1">
+                      {member.dept}
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
         </div>
       </section>
 
