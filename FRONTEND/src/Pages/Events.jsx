@@ -747,7 +747,24 @@ const Events = () => {
                 </motion.button>
 
                 {siteSettings.registrationOpen ? (
-                  <Link to="/event-registration" className="flex-1">
+                  <Link
+                    to={`/event-registration${selectedEvent ? `?event=${(() => {
+                      const n = selectedEvent.name.toLowerCase();
+                      if (n.includes('code puzzle')) return 'code-puzzle';
+                      if (n.includes('project')) return 'project-exhibition';
+                      if (n.includes('robo')) return 'robo-race';
+                      if (n.includes('poster')) return 'technical-poster';
+                      if (n.includes('rangoli')) return 'rangoli-competition';
+                      if (n.includes('food')) return 'food-without-fire';
+                      if (n.includes('dance')) return 'dance-competition';
+                      if (n.includes('rock')) return 'rock-band';
+                      if (n.includes('film')) return 'short-film-maker';
+                      if (n.includes('treasure')) return 'treasure-hunt';
+                      if (n.includes('cultural')) return 'cultural-events';
+                      return '';
+                    })()}` : ''}`}
+                    className="flex-1"
+                  >
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.97 }}

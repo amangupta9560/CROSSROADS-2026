@@ -683,11 +683,21 @@ export default function Navbar() {
               <PartnerLogos />
             </div>
 
-            <ul className="hidden md:flex items-center gap-2">
-              {navItems.map((item, index) => (
-                <AnimatedNavLink key={item.name} item={item} index={index} />
-              ))}
-            </ul>
+            <div className="hidden md:flex items-center gap-4">
+              <ul className="flex items-center gap-2">
+                {navItems.map((item, index) => (
+                  <AnimatedNavLink key={item.name} item={item} index={index} />
+                ))}
+              </ul>
+
+              <NavLink
+                to="/event-registration"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-black font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-105 active:scale-95 transition-all"
+              >
+                <Sparkles size={14} className="text-black" />
+                <span>Register</span>
+              </NavLink>
+            </div>
 
             <button
               onClick={() => setOpen(true)}
@@ -715,26 +725,39 @@ export default function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 220 }}
-              className="fixed top-0 right-0 z-[999] h-screen w-[80vw] max-w-sm bg-slate-900 p-6"
+              className="fixed top-0 right-0 z-[999] h-screen w-[80vw] max-w-sm bg-slate-900 p-6 flex flex-col justify-between"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-white">Menu</h2>
-                <button onClick={() => setOpen(false)}>
-                  <X size={24} className="text-orange-400" />
-                </button>
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-white">Menu</h2>
+                  <button onClick={() => setOpen(false)}>
+                    <X size={24} className="text-orange-400" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {navItems.map((item) => (
+                    <NavLink
+                      key={item.name}
+                      to={item.path}
+                      onClick={() => setOpen(false)}
+                      className="block text-slate-300 hover:text-white text-lg font-medium"
+                    >
+                      {item.name}
+                    </NavLink>
+                  ))}
+                </div>
               </div>
 
-              <div className="space-y-4">
-                {navItems.map((item) => (
-                  <NavLink
-                    key={item.name}
-                    to={item.path}
-                    onClick={() => setOpen(false)}
-                    className="block text-slate-300 hover:text-white text-lg"
-                  >
-                    {item.name}
-                  </NavLink>
-                ))}
+              <div className="pt-6 border-t border-slate-800">
+                <NavLink
+                  to="/event-registration"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-indigo-500 text-black font-black text-sm uppercase tracking-wider shadow-lg shadow-cyan-500/30"
+                >
+                  <Sparkles size={16} className="text-black" />
+                  <span>Register Now</span>
+                </NavLink>
               </div>
             </motion.div>
           </>
