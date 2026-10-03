@@ -1,8 +1,27 @@
-
-
 import { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { Calendar, Sparkles, Ghost, Users, Briefcase, Activity, Star, Trophy, ChevronDown, Award, Gift } from 'lucide-react';
+import {
+  Calendar,
+  Sparkles,
+  Users,
+  Briefcase,
+  Star,
+  Trophy,
+  ChevronDown,
+  Award,
+  Gift,
+  ArrowRight,
+  Clock,
+  MapPin,
+  ShieldCheck,
+  Code2,
+  Cpu,
+  Flame,
+  Music,
+  Gamepad2,
+  CheckCircle2,
+  ExternalLink
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
@@ -10,18 +29,14 @@ const Home = () => {
     days: 0,
     hours: 0,
     minutes: 0,
-    seconds: 0
+    seconds: 0,
+    expired: false
   });
 
   const [openFAQ, setOpenFAQ] = useState(null);
-  const [scrollY, setScrollY] = useState(0);
   const [registrationOpen, setRegistrationOpen] = useState(true);
 
-  const titleRef = useRef(null);
-  const dateRef = useRef(null);
-  const timerBoxRef = useRef(null);
   const containerRef = useRef(null);
-
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"]
@@ -33,22 +48,13 @@ const Home = () => {
     restDelta: 0.001
   });
 
-  const heroY = useTransform(smoothScrollY, [0, 1], [0, 300]);
-  const heroOpacity = useTransform(smoothScrollY, [0, 0.3], [1, 0]);
-  const starsY = useTransform(smoothScrollY, [0, 1], [0, -200]);
+  const heroY = useTransform(smoothScrollY, [0, 1], [0, 220]);
+  const heroOpacity = useTransform(smoothScrollY, [0, 0.35], [1, 0]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
+  // Live countdown to November 28, 2026, 09:00 AM IST
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const eventDate = new Date('2026-11-28T09:00:00').getTime();
+      const eventDate = new Date('2026-11-28T09:00:00+05:30').getTime();
       const now = new Date().getTime();
       const difference = eventDate - now;
 
@@ -58,9 +64,9 @@ const Home = () => {
         const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((difference % (1000 * 60)) / 1000);
 
-        setTimeLeft({ days, hours, minutes, seconds });
+        setTimeLeft({ days, hours, minutes, seconds, expired: false });
       } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
       }
     };
 
@@ -80,79 +86,122 @@ const Home = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const stats = [
+  const featuredEvents = [
     {
-      icon: Users,
-      value: '100+',
-      label: 'Participants',
-      gradient: 'from-blue-600 to-blue-500',
-      bgGradient: 'from-blue-600/20 to-blue-500/10'
+      title: 'Code Puzzle',
+      category: 'Technical',
+      icon: Code2,
+      desc: 'Speed syntax and algorithmic debugging battle in 20 minutes.',
+      tag: 'Solo Only',
+      link: '/event-registration?event=code-puzzle',
+      color: 'from-blue-500 to-cyan-400'
     },
     {
-      icon: Briefcase,
-      value: '10+',
-      label: 'Colleges',
-      gradient: 'from-sky-600 to-cyan-500',
-      bgGradient: 'from-sky-600/20 to-cyan-500/10'
+      title: 'Robo Race',
+      category: 'Robotics',
+      icon: Flame,
+      desc: 'High-speed bots navigating obstacle ramps, seesaws, and pit traps.',
+      tag: '1 - 4 Members',
+      link: '/event-registration?event=robo-race',
+      color: 'from-amber-500 to-orange-500'
     },
     {
-      icon: Activity,
-      value: '2+',
-      label: 'Workshops',
-      gradient: 'from-blue-600 to-blue-500',
-      bgGradient: 'from-blue-600/20 to-blue-500/10'
+      title: 'Project Exhibition',
+      category: 'Technical',
+      icon: Cpu,
+      desc: 'Showcase working prototypes, AI systems, and hardware innovations.',
+      tag: '1 - 4 Members',
+      link: '/event-registration?event=project-exhibition',
+      color: 'from-emerald-400 to-teal-500'
     },
     {
-      icon: Star,
-      value: '10+',
-      label: 'Mentors',
-      gradient: 'from-sky-600 to-cyan-500',
-      bgGradient: 'from-sky-600/20 to-cyan-500/10'
+      title: 'Dance Competition',
+      category: 'Cultural',
+      icon: Sparkles,
+      desc: 'Electrifying solo and group performances judged on synchronization & expression.',
+      tag: 'Solo / Squad',
+      link: '/event-registration?event=dance-competition',
+      color: 'from-purple-500 to-pink-500'
+    },
+    {
+      title: 'Rock Band',
+      category: 'Cultural',
+      icon: Music,
+      desc: 'High-voltage live college band face-off under amphitheatre lights.',
+      tag: '1 - 4 Members',
+      link: '/event-registration?event=rock-band',
+      color: 'from-red-500 to-rose-500'
+    },
+    {
+      title: 'Treasure Hunt',
+      category: 'Adventure',
+      icon: Gamepad2,
+      desc: 'Campus-wide cryptic clues and checkpoint missions against the clock.',
+      tag: '5 - 8 Squad',
+      link: '/event-registration?event=treasure-hunt',
+      color: 'from-indigo-500 to-violet-500'
     }
   ];
 
-  
+  const stats = [
+    {
+      icon: Users,
+      value: '1,500+',
+      label: 'Innovators Expected',
+      color: 'text-cyan-400',
+      bgGradient: 'from-cyan-500/20 to-blue-500/10'
+    },
+    {
+      icon: Briefcase,
+      value: '50+',
+      label: 'Colleges & Universities',
+      color: 'text-blue-400',
+      bgGradient: 'from-blue-500/20 to-indigo-500/10'
+    },
+    {
+      icon: Trophy,
+      value: '11',
+      label: 'Flagship Arenas',
+      color: 'text-amber-400',
+      bgGradient: 'from-amber-500/20 to-orange-500/10'
+    },
+    {
+      icon: Star,
+      value: '₹1L+',
+      label: 'Total Prize Pool',
+      color: 'text-emerald-400',
+      bgGradient: 'from-emerald-500/20 to-teal-500/10'
+    }
+  ];
 
   const faqs = [
     {
       question: 'What is CROSSROADS 2026?',
-      answer: 'CROSSROADS 2026 is our college\'s annual technical and cultural fest featuring a blend of innovation, creativity, and talent. It includes exciting technical events like Project Exhibition, Robo Race, and Poster Presentation, along with cultural competitions such as Dance, Singing, Short Film, and many more.'
+      answer: 'CROSSROADS 2026 is the annual inter-college technical and cultural festival hosted by Hi-Tech Institute of Engineering & Technology (HIET), Ghaziabad. It brings together over 1,500 students from engineering, management, and arts institutions across North India to compete in 11 flagship arenas.'
     },
     {
-      question: 'Who can participate in the fest?',
-      answer: 'Students from all colleges across India can participate in CROSSROADS 2026. Whether you are passionate about coding, robotics, arts, or performing, there\'s an event for everyone!'
+      question: 'When and where will CROSSROADS 2026 take place?',
+      answer: 'CROSSROADS 2026 will be held on November 28–29, 2026, at the sprawling HIET Ghaziabad campus (NH-9). Day 1 kicks off at 8:50 AM with registrations and inauguration, followed by competitions and cultural nights across both days.'
+    },
+    {
+      question: 'What is the last date to register?',
+      answer: 'Online registrations officially close on November 20, 2026 at 11:59 PM. To ensure your team pass is generated and logistical arrangements are finalized, all participants must register online before the deadline.'
     },
     {
       question: 'Is there any registration fee?',
-      answer: 'No, the registration for CROSSROADS 2026 is completely free of cost. Just sign up online through our official website to secure your spot in the fest.'
+      answer: 'No! Registration for CROSSROADS 2026 is completely free of cost for all student participants. Simply choose your event, submit your squad details, and your official Team Pass will be emailed instantly.'
     },
     {
       question: 'Can I participate in multiple events?',
-      answer: 'Yes, participants are allowed to register for multiple events as long as the event timings do not overlap. Make sure to check the event schedule before registering for multiple competitions.'
+      answer: 'Yes! Participants are welcome to register for multiple competitions as long as their schedule slots do not clash. Please review the official schedule before signing up for overlapping tracks.'
     },
     {
-      question: 'How can I register for the events?',
-      answer: 'You can register online through the official CROSSROADS 2026 website. Visit the event page, select your desired event, and fill out the registration form. Confirmation details will be shared via email.'
+      question: 'Will participants receive certificates and prizes?',
+      answer: 'Yes! All registered participants who attend receive an official Certificate of Participation. Winners in each event receive cash prizes, commemorative trophies, merit certificates, and exclusive sponsor gifts from our ₹1,00,000+ prize pool.'
     },
     {
-      question: 'When and where will CROSSROADS 2026 be held?',
-      answer: 'CROSSROADS 2026 will take place on November 28-29, 2026, at our college campus. Online registrations will officially close on November 20, 2026. Detailed venue information and event schedules will be shared closer to the date.'
-    },
-    {
-      question: 'Are there any prizes for winners?',
-      answer: 'Yes! Attractive prizes, certificates, and trophies will be awarded to winners and outstanding participants across all technical and cultural events.'
-    },
-    {
-      question: 'Do participants need to bring anything?',
-      answer: 'Participants should bring their college ID cards, laptops or project materials (if applicable), and any specific items required for their event. All general arrangements such as WiFi, workspace will be provided.'
-    },
-    {
-      question: 'Will food and accommodation be provided?',
-      answer: 'Food and refreshments will be available at the venue. Limited accommodation facilities may be provided for outstation participants — please contact the organizing team in advance for arrangements.'
-    },
-    {
-      question: 'How can I stay updated about the fest?',
-      answer: 'All updates, schedules, and announcements will be shared on the official website and social media handles of CROSSROADS 2026. Make sure to follow us for the latest news!'
+      question: 'What documents should we bring to the fest?',
+      answer: 'Every participant must carry their valid College Identity Card and a copy of the official confirmation email containing their Team ID (CR26-XXXX). Laptops, robot kits, or project setups should be brought by the respective teams.'
     }
   ];
 
@@ -161,575 +210,373 @@ const Home = () => {
   };
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 text-white overflow-hidden relative">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-blue-800/15 via-transparent to-transparent"></div>
+    <div ref={containerRef} className="min-h-screen bg-[#060813] text-gray-100 overflow-hidden relative selection:bg-cyan-500 selection:text-black">
+      {/* Background Cyber Grid & Ambient Radial Lights */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b12_1px,transparent_1px),linear-gradient(to_bottom,#1e293b12_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
+      <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[50rem] h-[25rem] bg-cyan-600/12 blur-[150px] rounded-full pointer-events-none" />
+      <div className="absolute top-96 right-[-10%] w-[35rem] h-[25rem] bg-indigo-600/10 blur-[160px] rounded-full pointer-events-none" />
+      <div className="absolute top-[60rem] left-[-10%] w-[35rem] h-[25rem] bg-purple-600/10 blur-[160px] rounded-full pointer-events-none" />
 
-      <motion.div 
-        className="absolute inset-0 opacity-10"
-        style={{ y: starsY }}
-      >
-        {[...Array(50)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-white rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              opacity: [0.2, 1, 0.2],
-              scale: [1, 1.5, 1],
-            }}
-            transition={{
-              duration: Math.random() * 3 + 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
-      </motion.div>
-
-      <motion.div 
-        className="relative z-10 container mx-auto px-4 py-8 sm:py-12 flex flex-col items-center justify-center pt-24 sm:pt-20 md:pt-24"
+      {/* HERO SECTION */}
+      <motion.div
+        className="relative z-10 container mx-auto px-4 pt-32 sm:pt-36 lg:pt-40 pb-16 lg:pb-24 flex flex-col items-center justify-center text-center"
         style={{ y: heroY, opacity: heroOpacity }}
       >
-        <motion.div
-          ref={dateRef}
-          className="mb-6 sm:mb-8 flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 px-4 sm:px-6 py-2 sm:py-3 rounded-full shadow-lg shadow-blue-600/50"
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          whileHover={{ scale: 1.05 }}
-        >
-          <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-          <span className="font-semibold text-sm sm:text-base md:text-lg">November 28-29, 2026</span>
-          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-        </motion.div>
+        {/* Registration Live Status & Fest Dates Badges */}
+        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 font-mono text-xs sm:text-sm font-semibold shadow-lg shadow-cyan-950/50 backdrop-blur-md"
+          >
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <span>REGISTRATIONS LIVE • CLOSES NOV 20, 2026</span>
+          </motion.div>
 
-        <div ref={titleRef} className="text-center mb-8 md:mb-12 px-2">
-          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-tight whitespace-nowrap">
-            {['C', 'R', 'O', 'S', 'S', 'R', 'O', 'A', 'D', 'S'].map((letter, index) => (
-              <motion.span
-                key={index}
-                className="inline-block text-blue-500"
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  duration: 0.5, 
-                  delay: 0.3 + index * 0.05,
-                  ease: "easeOut"
-                }}
-                whileHover={{ 
-                  scale: 1.2, 
-                  color: '#60a5fa',
-                  transition: { duration: 0.2 }
-                }}
-              >
-                {letter}
-              </motion.span>
-            ))}
-            {['2', '0', '2', '6'].map((number, index) => (
-              <motion.span
-                key={`num-${index}`}
-                className="inline-block text-white ml-2 sm:ml-3 md:ml-4 first:ml-2 sm:first:ml-3 md:first:ml-4"
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  duration: 0.5, 
-                  delay: 0.8 + index * 0.05,
-                  ease: "easeOut"
-                }}
-                whileHover={{ 
-                  scale: 1.2, 
-                  color: '#93c5fd',
-                  transition: { duration: 0.2 }
-                }}
-              >
-                {number}
-              </motion.span>
-            ))}
-          </h1>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/80 text-gray-300 text-xs sm:text-sm font-medium shadow-md backdrop-blur-md"
+          >
+            <Calendar className="w-3.5 h-3.5 text-amber-400" />
+            <span>November 28–29, 2026</span>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/80 text-gray-300 text-xs sm:text-sm font-medium shadow-md backdrop-blur-md hidden md:inline-flex"
+          >
+            <MapPin className="w-3.5 h-3.5 text-rose-400" />
+            <span>HIET Ghaziabad (NH-9)</span>
+          </motion.div>
         </div>
 
+        {/* Main Event Title */}
         <motion.div
-          ref={timerBoxRef}
-          className="relative w-full max-w-2xl mx-auto"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 1.2 }}
-          style={{
-            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(14, 165, 233, 0.15) 100%)',
-            borderRadius: '24px',
-            padding: '2px',
-          }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="mb-6 px-2"
         >
-          <div
-            className="bg-slate-800/80 backdrop-blur-xl rounded-[22px] p-4 sm:p-6 md:p-8 lg:p-12"
-            style={{
-              boxShadow: '0 0 60px rgba(59, 130, 246, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.5)',
-            }}
-          >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-400 text-center mb-6 md:mb-8">
-             Wow! All seats are taken and registration is now closed. Get ready for something amazing!
-            </h2>
+          <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tight leading-none">
+            <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent drop-shadow-2xl">
+              CROSSROADS
+            </span>
+            <span className="text-white ml-3 sm:ml-5 drop-shadow-[0_0_35px_rgba(56,189,248,0.4)]">
+              2026
+            </span>
+          </h1>
+          <p className="mt-4 text-base sm:text-xl lg:text-2xl text-gray-300 font-light max-w-3xl mx-auto leading-relaxed">
+            North India's Premier Inter-College Technical & Cultural Fest
+          </p>
+        </motion.div>
 
-            {/* <div className="grid grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-6 md:mb-8">
-              {[
-                { value: timeLeft.days, label: 'Days' },
-                { value: timeLeft.hours, label: 'Hours' },
-                { value: timeLeft.minutes, label: 'Minutes' },
-                { value: timeLeft.seconds, label: 'Seconds' }
-              ].map((item) => (
-                <motion.div
-                  key={item.label}
-                  className="relative group"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  <div
-                    className="relative overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-4 lg:p-6"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%)',
-                      border: '2px solid rgba(59, 130, 246, 0.3)',
-                      boxShadow: '0 0 20px rgba(59, 130, 246, 0.2)',
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-linear-to-br from-blue-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                    <div className="relative z-10">
-                      <motion.div
-                        key={item.value}
-                        initial={{ y: -20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ duration: 0.3 }}
-                        className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-1 sm:mb-2 text-center"
-                      >
-                        {String(item.value).padStart(2, '0')}
-                      </motion.div>
-                      <div className="text-xs sm:text-sm md:text-base text-blue-400 font-medium text-center">
-                        {item.label}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div> */}
+        {/* Value Chips Ribbon */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.35 }}
+          className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 max-w-4xl mx-auto mb-10 text-xs sm:text-sm"
+        >
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-gray-300 font-medium">
+            <Trophy size={14} className="text-amber-400" />
+            <span>₹1,00,000+ Prize Pool</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-gray-300 font-medium">
+            <Cpu size={14} className="text-cyan-400" />
+            <span>11 Flagship Competitions</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-gray-300 font-medium">
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span>Verifiable Certificates</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-gray-300 font-medium">
+            <Users size={14} className="text-purple-400" />
+            <span>50+ Colleges Competing</span>
           </div>
         </motion.div>
 
-        <motion.div 
-          className="mt-8 md:mt-12 flex justify-center w-full max-w-md mx-auto px-4"
-          initial={{ opacity: 0, y: 30 }}
+        {/* LIVE COUNTDOWN CARD */}
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.4 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="w-full max-w-3xl mx-auto mb-10"
         >
-          <motion.button
-            className="w-full px-8 py-4 rounded-xl font-semibold text-base sm:text-lg relative overflow-hidden group cursor-pointer"
-            style={{
-              background: registrationOpen
-                ? 'linear-gradient(135deg, rgba(59, 130, 246, 1) 0%, rgba(14, 165, 233, 1) 100%)'
-                : 'linear-gradient(135deg, rgba(75, 85, 99, 1) 0%, rgba(55, 65, 81, 1) 100%)',
-              border: '2px solid rgba(59, 130, 246, 0.5)',
-              boxShadow: '0 0 30px rgba(59, 130, 246, 0.4)',
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {registrationOpen ? (
-              <Link to="/event-registration" className="relative z-10 block text-white font-bold">
-                Register For Events →
-              </Link>
+          <div className="bg-slate-900/80 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 lg:p-10 border border-cyan-500/30 shadow-2xl relative overflow-hidden">
+            {/* Holographic Top Line */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-teal-400 to-indigo-500" />
+
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-cyan-400 animate-spin" style={{ animationDuration: '8s' }} />
+                <span className="text-xs font-mono uppercase tracking-widest text-cyan-300 font-bold">
+                  {timeLeft.expired ? 'CROSSROADS HAS BEGUN!' : 'COUNTDOWN TO GLORY'}
+                </span>
+              </div>
+              <span className="text-[11px] font-mono text-gray-500">HIET CAMPUS • NOV 28-29</span>
+            </div>
+
+            {!timeLeft.expired ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-5">
+                {[
+                  { value: timeLeft.days, label: 'Days' },
+                  { value: timeLeft.hours, label: 'Hours' },
+                  { value: timeLeft.minutes, label: 'Minutes' },
+                  { value: timeLeft.seconds, label: 'Seconds' }
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 sm:p-5 rounded-2xl bg-[#090e1c] border border-cyan-500/20 text-center shadow-inner group hover:border-cyan-400 transition"
+                  >
+                    <div className="text-3xl sm:text-5xl font-black font-mono text-cyan-400 tracking-tight group-hover:scale-105 transition-transform">
+                      {String(item.value).padStart(2, '0')}
+                    </div>
+                    <div className="text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-400 mt-1.5 font-medium">
+                      {item.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <Link to="/events" className="relative z-10 block text-gray-200 font-bold">
-                Registrations Closed • Explore Events
-              </Link>
+              <div className="text-center py-6 text-2xl sm:text-4xl font-extrabold text-cyan-400 font-mono tracking-wider">
+                FEST IS OFFICIALLY LIVE!
+              </div>
             )}
-            <div className="absolute inset-0 bg-linear-to-r from-blue-600 to-sky-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          </motion.button>
-          <p className="text-center text-xs text-sky-300/80 font-mono mt-3">
-            ⚡ Event Date: November 28–29, 2026 • Registration Closes: November 20, 2026
-          </p>
+
+            <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
+              <span className="flex items-center gap-1.5 text-amber-300 font-semibold">
+                <span>⚠️</span>
+                <span>Online Registration Deadline: <strong>November 20, 2026</strong></span>
+              </span>
+              <span className="font-mono text-gray-500">100% Free Entry • Limited Slots</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* PRIMARY CALLS TO ACTION */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.65 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full max-w-md mx-auto"
+        >
+          {registrationOpen ? (
+            <Link
+              to="/event-registration"
+              className="w-full sm:w-auto flex-1 py-4 px-8 bg-gradient-to-r from-cyan-400 via-teal-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-black font-extrabold text-base rounded-2xl shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 group cursor-pointer"
+            >
+              <Sparkles size={18} className="text-black" />
+              <span>Register Your Squad</span>
+              <ArrowRight size={18} className="text-black group-hover:translate-x-1 transition-transform" />
+            </Link>
+          ) : (
+            <Link
+              to="/events"
+              className="w-full sm:w-auto flex-1 py-4 px-8 bg-slate-800 text-gray-300 hover:text-white font-bold text-base rounded-2xl border border-slate-700 transition"
+            >
+              Registrations Paused • View Events
+            </Link>
+          )}
+
+          <Link
+            to="/events"
+            className="w-full sm:w-auto py-4 px-7 bg-slate-900/90 hover:bg-slate-800 text-gray-200 hover:text-white font-bold text-base rounded-2xl border border-slate-700/80 hover:border-cyan-500/50 shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Trophy size={18} className="text-cyan-400" />
+            <span>Explore 11 Arenas</span>
+          </Link>
         </motion.div>
       </motion.div>
 
-      <section className="relative z-10 py-16 sm:py-20 md:py-24 px-4">
-        <div className="container mx-auto max-w-7xl">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12 md:mb-16"
-          >
-            <motion.span 
-              className="inline-block px-6 py-2 rounded-full text-sm sm:text-base font-semibold mb-6"
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              style={{
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(14, 165, 233, 0.2) 100%)',
-                border: '2px solid rgba(59, 130, 246, 0.3)',
-              }}
-            >
-              About The Event
-            </motion.span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4">
-              <span className="text-white">The State Level </span>
-              <span className="text-blue-500">Innovation Competition</span>
-              <span className="text-white"> of the Year</span>
+      {/* FEATURED ARENAS SHOWCASE SECTION */}
+      <section className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-slate-800/80 bg-slate-950/40">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-400 font-mono text-xs uppercase tracking-widest font-semibold mb-3">
+              Competitions & Tracks
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+              Featured <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">Event Arenas</span>
             </h2>
-          </motion.div>
+            <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mt-3">
+              From high-octane coding and battle bots to electrifying rock performances. Choose your domain.
+            </p>
+          </div>
 
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 lg:gap-10">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative group"
-            >
-              <div
-                className="h-full p-6 sm:p-8 md:p-10 rounded-2xl backdrop-blur-xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(14, 165, 233, 0.05) 100%)',
-                  border: '2px solid rgba(59, 130, 246, 0.2)',
-                  boxShadow: '0 0 40px rgba(59, 130, 246, 0.1)',
-                }}
-              >
-                <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-400 mb-6">
-                  What is CROSSROADS?
-                </h3>
-                <div className="space-y-4 text-gray-300 text-sm sm:text-base md:text-lg leading-relaxed">
-                  <p>
-                    CROSSROADS 2026 is our college's annual technical and cultural fest that celebrates innovation, creativity, and talent. It brings together students from diverse fields to showcase their skills through exciting events, competitions, and performances.
-                  </p>
-                  <p>
-                    From project exhibitions and robotics challenges to dance, music, and art — the fest offers a vibrant platform for young minds to connect, collaborate, and create unforgettable memories.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="relative group"
-            >
-              <div
-                className="h-full p-6 sm:p-8 md:p-10 rounded-2xl backdrop-blur-xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%)',
-                  border: '2px solid rgba(14, 165, 233, 0.2)',
-                  boxShadow: '0 0 40px rgba(14, 165, 233, 0.1)',
-                }}
-              >
-                <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-sky-400 mb-6">
-                  Why Participate?
-                </h3>
-                <div className="space-y-4">
-                  {[
-                    { text: 'Showcase your talent in technical and cultural events' },
-                    { text: 'Gain hands-on experience and learn from experts' },
-                    { text: 'Win exciting prizes, certificates, and recognition' },
-                    { text: 'Network with students, innovators, and industry mentors' },
-                    { text: 'Be part of an unforgettable two-day college fest experience' }
-                  ].map((item, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: 30 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
-                      className="flex items-start gap-3 group/item"
-                    >
-                      <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center"
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)',
-                        }}
-                      >
-                        <Ghost className="w-4 h-4 sm:w-5 sm:h-5 text-sky-400" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredEvents.map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={idx}
+                  className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 hover:border-cyan-500/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-950/30 group flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`p-3 rounded-2xl bg-gradient-to-br ${item.color} text-black font-bold shadow-md`}>
+                        <Icon size={22} />
                       </div>
-                      <p className="text-gray-300 text-sm sm:text-base md:text-lg flex-1 pt-1">
-                        {item.text}
-                      </p>
-                    </motion.div>
-                  ))}
+                      <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-slate-800 text-cyan-300 border border-slate-700">
+                        {item.tag}
+                      </span>
+                    </div>
+                    <span className="text-xs uppercase font-mono tracking-wider text-gray-500 block mb-1">
+                      {item.category} Track
+                    </span>
+                    <h3 className="text-xl font-bold text-white group-hover:text-cyan-300 transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+                      {item.desc}
+                    </p>
+                  </div>
+
+                  <div className="pt-6 mt-6 border-t border-slate-800 flex items-center justify-between">
+                    <span className="text-xs text-gray-500 font-mono">Date: Nov 28–29</span>
+                    <Link
+                      to={item.link}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition group-hover:translate-x-1 duration-200"
+                    >
+                      <span>Register Arena</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              );
+            })}
+          </div>
+
+          <div className="text-center mt-12">
+            <Link
+              to="/events"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-sm font-bold text-white transition hover:scale-105"
+            >
+              <span>View All 11 Competitions & Rulebooks</span>
+              <ArrowRight size={16} />
+            </Link>
           </div>
         </div>
       </section>
 
-      <section className="relative z-10 py-12 sm:py-16 md:py-20 px-4">
-        <div className="container mx-auto max-w-7xl">
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.95 }}
-            whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="relative w-full max-w-5xl mx-auto"
-            style={{
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%)',
-              borderRadius: '24px',
-              padding: '2px',
-            }}
-          >
-            <div
-              className="bg-slate-800/80 backdrop-blur-xl rounded-[22px] p-6 sm:p-8 md:p-12 lg:p-16"
-              style={{
-                boxShadow: '0 0 60px rgba(59, 130, 246, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.5)',
-              }}
-            >
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10">
-                {stats.map((stat, index) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 50, scale: 0.8 }}
-                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: index * 0.15 }}
-                    className="flex flex-col items-center text-center group"
-                    whileHover={{ scale: 1.05, y: -10 }}
-                  >
-                    <motion.div
-                      className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center mb-4 sm:mb-6 relative overflow-hidden"
-                      style={{
-                        background: `linear-gradient(135deg, ${stat.bgGradient})`,
-                        border: '2px solid rgba(59, 130, 246, 0.3)',
-                        boxShadow: '0 0 30px rgba(59, 130, 246, 0.2)',
-                      }}
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.6 }}
-                    >
-                      <stat.icon className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 ${stat.gradient.includes('blue-6') ? 'text-blue-400' : 'text-sky-400'}`} />
-                    </motion.div>
-
-                    <motion.div
-                      className="text-2xl sm:text-5xl md:text-4xl font-black mb-2 sm:mb-3 text-white"
-                    >
-                      {stat.value}
-                    </motion.div>
-
-                    <div className="text-base sm:text-lg md:text-xl text-gray-400 font-medium">
-                      {stat.label}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="relative z-10 py-12 sm:py-16 md:py-20 px-4">
-        <div className="container mx-auto max-w-7xl">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12 md:mb-16"
-          >
-            <motion.span 
-              className="inline-block px-6 py-3 rounded-full text-sm sm:text-base font-semibold mb-6 bg-linear-to-r from-blue-600 to-blue-500"
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              Win Big
-            </motion.span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4">
-              <span className="text-white">Exciting </span>
-              <span className="text-blue-500">Prizes</span>
-              <span className="text-white"> Await</span>
-            </h2>
-            <p className="text-gray-400 text-sm sm:text-base md:text-lg max-w-3xl mx-auto mt-4">
-              Compete for an incredible treasure of rewards, recognition, and career opportunities!
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 50 }}
-            whileInView={{ opacity: 1, scale: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="relative mb-12 md:mb-16"
-          >
-            <div
-              className="relative max-w-3xl mx-auto p-8 sm:p-10 md:p-12 lg:p-16 rounded-3xl backdrop-blur-xl"
-              style={{
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(14, 165, 233, 0.15) 100%)',
-                border: '3px solid rgba(59, 130, 246, 0.5)',
-                boxShadow: '0 0 80px rgba(59, 130, 246, 0.4), inset 0 0 40px rgba(59, 130, 246, 0.1)',
-              }}
-            >
-              <div className="text-center">
-                <motion.div
-                  className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full mb-6"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 1) 0%, rgba(37, 99, 235, 1) 100%)',
-                    boxShadow: '0 0 40px rgba(59, 130, 246, 0.6)',
-                  }}
-                  initial={{ rotate: 0, scale: 0 }}
-                  whileInView={{ rotate: 360, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 1, delay: 0.3 }}
-                  whileHover={{ rotate: 360, scale: 1.1 }}
+      {/* METRICS & NUMBERS SECTION */}
+      <section className="relative z-10 py-16 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {stats.map((s, idx) => {
+              const Icon = s.icon;
+              return (
+                <div
+                  key={idx}
+                  className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 text-center relative overflow-hidden group hover:border-slate-700 transition"
                 >
-                  <Trophy className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-white" />
-                </motion.div>
-
-                <motion.h3 
-                  className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-400 mb-4"
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: 0.5 }}
-                >
-                  Total Prize Pool
-                </motion.h3>
-
-                <motion.div 
-                  className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white mb-6"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.8, delay: 0.6 }}
-                >
-                  ₹1,00,000+
-                </motion.div>
-
-                <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-8">
-                  {[
-                    { icon: Award, label: 'Certificates', color: 'blue' },
-                    { icon: Trophy, label: 'Trophies', color: 'sky' },
-                    { icon: Gift, label: 'Goodies', color: 'blue' }
-                  ].map((item, index) => (
-                    <motion.div
-                      key={item.label}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg"
-                      style={{
-                        background: item.color === 'blue' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(14, 165, 233, 0.1)',
-                        border: item.color === 'blue' ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(14, 165, 233, 0.3)',
-                      }}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
-                      whileHover={{ scale: 1.05, y: -5 }}
-                    >
-                      <item.icon className={`w-5 h-5 ${item.color === 'blue' ? 'text-blue-400' : 'text-sky-400'}`} />
-                      <span className="text-gray-300 font-medium">{item.label}</span>
-                    </motion.div>
-                  ))}
+                  <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <Icon size={22} className={s.color} />
+                  </div>
+                  <div className="text-3xl sm:text-5xl font-black font-mono text-white mb-1.5">
+                    {s.value}
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-400 font-medium">
+                    {s.label}
+                  </div>
                 </div>
-              </div>
-            </div>
-          </motion.div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      <section className="relative z-10 py-12 sm:py-16 md:py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12 md:mb-16"
-          >
-            <motion.span 
-              className="inline-block px-6 py-2 rounded-full text-sm sm:text-base font-semibold mb-6"
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              style={{
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(14, 165, 233, 0.2) 100%)',
-                border: '2px solid rgba(59, 130, 246, 0.3)',
-              }}
-            >
-              FAQ
-            </motion.span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4">
-              <span className="text-white">Frequently Asked </span>
-              <span className="text-blue-500">Questions</span>
-            </h2>
-          </motion.div>
+      {/* PRIZE POOL SPOTLIGHT */}
+      <section className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-slate-800 bg-gradient-to-b from-slate-950/60 to-black">
+        <div className="max-w-4xl mx-auto bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 sm:p-14 text-center relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="w-20 h-20 rounded-3xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center mx-auto mb-6 text-amber-400 shadow-xl shadow-amber-500/10">
+            <Trophy size={40} />
+          </div>
+          <span className="inline-block px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs uppercase tracking-widest font-semibold mb-3">
+            Grand Competition Rewards
+          </span>
+          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight mb-3">
+            ₹1,00,000+ Prize Pool
+          </h2>
+          <p className="text-gray-300 text-base sm:text-lg max-w-2xl mx-auto mb-8">
+            Compete across technical and cultural arenas for cash rewards, prestigious rolling trophies, verifiable merit certificates, and exclusive corporate goodies.
+          </p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="relative w-full"
-            style={{
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%)',
-              borderRadius: '24px',
-              padding: '2px',
-            }}
-          >
-            <div
-              className="bg-slate-800/80 backdrop-blur-xl rounded-[22px] p-4 sm:p-6 md:p-8"
-              style={{
-                boxShadow: '0 0 60px rgba(59, 130, 246, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.5)',
-              }}
-            >
-              <div className="space-y-4">
-                {faqs.map((faq, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: index * 0.05 }}
-                  >
-                    <button
-                      onClick={() => toggleFAQ(index)}
-                      className="w-full text-left p-4 sm:p-6 rounded-xl transition-all duration-300"
-                      style={{
-                        background: openFAQ === index
-                          ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%)'
-                          : 'rgba(255, 255, 255, 0.02)',
-                        border: `2px solid ${openFAQ === index ? 'rgba(59, 130, 246, 0.3)' : 'rgba(14, 165, 233, 0.2)'}`,
-                      }}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <h3 className="text-base sm:text-lg md:text-xl font-semibold text-white">
-                          {faq.question}
-                        </h3>
-                        <motion.div
-                          animate={{ rotate: openFAQ === index ? 180 : 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="shrink-0"
-                        >
-                          <ChevronDown className={`w-5 h-5 sm:w-6 sm:h-6 ${openFAQ === index ? 'text-blue-500' : 'text-gray-400'}`} />
-                        </motion.div>
-                      </div>
-                      <motion.div
-                        initial={false}
-                        animate={{
-                          height: openFAQ === index ? 'auto' : 0,
-                          opacity: openFAQ === index ? 1 : 0,
-                        }}
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden"
-                      >
-                        <p className="mt-4 text-sm sm:text-base text-gray-300 leading-relaxed">
-                          {faq.answer}
-                        </p>
-                      </motion.div>
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl mx-auto mb-8 text-sm">
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-center gap-2">
+              <Award className="text-cyan-400" size={18} />
+              <span className="font-semibold text-gray-200">Official Certificates</span>
             </div>
-          </motion.div>
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-center gap-2">
+              <Trophy className="text-amber-400" size={18} />
+              <span className="font-semibold text-gray-200">Gold & Silver Trophies</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-center gap-2">
+              <Gift className="text-emerald-400" size={18} />
+              <span className="font-semibold text-gray-200">Goodies & Badges</span>
+            </div>
+          </div>
+
+          <Link
+            to="/event-registration"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 text-black font-extrabold text-base shadow-lg shadow-amber-500/20 hover:scale-105 transition"
+          >
+            <Sparkles size={18} className="text-black" />
+            <span>Enter the Competition</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* FREQUENTLY ASKED QUESTIONS */}
+      <section className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-slate-800">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-400 font-mono text-xs uppercase tracking-widest font-semibold mb-3">
+              Got Questions?
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+              Frequently Asked <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">Questions</span>
+            </h2>
+            <p className="text-gray-400 text-base sm:text-lg max-w-xl mx-auto mt-3">
+              Everything you need to know about participating in CROSSROADS 2026.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden transition"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleFAQ(idx)}
+                  className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-800/40 transition"
+                >
+                  <span className="text-base sm:text-lg font-bold text-white">
+                    {faq.question}
+                  </span>
+                  <ChevronDown
+                    size={20}
+                    className={`text-cyan-400 shrink-0 transition-transform duration-300 ${
+                      openFAQ === idx ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {openFAQ === idx && (
+                  <div className="px-5 sm:px-6 pb-6 text-sm sm:text-base text-gray-300 leading-relaxed border-t border-slate-800/60 pt-4">
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </div>
@@ -737,4 +584,3 @@ const Home = () => {
 };
 
 export default Home;
-
