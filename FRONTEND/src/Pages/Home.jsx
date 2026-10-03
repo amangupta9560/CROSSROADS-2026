@@ -15,6 +15,7 @@ const Home = () => {
 
   const [openFAQ, setOpenFAQ] = useState(null);
   const [scrollY, setScrollY] = useState(0);
+  const [registrationOpen, setRegistrationOpen] = useState(true);
 
   const titleRef = useRef(null);
   const dateRef = useRef(null);
@@ -65,6 +66,16 @@ const Home = () => {
 
     calculateTimeLeft();
     const timer = setInterval(calculateTimeLeft, 1000);
+
+    // Fetch site registration status
+    fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.registrationOpen !== undefined) {
+          setRegistrationOpen(data.registrationOpen);
+        }
+      })
+      .catch(() => {});
 
     return () => clearInterval(timer);
   }, []);
@@ -313,16 +324,26 @@ const Home = () => {
           transition={{ duration: 0.8, delay: 1.4 }}
         >
           <motion.button
-            className="w-full px-8 py-4 rounded-xl font-semibold text-base sm:text-lg relative overflow-hidden group"
+            className="w-full px-8 py-4 rounded-xl font-semibold text-base sm:text-lg relative overflow-hidden group cursor-pointer"
             style={{
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 1) 0%, rgba(14, 165, 233, 1) 100%)',
+              background: registrationOpen
+                ? 'linear-gradient(135deg, rgba(59, 130, 246, 1) 0%, rgba(14, 165, 233, 1) 100%)'
+                : 'linear-gradient(135deg, rgba(75, 85, 99, 1) 0%, rgba(55, 65, 81, 1) 100%)',
               border: '2px solid rgba(59, 130, 246, 0.5)',
               boxShadow: '0 0 30px rgba(59, 130, 246, 0.4)',
             }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Link to="/event-registration" className="relative z-10">Registration Open</Link>
+            {registrationOpen ? (
+              <Link to="/event-registration" className="relative z-10 block text-white font-bold">
+                Register For Events →
+              </Link>
+            ) : (
+              <Link to="/events" className="relative z-10 block text-gray-200 font-bold">
+                Registrations Closed • Explore Events
+              </Link>
+            )}
             <div className="absolute inset-0 bg-linear-to-r from-blue-600 to-sky-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </motion.button>
         </motion.div>

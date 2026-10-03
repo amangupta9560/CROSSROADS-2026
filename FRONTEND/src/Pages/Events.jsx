@@ -488,6 +488,14 @@ const Events = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [filter, setFilter] = useState('All');
   const [timeLeft, setTimeLeft] = useState({});
+  const [siteSettings, setSiteSettings] = useState({ registrationOpen: true, eventStatus: {} });
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/settings`)
+      .then(res => res.json())
+      .then(data => { if (data) setSiteSettings(data); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const targetDate = new Date('2026-02-27T00:00:00+05:30').getTime();
@@ -738,15 +746,24 @@ const Events = () => {
                   Close
                 </motion.button>
 
-                <Link to="/event-registration" className="flex-1">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-sky-700 hover:from-blue-700 hover:to-sky-800 text-white font-bold rounded-2xl transition-all shadow-xl shadow-blue-600/30"
+                {siteSettings.registrationOpen ? (
+                  <Link to="/event-registration" className="flex-1">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="w-full py-4 bg-gradient-to-r from-blue-600 to-sky-700 hover:from-blue-700 hover:to-sky-800 text-white font-bold rounded-2xl transition-all shadow-xl shadow-blue-600/30"
+                    >
+                      Register Now →
+                    </motion.button>
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="flex-1 py-4 bg-gray-800/80 text-gray-400 font-semibold rounded-2xl border border-gray-700/50 cursor-not-allowed"
                   >
-                    Register Now →
-                  </motion.button>
-                </Link>
+                    Registrations Closed
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>
