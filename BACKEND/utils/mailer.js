@@ -137,6 +137,7 @@ const generateRegistrationConfirmationHtml = (team) => {
             <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600; width:38%;">Team ID</td><td style="color:#38bdf8; font-weight:700; font-family:monospace;">${team.teamId}</td></tr>
             <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Team Name</td><td style="color:#f8fafc; font-weight:600;">${team.teamName}</td></tr>
             <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Event</td><td style="color:#fbbf24; font-weight:600;">${eventName}</td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Fest Dates</td><td style="color:#38bdf8; font-weight:600;">November 28–29, 2026</td></tr>
             <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Team Size</td><td><span style="background:#1e293b; padding:4px 12px; border-radius:12px; color:#38bdf8;">${team.teamSize} member(s)</span></td></tr>
             <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Team Leader</td><td style="color:#f8fafc;">${team.leader?.name} (${team.leader?.email})</td></tr>
             <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Mobile / WhatsApp</td><td style="color:#f8fafc;">${team.leader?.mobile} / ${team.leader?.whatsapp || team.leader?.mobile}</td></tr>

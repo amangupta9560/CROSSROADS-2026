@@ -48,7 +48,7 @@ const Home = () => {
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const eventDate = new Date('2026-02-26T08:00:00').getTime();
+      const eventDate = new Date('2026-11-28T09:00:00').getTime();
       const now = new Date().getTime();
       const difference = eventDate - now;
 
@@ -136,7 +136,7 @@ const Home = () => {
     },
     {
       question: 'When and where will CROSSROADS 2026 be held?',
-      answer: 'CROSSROADS 2026 will take place on February 27-28, 2026, at our college campus. Detailed venue information and event schedules will be shared closer to the date.'
+      answer: 'CROSSROADS 2026 will take place on November 28-29, 2026, at our college campus. Online registrations will officially close on November 20, 2026. Detailed venue information and event schedules will be shared closer to the date.'
     },
     {
       question: 'Are there any prizes for winners?',
@@ -202,7 +202,7 @@ const Home = () => {
           whileHover={{ scale: 1.05 }}
         >
           <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-          <span className="font-semibold text-sm sm:text-base md:text-lg">February 27-28, 2026</span>
+          <span className="font-semibold text-sm sm:text-base md:text-lg">November 28-29, 2026</span>
           <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
         </motion.div>
 
@@ -346,6 +346,9 @@ const Home = () => {
             )}
             <div className="absolute inset-0 bg-linear-to-r from-blue-600 to-sky-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </motion.button>
+          <p className="text-center text-xs text-sky-300/80 font-mono mt-3">
+            ⚡ Event Date: November 28–29, 2026 • Registration Closes: November 20, 2026
+          </p>
         </motion.div>
       </motion.div>
 

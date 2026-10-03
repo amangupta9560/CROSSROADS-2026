@@ -656,6 +656,19 @@ const EventRegistration = () => {
               <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mt-3">
                 Join 1,000+ top engineering and creative innovators from across colleges. Fill in your squad credentials below.
               </p>
+
+              {/* Event Date & Deadline Badge Ribbon */}
+              <div className="mt-5 inline-flex flex-wrap items-center justify-center gap-3 px-5 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-700/80 shadow-lg">
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-cyan-300">
+                  <span className="text-base">🗓️</span>
+                  <span>Event Date: <strong>November 28–29, 2026</strong></span>
+                </div>
+                <span className="text-slate-600 hidden sm:inline">•</span>
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-amber-300">
+                  <span className="text-base">⏳</span>
+                  <span>Registration Deadline: <strong>November 20, 2026</strong></span>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

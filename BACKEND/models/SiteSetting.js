@@ -12,7 +12,7 @@ const siteSettingSchema = new mongoose.Schema({
   },
   closedMessage: {
     type: String,
-    default: 'Online registrations for CROSSROADS 2026 are currently closed. Please check back later or contact the event helpdesk.'
+    default: 'Online registrations for CROSSROADS 2026 closed on November 20, 2026. The main fest takes place on November 28–29, 2026. Please contact the event helpdesk for spot queries.'
   },
   eventStatus: {
     type: Map,

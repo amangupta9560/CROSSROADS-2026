@@ -204,7 +204,7 @@ const events = [
     rulesPdf: codeRules,
     details: {
       description: 'A fast-paced coding challenge where participants solve puzzles in 20 minutes using any supported language (Python, Java, C++, etc.).',
-      timing: 'Feb 27, 2026, 10:00 AM – 2:00 PM (submissions within slot)',
+      timing: 'Nov 28, 2026, 10:00 AM – 2:00 PM (submissions within slot)',
       location: 'Block 1 Computer Lab',
       judgingCriteria: 'Correctness, Efficiency, Code Quality (based on final score)',
       organizer: 'HIET Ghaziabad',
@@ -217,7 +217,7 @@ const events = [
     category: 'Technical',
     details: {
       description: 'Showcase innovative student projects, prototypes, and engineering solutions to judges and visitors.',
-      timing: 'Feb 27, 2026, 10:00 AM – 2:00 PM',
+      timing: 'Nov 28, 2026, 10:00 AM – 2:00 PM',
       location: 'Exhibition Ground',
       judgingCriteria: 'Originality, Technical Execution, Impact, Presentation',
       organizer: 'HIET Ghaziabad',
@@ -231,7 +231,7 @@ const events = [
     rulesPdf: roboRules,
     details: {
       description: 'Race custom robots (max 3 kg, 12V, wired/wireless) through an obstacle track featuring ramps, seesaws, slippery paths, marble pits, etc.',
-      timing: 'Feb 27, 2026, 10:00 AM – 2:00 PM',
+      timing: 'Nov 28, 2026, 10:00 AM – 2:00 PM',
       location: 'Block 3 Ground',
       judgingCriteria: 'Speed, Obstacle Navigation, Design, Control',
       organizer: 'HIET Ghaziabad',
@@ -244,7 +244,7 @@ const events = [
     category: 'Cultural',
     details: {
       description: 'Solo (3–5 min) and Group (4–12 members, 5–8 min) performances in any style (classical, Bollywood, hip-hop, fusion, etc.). No offensive content.',
-      timing: 'Feb 27, 2026, 2:00 PM – 4:00 PM',
+      timing: 'Nov 28, 2026, 2:00 PM – 4:00 PM',
       location: 'Amphitheatre',
       judgingCriteria: 'Choreography (20), Synchronization (20), Expression & Emotion (20), Costume & Props (20), Overall Impact (20)',
       organizer: 'HIET Ghaziabad',
@@ -258,7 +258,7 @@ const events = [
     rulesPdf: rangoliRules,
     details: {
       description: 'Create a 5x5 ft rangoli in teams of 3, restricted to "NATURE" theme. 1.5 hours to complete; no printed references allowed.',
-      timing: 'Feb 27, 2026, 10:00 AM onwards (1.5 hr duration)',
+      timing: 'Nov 28, 2026, 10:00 AM onwards (1.5 hr duration)',
       location: 'Amphitheatre',
       judgingCriteria: 'Relevance to Theme, Creativity, Color Combination, Message through Rangoli, Overall Appearance & Appeal',
       organizer: 'HIET Ghaziabad',
@@ -272,7 +272,7 @@ const events = [
     rulesPdf: foodRules,
     details: {
       description: 'Prepare ready-to-eat dishes (sandwiches, salads, juices, shakes, fruits, etc.) without any cooking, heating, or flame. Focus on hygiene & no wastage.',
-      timing: 'Feb 28, 2026, 10:00 AM – 2:00 PM',
+      timing: 'Nov 29, 2026, 10:00 AM – 2:00 PM',
       location: 'Block 3 Corridor Area',
       judgingCriteria: 'Ingredients (organic/handmade), Taste, Presentation, Hygiene',
       organizer: 'HIET Ghaziabad',
@@ -286,7 +286,7 @@ const events = [
     rulesPdf: posterRules,
     details: {
       description: 'Handmade original posters on chart paper (no printouts, 3D objects, or photos). Mention topic/theme clearly at top.',
-      timing: 'Feb 27, 2026, 10:00 AM – 2:00 PM',
+      timing: 'Nov 28, 2026, 10:00 AM – 2:00 PM',
       location: 'Block 3 304 / Stage',
       judgingCriteria: 'Content Clarity, Design & Creativity, Relevance, Presentation (explain in English/Hindi)',
       organizer: 'HIET Ghaziabad',
@@ -299,7 +299,7 @@ const events = [
     category: 'Cultural',
     details: {
       description: 'Live rock band performances and other cultural acts to energize the crowd.',
-      timing: 'Feb 27, 2026, 6:00 PM – 8:00 PM',
+      timing: 'Nov 28, 2026, 6:00 PM – 8:00 PM',
       location: 'Amphitheatre',
       judgingCriteria: 'Music Quality, Stage Presence, Originality, Coordination',
       organizer: 'HIET Ghaziabad',
@@ -313,7 +313,7 @@ const events = [
     rulesPdf: shortFilmRules,
     details: {
       description: 'Teams of max 2 create & edit a 30–60 sec original short film shot entirely on campus within ~1 hour time constraint.',
-      timing: 'Feb 28, 2026, 10:00 AM – 2:00 PM',
+      timing: 'Nov 29, 2026, 10:00 AM – 2:00 PM',
       location: 'Block 1 Lab F',
       judgingCriteria: 'Concept & Storytelling (10%), Creativity & Innovation (20%), Technical Execution (20%), Overall Impact (incl. YouTube Likes 30%), Relevance to Theme (10%), Judges (10%)',
       organizer: 'HIET Ghaziabad',
@@ -327,7 +327,7 @@ const events = [
     rulesPdf: treasureRules,
     details: {
       description: 'Team adventure (2–5 members) solving clues across campus. No outside help, no interference, safety first.',
-      timing: 'Feb 28, 2026, 11:00 AM – 2:00 PM',
+      timing: 'Nov 29, 2026, 11:00 AM – 2:00 PM',
       location: 'Entire Campus / Block 3 Ground',
       judgingCriteria: 'Speed, Teamwork, Problem-Solving, Clue Completion',
       organizer: 'HIET Ghaziabad',
@@ -341,7 +341,7 @@ const events = [
     category: 'Ceremony',
     details: {
       description: 'Recognition of overall fest winners, academic awards, and grand closing.',
-      timing: 'Feb 28, 2026, 4:00 PM – 6:00 PM',
+      timing: 'Nov 29, 2026, 4:00 PM – 6:00 PM',
       location: 'Amphitheatre',
       judgingCriteria: 'N/A (based on performance across events)',
       organizer: 'HIET Ghaziabad',
@@ -414,7 +414,7 @@ const EventCard = ({ event, onClick, index }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Calendar className="w-4 h-4" />
-            <span>Feb 2026</span>
+            <span>Nov 2026</span>
           </div>
 
           <div className="flex items-center gap-4 sm:gap-5">
@@ -498,7 +498,7 @@ const Events = () => {
   }, []);
 
   useEffect(() => {
-    const targetDate = new Date('2026-02-27T00:00:00+05:30').getTime();
+    const targetDate = new Date('2026-11-28T09:00:00+05:30').getTime();
     const updateTimer = () => {
       const now = new Date().getTime();
       const difference = targetDate - now;
@@ -545,7 +545,10 @@ const Events = () => {
               </span>
             </h1>
             <p className="mt-5 text-xl md:text-2xl text-gray-400 font-light">
-              Tech + Cultural Fest • February 2026
+              Tech + Cultural Fest • November 28-29, 2026
+            </p>
+            <p className="mt-2 text-sm text-cyan-400 font-mono">
+              ⚡ Online Registrations Close On November 20, 2026
             </p>
           </motion.div>
 

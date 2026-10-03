@@ -248,8 +248,8 @@ export default function Schedule() {
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
-    // Note: Event is 27-28 Feb 2026 → countdown to 27th Feb morning
-    const eventDate = new Date('2026-02-27T00:00:00+05:30').getTime();
+    // Note: Event is 28-29 Nov 2026 → countdown to 28th Nov morning
+    const eventDate = new Date('2026-11-28T09:00:00+05:30').getTime();
     const interval = setInterval(() => {
       const now = new Date().getTime();
       const distance = eventDate - now;
@@ -302,7 +302,7 @@ export default function Schedule() {
               className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-zinc-900/80 to-zinc-800/80 backdrop-blur-xl rounded-full border border-orange-500/30 mb-4 sm:mb-6 lg:mb-8 shadow-lg shadow-orange-500/10"
             >
               <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400" />
-              <span className="text-xs sm:text-sm text-zinc-200 font-semibold tracking-wide">February 27-28, 2026</span>
+              <span className="text-xs sm:text-sm text-zinc-200 font-semibold tracking-wide">November 28-29, 2026</span>
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400" />
             </motion.div>
 
@@ -343,6 +343,10 @@ export default function Schedule() {
                 </span>
               </div>
             </motion.div>
+
+            <p className="mt-4 text-xs sm:text-sm text-cyan-400 font-mono">
+              ⚡ Online Registration Closes On November 20, 2026
+            </p>
           </motion.div>
 
           <motion.div

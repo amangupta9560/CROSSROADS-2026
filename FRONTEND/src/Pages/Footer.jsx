@@ -158,7 +158,7 @@ const Footer = () => {
                         <p className="text-[10px] text-gray-400 font-semibold">DATE</p>
                       </div>
                       <p className="text-xs font-bold text-transparent bg-clip-text bg-linear-to-r from-[#ff66c4] to-[#ff6b35]">
-                        February 27, 2026
+                        November 28-29, 2026
                       </p>
                     </div>
                   </div>

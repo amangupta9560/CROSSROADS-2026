@@ -509,7 +509,7 @@ const About = () => {
             className="text-center py-10 border-t border-gray-800/50"
           >
             <p className="text-gray-500 text-sm md:text-base mb-2">
-              CROSSROADS 2026 | 27-28 February 2026
+              CROSSROADS 2026 | 28-29 November 2026
             </p>
             <p className="text-gray-600 text-xs md:text-sm">
               Where Innovation Meets Opportunity
