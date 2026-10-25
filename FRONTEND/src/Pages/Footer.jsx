@@ -56,11 +56,11 @@ const Footer = () => {
                 Organized & Powered By
               </span>
               <h3 className="text-base sm:text-lg font-bold text-white">
-                Host Institution & Academic Partner
+                Host Institution, Academic Partner & Technical Club
               </h3>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 max-w-3xl mx-auto">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 max-w-5xl mx-auto">
               {/* HIET Logo Card */}
               <a
                 href="https://hiet.org/"
@@ -114,6 +114,30 @@ const Footer = () => {
                   </span>
                 </div>
               </a>
+
+              {/* Tech Fusion Logo Card */}
+              <div
+                className="group flex items-center gap-3.5 px-5 py-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-850 transition-all duration-300 shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-0.5"
+              >
+                <div className="bg-white p-2 rounded-xl flex items-center justify-center shadow-md">
+                  <img
+                    src="/techfusion.png"
+                    alt="Tech Fusion"
+                    className="h-9 sm:h-11 w-auto object-contain max-w-[130px]"
+                  />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold block">
+                    Technical Club
+                  </span>
+                  <span className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors block">
+                    Tech Fusion
+                  </span>
+                  <span className="text-[11px] text-gray-400 block">
+                    Technical Society & Fest Organizers
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

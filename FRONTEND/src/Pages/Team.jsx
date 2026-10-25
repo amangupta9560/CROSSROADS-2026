@@ -2,80 +2,62 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import chairman from "../Teams/chairman.jpg";
+import segalsir from "../Teams/segalsir.webp";
+import laveen from "../Teams/laveen.webp";
 import director from "../Teams/director.jpeg";
-import secratory from "../Teams/secratory.jpg";
 import hodcs from "../Teams/hodcs.png";
-import sunstone from "../Teams/sunstone.png";
 import hodmca from "../Teams/hodmca.png";
 import hodee from "../Teams/hodee.png";
-import sac from '../Teams/sac.jpg';
-import aman from '../Teams/aman.jpg';
-import mam from '../Teams/mam.jpeg';
+
 const teamMembers = [
   {
     name: "Mr. Anand Prakash",
     role: "Chairman",
-    dept: "Governing Body",
+    dept: "HIET Group of Institutions",
     image: chairman,
+    featured: true,
+  },
+  {
+    name: "Mr. Sunil Saigal",
+    role: "Advisor",
+    dept: "Advisory Board",
+    image: segalsir,
+    featured: true,
+  },
+  {
+    name: "Mr. Laveen Gidwani",
+    role: "Executive Director",
+    dept: "Administration & Leadership",
+    image: laveen,
     featured: true,
   },
   {
     name: "Dr. Pankaj Kumar Mishra",
     role: "Director",
-    dept: "Governing Body",
+    dept: "HIET Ghaziabad",
     image: director,
-    featured: true,
-  },
-  {
-    name: "Ms. Renu Goel",
-    role: "Secretary",
-    dept: "Administration",
-    image: secratory,
-    featured: true,
-  },
-  {
-    name: "Mr. Manikantan",
-    role: "Governing Body",
-    dept: "Administration",
-
-    image: sunstone,
     featured: true,
   },
   {
     name: "Dr. Tripti Choudhary",
     role: "HOD - CSE",
-    dept: "Computer Science",
+    dept: "Computer Science & Engineering",
     image: hodcs,
+    featured: false,
   },
   {
     name: "Mr. Bhaskar Sharma",
-    role: "HOD - MCA",
-    dept: "Master of Computer Applications",
+    role: "HOD - BCA / MCA",
+    dept: "Computer Applications",
     image: hodmca,
+    featured: false,
   },
   {
     name: "Mr. Aman Srivastava",
     role: "HOD - EE",
     dept: "Electrical Engineering",
     image: hodee,
-  },
-  {
-    name: "Mr. Manjula Shukla",
-    role: "Invitation Committee",
-    dept: "CSE",
-    image: mam,
-  },
-  {
-    name: "Aman Gupta",
-    role: "Website Lead Developer",
-    dept: "CSE",
-    image: aman,
-  },
-   {
-    name: "Sachchidanand Yadav",
-    role: "Helpdesk Lead",
-    dept: "CSE",
-    image: sac,
+    featured: false,
   },
 ];
 
@@ -123,7 +105,7 @@ const Team = () => {
             transition={{ duration: 0.9 }}
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200 bg-clip-text text-transparent mb-4 sm:mb-6 tracking-tight leading-tight"
           >
-            Meet Our Team
+            Meet Our Team & Leadership
           </motion.h2>
 
           <motion.p
@@ -133,11 +115,89 @@ const Team = () => {
             transition={{ delay: 0.25, duration: 0.8 }}
             className="text-base sm:text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed px-4"
           >
-            Visionary leaders driving innovation, excellence, and academic distinction
+            Visionary leaders, advisory board, and academic department heads driving innovation, excellence, and academic distinction
           </motion.p>
+
+          {/* Institutional, Academic & Technical Society Logos */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.35, duration: 0.8 }}
+            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-10"
+          >
+            {/* HIET Logo Card */}
+            <a
+              href="https://hiet.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-orange-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
+            >
+              <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
+                <img
+                  src="/hiet.png"
+                  alt="HIET Ghaziabad"
+                  className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
+                />
+              </div>
+              <div className="text-left">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-orange-400 font-bold block">
+                  Host Institution
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-white group-hover:text-orange-300 transition-colors block">
+                  HIET Ghaziabad
+                </span>
+              </div>
+            </a>
+
+            {/* Sunstone Logo Card */}
+            <a
+              href="https://sunstone.in/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-pink-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
+            >
+              <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
+                <img
+                  src="/sunstone.jpg"
+                  alt="Sunstone"
+                  className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
+                />
+              </div>
+              <div className="text-left">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-pink-400 font-bold block">
+                  Academic Partner
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-white group-hover:text-pink-300 transition-colors block">
+                  Sunstone
+                </span>
+              </div>
+            </a>
+
+            {/* Tech Fusion Logo Card */}
+            <div
+              className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-cyan-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
+            >
+              <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
+                <img
+                  src="/techfusion.png"
+                  alt="Tech Fusion"
+                  className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
+                />
+              </div>
+              <div className="text-left">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold block">
+                  Technical Club
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-300 transition-colors block">
+                  Tech Fusion
+                </span>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 md:gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-7 md:gap-8">
           {teamMembers.map((member, index) => (
             <motion.div
               key={member.name}
@@ -204,7 +264,7 @@ const Team = () => {
         >
           <div className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-slate-700/50 backdrop-blur-sm">
             <p className="text-slate-300 text-sm sm:text-base">
-              Together, shaping the future of education
+              Together, shaping the future of education & innovation
             </p>
           </div>
         </motion.div>

@@ -25,15 +25,12 @@ import {
 import { Link } from 'react-router-dom';
 
 import chairman from "../Teams/chairman.jpg";
+import segalsir from "../Teams/segalsir.webp";
+import laveen from "../Teams/laveen.webp";
 import director from "../Teams/director.jpeg";
-import secratory from "../Teams/secratory.jpg";
 import hodcs from "../Teams/hodcs.png";
-import sunstone from "../Teams/sunstone.png";
 import hodmca from "../Teams/hodmca.png";
 import hodee from "../Teams/hodee.png";
-import sac from '../Teams/sac.jpg';
-import aman from '../Teams/aman.jpg';
-import mam from '../Teams/mam.jpeg';
 
 const Home = () => {
   const [timeLeft, setTimeLeft] = useState({
@@ -190,49 +187,49 @@ const Home = () => {
     {
       name: "Mr. Anand Prakash",
       role: "Chairman",
-      dept: "Governing Body",
+      dept: "HIET Group of Institutions",
       image: chairman,
-      category: "Leadership",
+      category: "Executive Leadership",
+      featured: true,
+    },
+    {
+      name: "Mr. Sunil Saigal",
+      role: "Advisor",
+      dept: "Advisory Board",
+      image: segalsir,
+      category: "Executive Leadership",
+      featured: true,
+    },
+    {
+      name: "Mr. Laveen Gidwani",
+      role: "Executive Director",
+      dept: "Administration & Leadership",
+      image: laveen,
+      category: "Executive Leadership",
       featured: true,
     },
     {
       name: "Dr. Pankaj Kumar Mishra",
       role: "Director",
-      dept: "Governing Body",
+      dept: "HIET Ghaziabad",
       image: director,
-      category: "Leadership",
-      featured: true,
-    },
-    {
-      name: "Ms. Renu Goel",
-      role: "Secretary",
-      dept: "Administration",
-      image: secratory,
-      category: "Leadership",
-      featured: true,
-    },
-    {
-      name: "Mr. Manikantan",
-      role: "Governing Body",
-      dept: "Administration",
-      image: sunstone,
-      category: "Leadership",
+      category: "Executive Leadership",
       featured: true,
     },
     {
       name: "Dr. Tripti Choudhary",
       role: "HOD - CSE",
-      dept: "Computer Science",
+      dept: "Computer Science & Engineering",
       image: hodcs,
-      category: "Faculty",
+      category: "Department Heads",
       featured: false,
     },
     {
       name: "Mr. Bhaskar Sharma",
-      role: "HOD - MCA",
-      dept: "Master of Computer Applications",
+      role: "HOD - BCA / MCA",
+      dept: "Computer Applications",
       image: hodmca,
-      category: "Faculty",
+      category: "Department Heads",
       featured: false,
     },
     {
@@ -240,31 +237,7 @@ const Home = () => {
       role: "HOD - EE",
       dept: "Electrical Engineering",
       image: hodee,
-      category: "Faculty",
-      featured: false,
-    },
-    {
-      name: "Mr. Manjula Shukla",
-      role: "Invitation Committee",
-      dept: "CSE",
-      image: mam,
-      category: "Faculty",
-      featured: false,
-    },
-    {
-      name: "Aman Gupta",
-      role: "Website Lead Developer",
-      dept: "CSE",
-      image: aman,
-      category: "Core Leads",
-      featured: false,
-    },
-    {
-      name: "Sachchidanand Yadav",
-      role: "Helpdesk Lead",
-      dept: "CSE",
-      image: sac,
-      category: "Core Leads",
+      category: "Department Heads",
       featured: false,
     },
   ];
@@ -638,12 +611,84 @@ const Home = () => {
               Meet Our <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">Team & Leadership</span>
             </h2>
             <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mt-3">
-              Visionary leaders, department heads, and core coordinators driving innovation and excellence at CROSSROADS 2026.
+              Visionary leaders, advisory board, and academic department heads driving innovation and excellence at CROSSROADS 2026.
             </p>
+
+            {/* Institutional, Academic & Technical Society Logos */}
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-8">
+              {/* HIET Logo Card */}
+              <a
+                href="https://hiet.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-orange-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
+              >
+                <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
+                  <img
+                    src="/hiet.png"
+                    alt="HIET Ghaziabad"
+                    className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
+                  />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-orange-400 font-bold block">
+                    Host Institution
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-white group-hover:text-orange-300 transition-colors block">
+                    HIET Ghaziabad
+                  </span>
+                </div>
+              </a>
+
+              {/* Sunstone Logo Card */}
+              <a
+                href="https://sunstone.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-pink-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
+              >
+                <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
+                  <img
+                    src="/sunstone.jpg"
+                    alt="Sunstone"
+                    className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
+                  />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-pink-400 font-bold block">
+                    Academic Partner
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-white group-hover:text-pink-300 transition-colors block">
+                    Sunstone
+                  </span>
+                </div>
+              </a>
+
+              {/* Tech Fusion Logo Card */}
+              <div
+                className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-cyan-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
+              >
+                <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
+                  <img
+                    src="/techfusion.png"
+                    alt="Tech Fusion"
+                    className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
+                  />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold block">
+                    Technical Club
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-300 transition-colors block">
+                    Tech Fusion
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* Category Filter Pills */}
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-8">
-              {['All', 'Leadership', 'Faculty', 'Core Leads'].map((cat) => (
+              {['All', 'Executive Leadership', 'Department Heads'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setTeamCategory(cat)}
@@ -653,7 +698,7 @@ const Home = () => {
                       : 'bg-slate-900/80 text-gray-400 hover:text-white hover:bg-slate-800 border border-slate-800'
                   }`}
                 >
-                  {cat === 'All' ? 'All Members' : cat}
+                  {cat === 'All' ? 'All Leadership' : cat}
                 </button>
               ))}
             </div>

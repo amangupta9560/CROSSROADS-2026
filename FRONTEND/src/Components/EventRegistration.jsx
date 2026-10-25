@@ -1,8 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trophy,
@@ -27,219 +25,482 @@ import {
   Utensils,
   Flame,
   Gamepad2,
-  Send,
+  Rocket,
   Loader2,
   HelpCircle,
   ExternalLink,
-  MessageCircle,
-  RefreshCw,
-  QrCode
+  ChevronRight,
+  ChevronLeft,
+  X,
+  Info,
+  Globe,
+  Binary,
+  Target
 } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
+
+const STEPS = ['Contact & Event Info', 'Team Members', 'Review & Submit'];
+
+const COLLEGES = [
+  "ABES Engineering College, Ghaziabad",
+  "ABESIT Group of Institutions, Ghaziabad",
+  "Accurate Institute of Technology & Management, Greater Noida",
+  "Ajay Kumar Garg Engineering College (AKGEC), Ghaziabad",
+  "Amity University, Noida",
+  "Babu Banarsi Das Institute of Technology (BBDIT), Ghaziabad",
+  "Bhagwati Institute of Technology, Ghaziabad",
+  "Bharti College, University of Delhi (DU)",
+  "Galgotias University, Greater Noida",
+  "Galgotias College of Engineering & Technology, Greater Noida",
+  "GL Bajaj Institute of Technology & Management, Greater Noida",
+  "GNIOT Group of Institutions, Greater Noida",
+  "H.R. Group of Institutions, Ghaziabad",
+  "HI-TECH Institute of Engineering & Technology, Ghaziabad",
+  "HIMT Group of Institutions, Greater Noida",
+  "Ideal Institute of Technology, Ghaziabad",
+  "Inderprastha Engineering College (IPEC), Ghaziabad",
+  "Institute of Information Technology & Management (IITM), Delhi",
+  "Institute of Management Studies (IMS), Ghaziabad",
+  "IMS Engineering College, Ghaziabad",
+  "INMANTEC Institutions, Ghaziabad",
+  "ITS Engineering College, Greater Noida",
+  "ITS Engineering College, Mohan Nagar",
+  "Jaypee Institute of Information Technology (JIIT), Noida",
+  "JIMS Rohini (Jagan Institute of Management Studies), Delhi",
+  "JSS Academy of Technical Education (JSSATE), Noida",
+  "JSM Institute of Technology, Ghaziabad",
+  "KIET Group of Institutions, Ghaziabad",
+  "Lajpat Rai College, Delhi",
+  "MMH College, Ghaziabad",
+  "Noida Institute of Engineering & Technology (NIET), Greater Noida",
+  "PGDAV College, University of Delhi (DU)",
+  "R.D. Engineering College (RDEC), Ghaziabad",
+  "RKGIT (Raj Kumar Goel Institute of Technology), Ghaziabad",
+  "Shaheed Rajguru College of Applied Sciences for Women, University of Delhi",
+  "Shambhu Dayal College (SD PG College), Ghaziabad",
+  "Sharda University, Greater Noida",
+  "Sanskar Group of Institutions, Ghaziabad",
+  "Sunder Deep Engineering College, Ghaziabad",
+  "OTHER"
+].sort();
+
+const COURSES = [
+  "B.Tech",
+  "MCA",
+  "BCA",
+  "M.Tech",
+  "BBA",
+  "MBA",
+  "B.Pharma",
+  "M.Pharma",
+  "B.Arch",
+  "M.Arch",
+  "B.Sc",
+  "M.Sc",
+  "BA",
+  "MA",
+  "Other"
+];
+
+const BRANCHES = [
+  "Computer Science & Engineering (CSE)",
+  "CSE (Artificial Intelligence & ML)",
+  "CSE (Data Science)",
+  "Information Technology (IT)",
+  "Electronics & Communication (ECE)",
+  "Electrical Engineering (EE)",
+  "Mechanical Engineering (ME)",
+  "Civil Engineering (CE)",
+  "Applied Sciences / BCA / MCA",
+  "Other"
+];
+
+const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+
+const ALL_EVENTS = [
+  {
+    value: 'code-puzzle',
+    label: 'Code Puzzle',
+    icon: Code2,
+    category: 'Technical',
+    desc: 'Speed syntax & algorithmic debugging battle in 20 minutes.',
+    allowedSizes: [1],
+    badge: 'Solo Only (1)',
+    color: 'from-blue-500 to-cyan-400'
+  },
+  {
+    value: 'project-exhibition',
+    label: 'Project Exhibition',
+    icon: Cpu,
+    category: 'Technical',
+    desc: 'Hardware prototypes, AI agents & engineering innovations.',
+    allowedSizes: [1, 2, 3, 4],
+    badge: '1 - 4 Members',
+    color: 'from-cyan-500 to-teal-400'
+  },
+  {
+    value: 'robo-race',
+    label: 'Robo Race',
+    icon: Flame,
+    category: 'Technical',
+    desc: 'High-speed bots maneuvering ramps, pits, and obstacle tracks.',
+    allowedSizes: [1, 2, 3, 4],
+    badge: '1 - 4 Members',
+    color: 'from-amber-500 to-orange-400'
+  },
+  {
+    value: 'technical-poster',
+    label: 'Technical Poster Presentation',
+    icon: Layers,
+    category: 'Technical',
+    desc: 'Original hand-crafted posters highlighting emerging tech themes.',
+    allowedSizes: [1, 2, 3, 4],
+    badge: '1 - 4 Members',
+    color: 'from-indigo-500 to-blue-400'
+  },
+  {
+    value: 'cultural-events',
+    label: 'Cultural Events (Group Dance)',
+    icon: Sparkles,
+    category: 'Cultural',
+    desc: 'Electrifying group dance routines, folk and fusion choreography.',
+    allowedSizes: [1, 2, 3, 4],
+    badge: '1 - 4 Members',
+    color: 'from-purple-500 to-pink-500'
+  },
+  {
+    value: 'dance-competition',
+    label: 'Dance Competition (Solo)',
+    icon: Sparkles,
+    category: 'Cultural',
+    desc: 'Solo spotlight: classical, contemporary, hip-hop, and freestyle.',
+    allowedSizes: [1],
+    badge: 'Solo Only (1)',
+    color: 'from-pink-500 to-rose-400'
+  },
+  {
+    value: 'rock-band',
+    label: 'Rock Band',
+    icon: Music,
+    category: 'Cultural',
+    desc: 'Live college band face-off featuring heavy riffs & stage energy.',
+    allowedSizes: [1, 2, 3, 4],
+    badge: '1 - 4 Members',
+    color: 'from-red-500 to-rose-500'
+  },
+  {
+    value: 'short-film-maker',
+    label: 'Short Film Maker',
+    icon: Film,
+    category: 'Cultural',
+    desc: '30-60 second cinematic storytelling created on campus.',
+    allowedSizes: [1, 2],
+    badge: '1 - 2 Members',
+    color: 'from-fuchsia-500 to-purple-400'
+  },
+  {
+    value: 'rangoli-competition',
+    label: 'Rangoli Competition',
+    icon: Palette,
+    category: 'Cultural',
+    desc: 'Nature-themed traditional and modern floor art on 5x5 ft canvas.',
+    allowedSizes: [1, 2, 3],
+    badge: '1 - 3 Members',
+    color: 'from-yellow-400 to-amber-500'
+  },
+  {
+    value: 'food-without-fire',
+    label: 'Food Without Fire',
+    icon: Utensils,
+    category: 'Cultural',
+    desc: 'Flameless culinary creations with gourmet presentation.',
+    allowedSizes: [1, 2, 3, 4],
+    badge: '1 - 4 Members',
+    color: 'from-emerald-400 to-teal-500'
+  },
+  {
+    value: 'treasure-hunt',
+    label: 'Treasure Hunt',
+    icon: Gamepad2,
+    category: 'Fun & Adventure',
+    desc: 'High-octane multi-station cryptic clues across the campus.',
+    allowedSizes: [5, 6, 7, 8],
+    badge: '5 - 8 Squad Only',
+    color: 'from-violet-500 to-indigo-500'
+  },
+];
+
+const LS_KEY = 'cr2026_reg_draft';
+
+const ProgressBar = React.memo(({ progress }) => (
+  <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-white/5 via-white/10 to-white/5 overflow-hidden z-20">
+    <motion.div
+      initial={{ width: 0 }}
+      animate={{ width: `${progress}%` }}
+      transition={{ type: "spring", stiffness: 100, damping: 30 }}
+      className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 shadow-[0_0_20px_rgba(99,102,241,0.8)]"
+    />
+  </div>
+));
+ProgressBar.displayName = 'ProgressBar';
+
+const InputField = ({ label, icon: Icon, error, touched, ...props }) => (
+  <motion.div
+    className="space-y-2 text-left"
+    whileHover={{ scale: 1.01 }}
+    transition={{ type: "spring", stiffness: 300 }}
+  >
+    <label className="text-xs sm:text-sm font-bold text-white/60 ml-2 flex items-center gap-2 group-focus-within:text-blue-300 transition-colors">
+      {Icon && <Icon size={16} className="text-blue-400 group-focus-within:text-cyan-400 group-focus-within:animate-pulse" />}
+      {label}
+    </label>
+    <div className="relative group">
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 blur-sm pointer-events-none" />
+      <input
+        {...props}
+        className={`relative w-full px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl border transition-all outline-none font-semibold text-sm bg-[#0d0d12]/60 backdrop-blur-xl ${
+          touched && error
+            ? 'border-red-500/50 bg-red-500/5 text-red-100 focus:border-red-500/80 focus:shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+            : 'border-white/10 focus:border-blue-500/80 focus:bg-white/[0.08] focus:shadow-[0_0_20px_rgba(59,130,246,0.25)] text-white group-hover:border-white/20'
+        }`}
+      />
+    </div>
+    {touched && error && (
+      <motion.p
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-[10px] text-red-400 font-bold uppercase tracking-wider ml-2"
+      >
+        {error}
+      </motion.p>
+    )}
+  </motion.div>
+);
+
+const SelectField = ({ label, children, error, touched, icon: Icon, ...props }) => (
+  <motion.div
+    className="space-y-2 text-left"
+    whileHover={{ scale: 1.01 }}
+    transition={{ type: "spring", stiffness: 300 }}
+  >
+    <label className="text-xs sm:text-sm font-bold text-white/60 ml-2 flex items-center gap-2 group-focus-within:text-blue-300 transition-colors">
+      {Icon && <Icon size={16} className="text-blue-400 group-focus-within:text-cyan-400" />}
+      {label}
+    </label>
+    <div className="relative group">
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 blur-sm pointer-events-none" />
+      <select
+        {...props}
+        className={`relative w-full px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl border transition-all outline-none font-semibold text-sm appearance-none cursor-pointer [&_option]:bg-[#0d0a1a] ${
+          touched && error
+            ? 'border-red-500/50 bg-[#0d0a1a] text-red-100 focus:border-red-500/80'
+            : 'border-white/10 bg-[#0d0a1a] focus:border-blue-500/80 focus:bg-[#0d0a1a] focus:shadow-[0_0_20px_rgba(59,130,246,0.25)] text-white group-hover:border-white/20'
+        }`}
+        style={{
+          backgroundColor: '#0d0a1a',
+          colorScheme: 'dark',
+        }}
+      >
+        {children}
+      </select>
+      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-white/30 group-focus-within:text-blue-400 transition-colors">
+        <ChevronRight size={18} />
+      </div>
+    </div>
+    {touched && error && (
+      <motion.p
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-[10px] text-red-400 font-bold uppercase tracking-wider ml-2"
+      >
+        {error}
+      </motion.p>
+    )}
+  </motion.div>
+);
+
+const RulesModal = ({ isOpen, onClose }) => {
+  useEffect(() => {
+    if (isOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow || 'unset';
+      };
+    }
+  }, [isOpen]);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="relative bg-gradient-to-br from-[#1a1a1f] to-[#0f0f12] border border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90dvh] flex flex-col overflow-hidden my-auto z-10"
+          >
+            <div className="sticky top-0 bg-gradient-to-r from-[#1a1a1f] to-[#0f0f12]/80 backdrop-blur-xl border-b border-white/5 px-5 py-4 sm:px-8 sm:py-6 flex justify-between items-center z-10 shrink-0">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2.5 sm:p-3 bg-gradient-to-br from-blue-500/30 to-indigo-500/20 rounded-xl">
+                  <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-xl font-black text-white uppercase tracking-wider font-mono">CROSSROADS 2026 Guidelines</h3>
+                  <span className="text-[10px] text-blue-400 font-mono tracking-widest block mt-0.5">FESTIVAL PROTOCOLS</span>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 sm:p-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-5 py-6 sm:px-8 sm:py-8 flex-1 overflow-y-auto space-y-6 text-left">
+              {[
+                {
+                  num: '01',
+                  title: 'Eligibility & Identity',
+                  color: 'blue',
+                  items: [
+                    'Open to all enrolled undergraduate and postgraduate students from recognized colleges and universities.',
+                    'Every participant must carry their official college photo ID card on event days.',
+                    'Cross-college teams are permitted for team events.'
+                  ]
+                },
+                {
+                  num: '02',
+                  title: 'Team Size & Coordination',
+                  color: 'indigo',
+                  items: [
+                    'Respect the team size requirements specified for each event (Solo, 1-4, or 5-8 squad).',
+                    'All team members must report together at the HIET campus verification desk.',
+                    'The designated Team Leader will receive all official email alerts and schedule updates.'
+                  ]
+                },
+                {
+                  num: '03',
+                  title: 'Awards & Recognition',
+                  color: 'emerald',
+                  items: [
+                    'Total fest prize pool exceeding ₹1,00,000 across competitive categories.',
+                    'Winners receive trophies, certificates of merit, cash prizes, and sponsor hampers.',
+                    'All attending registered participants receive official Certificates of Participation.'
+                  ]
+                }
+              ].map((section, idx) => (
+                <div key={idx} className="relative pl-5">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500/40 rounded-full" />
+                  <h4 className="text-blue-400 font-black mb-2 flex items-center gap-2 uppercase text-xs tracking-wider">
+                    <span className="bg-blue-500/20 px-2 py-0.5 rounded text-blue-300">{section.num}</span>
+                    {section.title}
+                  </h4>
+                  <ul className="space-y-2 text-white/70 text-xs sm:text-sm">
+                    {section.items.map((item, i) => (
+                      <li key={i} className="flex gap-2.5 items-start">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 const EventRegistration = () => {
   const [searchParams] = useSearchParams();
   const urlEvent = searchParams.get('event');
+  const navigate = useNavigate();
+
+  const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [touched, setTouched] = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [sameAsCalling, setSameAsCalling] = useState(false);
+  const [copiedField, setCopiedField] = useState(null);
 
   const [siteSettings, setSiteSettings] = useState({
     registrationOpen: true,
     closedMessage: '',
     eventStatus: {}
   });
-  const [settingsLoading, setSettingsLoading] = useState(true);
 
   // Form State
-  const [formData, setFormData] = useState({
-    teamName: '',
-    leaderName: '',
-    leaderEmail: '',
-    leaderMobile: '',
-    leaderWhatsapp: '',
-    college: '',
-    customCollege: '',
-    branch: '',
-    year: '',
-    event: urlEvent || '',
-    teamSize: '1',
-    members: [],
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          teamName: '',
+          leaderName: '',
+          leaderEmail: '',
+          leaderMobile: '',
+          leaderWhatsapp: '',
+          college: '',
+          customCollege: '',
+          course: '',
+          branch: '',
+          year: '',
+          teamSize: '1',
+          members: [],
+          ...parsed,
+          event: urlEvent || parsed.event || ''
+        };
+      }
+    } catch (_) {}
+    return {
+      teamName: '',
+      leaderName: '',
+      leaderEmail: '',
+      leaderMobile: '',
+      leaderWhatsapp: '',
+      college: '',
+      customCollege: '',
+      course: '',
+      branch: '',
+      year: '',
+      event: urlEvent || '',
+      teamSize: '1',
+      members: []
+    };
   });
 
-  const [sameAsCalling, setSameAsCalling] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [copiedId, setCopiedId] = useState(false);
+  const [registeredDetails, setRegisteredDetails] = useState(null);
 
-  // Success State
-  const [registrationSuccess, setRegistrationSuccess] = useState(null);
-
-  const colleges = [
-    "ABES Engineering College, Ghaziabad",
-    "ABESIT Group of Institutions, Ghaziabad",
-    "Accurate Institute of Technology & Management, Greater Noida",
-    "Ajay Kumar Garg Engineering College (AKGEC), Ghaziabad",
-    "Amity University, Noida",
-    "Babu Banarsi Das Institute of Technology (BBDIT), Ghaziabad",
-    "Bhagwati Institute of Technology, Ghaziabad",
-    "Bharti College, University of Delhi (DU)",
-    "Galgotias University, Greater Noida",
-    "Galgotias College of Engineering & Technology, Greater Noida",
-    "GL Bajaj Institute of Technology & Management, Greater Noida",
-    "GNIOT Group of Institutions, Greater Noida",
-    "H.R. Group of Institutions, Ghaziabad",
-    "HI-TECH Institute of Engineering & Technology, Ghaziabad",
-    "HIMT Group of Institutions, Greater Noida",
-    "Ideal Institute of Technology, Ghaziabad",
-    "Inderprastha Engineering College (IPEC), Ghaziabad",
-    "Institute of Information Technology & Management (IITM), Delhi",
-    "Institute of Management Studies (IMS), Ghaziabad",
-    "IMS Engineering College, Ghaziabad",
-    "INMANTEC Institutions, Ghaziabad",
-    "ITS Engineering College, Greater Noida",
-    "ITS Engineering College, Mohan Nagar",
-    "Jaypee Institute of Information Technology (JIIT), Noida",
-    "JIMS Rohini (Jagan Institute of Management Studies), Delhi",
-    "JSS Academy of Technical Education (JSSATE), Noida",
-    "JSM Institute of Technology, Ghaziabad",
-    "KIET Group of Institutions, Ghaziabad",
-    "Lajpat Rai College, Delhi",
-    "MMH College, Ghaziabad",
-    "Noida Institute of Engineering & Technology (NIET), Greater Noida",
-    "PGDAV College, University of Delhi (DU)",
-    "R.D. Engineering College (RDEC), Ghaziabad",
-    "RKGIT (Raj Kumar Goel Institute of Technology), Ghaziabad",
-    "Shaheed Rajguru College of Applied Sciences for Women, University of Delhi",
-    "Shambhu Dayal College (SD PG College), Ghaziabad",
-    "Sharda University, Greater Noida",
-    "Sanskar Group of Institutions, Ghaziabad",
-    "Sunder Deep Engineering College, Ghaziabad",
-    "OTHER"
-  ].sort();
-
-  const branches = [
-    'Computer Science & Engineering (CSE)',
-    'CSE (Artificial Intelligence & ML)',
-    'Information Technology (IT)',
-    'Electronics & Communication (ECE)',
-    'Mechanical Engineering (ME)',
-    'Electrical Engineering (EE)',
-    'Civil Engineering (CE)',
-    'Applied Sciences / B.Sc / BCA',
-    'MCA / Management / Other'
-  ];
-
-  const years = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-
-  const allEvents = [
-    {
-      value: 'code-puzzle',
-      label: 'Code Puzzle',
-      icon: Code2,
-      category: 'Technical',
-      desc: 'Speed syntax & algorithmic debugging battle in 20 minutes.',
-      allowedSizes: [1],
-      badge: 'Solo Only (1)',
-      color: 'from-blue-500 to-cyan-400'
-    },
-    {
-      value: 'project-exhibition',
-      label: 'Project Exhibition',
-      icon: Cpu,
-      category: 'Technical',
-      desc: 'Hardware prototypes, AI agents & engineering innovations.',
-      allowedSizes: [1, 2, 3, 4],
-      badge: '1 - 4 Members',
-      color: 'from-cyan-500 to-teal-400'
-    },
-    {
-      value: 'robo-race',
-      label: 'Robo Race',
-      icon: Flame,
-      category: 'Technical',
-      desc: 'High-speed bots maneuvering ramps, pits, and obstacle tracks.',
-      allowedSizes: [1, 2, 3, 4],
-      badge: '1 - 4 Members',
-      color: 'from-amber-500 to-orange-400'
-    },
-    {
-      value: 'technical-poster',
-      label: 'Technical Poster Presentation',
-      icon: Layers,
-      category: 'Technical',
-      desc: 'Original hand-crafted posters highlighting emerging tech themes.',
-      allowedSizes: [1, 2, 3, 4],
-      badge: '1 - 4 Members',
-      color: 'from-indigo-500 to-blue-400'
-    },
-    {
-      value: 'cultural-events',
-      label: 'Cultural Events (Group Dance)',
-      icon: Sparkles,
-      category: 'Cultural',
-      desc: 'Electrifying group dance routines, folk and fusion choreography.',
-      allowedSizes: [1, 2, 3, 4],
-      badge: '1 - 4 Members',
-      color: 'from-purple-500 to-pink-500'
-    },
-    {
-      value: 'dance-competition',
-      label: 'Dance Competition (Solo)',
-      icon: Sparkles,
-      category: 'Cultural',
-      desc: 'Solo spotlight: classical, contemporary, hip-hop, and freestyle.',
-      allowedSizes: [1],
-      badge: 'Solo Only (1)',
-      color: 'from-pink-500 to-rose-400'
-    },
-    {
-      value: 'rock-band',
-      label: 'Rock Band',
-      icon: Music,
-      category: 'Cultural',
-      desc: 'Live college band face-off featuring heavy riffs & stage energy.',
-      allowedSizes: [1, 2, 3, 4],
-      badge: '1 - 4 Members',
-      color: 'from-red-500 to-rose-500'
-    },
-    {
-      value: 'short-film-maker',
-      label: 'Short Film Maker',
-      icon: Film,
-      category: 'Cultural',
-      desc: '30-60 second cinematic storytelling created on campus.',
-      allowedSizes: [1, 2],
-      badge: '1 - 2 Members',
-      color: 'from-fuchsia-500 to-purple-400'
-    },
-    {
-      value: 'rangoli-competition',
-      label: 'Rangoli Competition',
-      icon: Palette,
-      category: 'Cultural',
-      desc: 'Nature-themed traditional and modern floor art on 5x5 ft canvas.',
-      allowedSizes: [1, 2, 3],
-      badge: '1 - 3 Members',
-      color: 'from-yellow-400 to-amber-500'
-    },
-    {
-      value: 'food-without-fire',
-      label: 'Food Without Fire',
-      icon: Utensils,
-      category: 'Cultural',
-      desc: 'Masterchef style flameless culinary creations with gourmet presentation.',
-      allowedSizes: [1, 2, 3, 4],
-      badge: '1 - 4 Members',
-      color: 'from-emerald-400 to-teal-500'
-    },
-    {
-      value: 'treasure-hunt',
-      label: 'Treasure Hunt',
-      icon: Gamepad2,
-      category: 'Fun & Adventure',
-      desc: 'High-octane multi-station cryptic clues across the entire campus.',
-      allowedSizes: [5, 6, 7, 8],
-      badge: '5 - 8 Squad Only',
-      color: 'from-violet-500 to-indigo-500'
-    },
-  ];
+  // Auto-save draft
+  useEffect(() => {
+    if (registeredDetails) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(LS_KEY, JSON.stringify(formData));
+      } catch (_) {}
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [formData, registeredDetails]);
 
   // Fetch site control settings
   useEffect(() => {
@@ -247,80 +508,114 @@ const EventRegistration = () => {
       try {
         const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
         const res = await axios.get(`${backendUrl}/api/settings`);
-        setSiteSettings(res.data);
+        if (res.data) setSiteSettings(res.data);
       } catch (err) {
         console.warn('Could not fetch settings, using defaults', err);
-      } finally {
-        setSettingsLoading(false);
       }
     };
-
     fetchSettings();
   }, []);
 
   // Pre-select event from URL if present
   useEffect(() => {
     if (urlEvent) {
-      const match = allEvents.find(e => e.value === urlEvent);
+      const match = ALL_EVENTS.find(e => e.value === urlEvent);
       if (match) {
-        setFormData(prev => ({ ...prev, event: match.value }));
-        const defaultSize = match.allowedSizes[0].toString();
-        setFormData(prev => ({ ...prev, teamSize: defaultSize }));
-        updateTeamMembersCount(defaultSize);
+        setFormData(prev => ({
+          ...prev,
+          event: match.value,
+          teamSize: match.allowedSizes[0].toString()
+        }));
+        syncMembersForSize(match.allowedSizes[0]);
       }
     }
   }, [urlEvent]);
 
-  // Adjust team size rules whenever event changes
-  const handleEventSelect = (eventVal) => {
-    const ev = allEvents.find(e => e.value === eventVal);
-    if (!ev) return;
+  const activeEventObj = useMemo(() => {
+    return ALL_EVENTS.find(e => e.value === formData.event);
+  }, [formData.event]);
 
-    // Check if event is closed
-    if (siteSettings.eventStatus && siteSettings.eventStatus[eventVal] === false) {
-      toast.warn(`Registrations for ${ev.label} are currently closed.`);
-      return;
-    }
-
-    let newSize = formData.teamSize;
-    if (!ev.allowedSizes.includes(parseInt(newSize, 10))) {
-      newSize = ev.allowedSizes[0].toString();
-    }
-
-    setFormData(prev => ({
-      ...prev,
-      event: eventVal,
-      teamSize: newSize
-    }));
-
-    updateTeamMembersCount(newSize);
-  };
-
-  const updateTeamMembersCount = (sizeStr) => {
-    const size = parseInt(sizeStr, 10);
-    const requiredAdditional = Math.max(0, size - 1);
-
+  // Sync member objects when size changes
+  const syncMembersForSize = (targetSize) => {
+    const requiredAdditional = Math.max(0, targetSize - 1);
     setFormData(prev => {
       let updated = [...(prev.members || [])];
       while (updated.length < requiredAdditional) {
-        updated.push({ name: '', email: '' });
+        updated.push({
+          name: '',
+          email: '',
+          mobile: '',
+          course: prev.course || '',
+          branch: prev.branch || '',
+          year: prev.year || ''
+        });
       }
       if (updated.length > requiredAdditional) {
         updated = updated.slice(0, requiredAdditional);
       }
       return {
         ...prev,
-        teamSize: sizeStr,
+        teamSize: targetSize.toString(),
         members: updated
       };
     });
   };
 
-  const handleTeamSizeChange = (sizeStr) => {
-    updateTeamMembersCount(sizeStr);
+  const handleEventSelect = (eventVal) => {
+    const ev = ALL_EVENTS.find(e => e.value === eventVal);
+    if (!ev) return;
+
+    if (siteSettings.eventStatus && siteSettings.eventStatus[eventVal] === false) {
+      setError(`Registrations for ${ev.label} are currently closed.`);
+      return;
+    }
+
+    let targetSize = parseInt(formData.teamSize, 10);
+    if (!ev.allowedSizes.includes(targetSize)) {
+      targetSize = ev.allowedSizes[0];
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      event: eventVal,
+      teamSize: targetSize.toString()
+    }));
+    syncMembersForSize(targetSize);
+    setError(null);
   };
 
-  const handleChange = (e) => {
+  const handleTeamSizeChange = (sizeNum) => {
+    syncMembersForSize(sizeNum);
+  };
+
+  const validate = useCallback((name, value) => {
+    switch (name) {
+      case 'event':
+        return value ? '' : 'Please select an event arena';
+      case 'teamName':
+        return value && value.trim().length >= 3 ? '' : 'Min 3 characters';
+      case 'leaderName':
+        return value && value.trim() ? '' : 'Leader name is required';
+      case 'leaderEmail':
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '') ? '' : 'Valid email required';
+      case 'leaderMobile':
+        return /^[6-9]\d{9}$/.test(value || '') ? '' : 'Valid 10-digit number required';
+      case 'leaderWhatsapp':
+        return /^[6-9]\d{9}$/.test(value || '') ? '' : 'Valid 10-digit WhatsApp number required';
+      case 'college':
+        return value ? '' : 'Please select college';
+      case 'course':
+        return value ? '' : 'Please select course';
+      case 'branch':
+        return value ? '' : 'Please select branch';
+      case 'year':
+        return value ? '' : 'Please select year';
+      default:
+        return '';
+    }
+  }, []);
+
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => {
       const next = { ...prev, [name]: value };
@@ -329,6 +624,14 @@ const EventRegistration = () => {
       }
       return next;
     });
+    setTouched(prev => ({ ...prev, [name]: true }));
+    setFieldErrors(prev => ({ ...prev, [name]: validate(name, value) }));
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+    setFieldErrors(prev => ({ ...prev, [name]: validate(name, value) }));
   };
 
   const handleSameAsCallingToggle = () => {
@@ -336,85 +639,120 @@ const EventRegistration = () => {
       const next = !prev;
       if (next) {
         setFormData(curr => ({ ...curr, leaderWhatsapp: curr.leaderMobile }));
+        setFieldErrors(curr => ({ ...curr, leaderWhatsapp: validate('leaderWhatsapp', formData.leaderMobile) }));
       }
       return next;
     });
   };
 
   const handleMemberChange = (index, field, value) => {
-    const newMembers = [...formData.members];
-    newMembers[index] = { ...newMembers[index], [field]: value };
-    setFormData(prev => ({ ...prev, members: newMembers }));
+    const updated = [...formData.members];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData(prev => ({ ...prev, members: updated }));
   };
 
-  const activeEventObj = useMemo(() => {
-    return allEvents.find(e => e.value === formData.event);
-  }, [formData.event]);
+  const handleCopy = (text, field) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
-  const filteredEvents = useMemo(() => {
-    if (selectedCategory === 'All') return allEvents;
-    return allEvents.filter(e => e.category === selectedCategory);
-  }, [selectedCategory]);
+  // Completion calculation for Progress Bar
+  const completionProgress = useMemo(() => {
+    const reqFields = ['event', 'teamName', 'leaderName', 'leaderEmail', 'leaderMobile', 'leaderWhatsapp', 'college', 'course', 'branch', 'year'];
+    const filled = reqFields.filter(f => formData[f] && !validate(f, formData[f])).length;
+    let basePct = (filled / reqFields.length) * 60;
+    if (step >= 1) basePct += 20;
+    if (step >= 2) basePct += 20;
+    return Math.min(100, Math.floor(basePct));
+  }, [formData, step, validate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!siteSettings.registrationOpen) {
-      return toast.error(siteSettings.closedMessage || 'Registrations are currently closed.');
-    }
-
-    if (!formData.event) {
-      return toast.error('Please select an event to participate in.');
-    }
-
-    if (siteSettings.eventStatus && siteSettings.eventStatus[formData.event] === false) {
-      return toast.error('Registrations for this selected event are closed.');
-    }
-
-    let finalCollege = formData.college;
-    if (formData.college === 'OTHER') {
-      if (!formData.customCollege?.trim()) {
-        return toast.error('Please enter your custom College / University name.');
+  // Step 1 Validation & Proceed
+  const nextStep = () => {
+    setError(null);
+    if (step === 0) {
+      if (!siteSettings.registrationOpen) {
+        return setError(siteSettings.closedMessage || 'Registrations are currently closed.');
       }
-      finalCollege = formData.customCollege.trim();
-    }
-
-    if (!formData.teamName.trim()) return toast.error('Team Name is required.');
-    if (!formData.leaderName.trim()) return toast.error('Team Leader Name is required.');
-    if (!formData.leaderEmail.includes('@')) return toast.error('Valid Leader Email is required.');
-    if (!/^\d{10}$/.test(formData.leaderMobile)) return toast.error('Mobile Number must be 10 digits.');
-    if (!/^\d{10}$/.test(formData.leaderWhatsapp)) return toast.error('WhatsApp Number must be 10 digits.');
-    if (!finalCollege) return toast.error('Please choose or enter your college.');
-    if (!formData.branch) return toast.error('Please select your branch.');
-    if (!formData.year) return toast.error('Please select your academic year.');
-
-    const teamSizeNum = parseInt(formData.teamSize, 10);
-    const evObj = allEvents.find(e => e.value === formData.event);
-
-    if (evObj && !evObj.allowedSizes.includes(teamSizeNum)) {
-      return toast.error(`Team size for ${evObj.label} must be ${evObj.allowedSizes.join(', ')}.`);
-    }
-
-    // Validate additional members
-    if (teamSizeNum > 1) {
-      if (formData.members.length !== teamSizeNum - 1) {
-        return toast.error(`Please provide details for all ${teamSizeNum - 1} team members.`);
+      if (!formData.event) {
+        return setError('Please select an event arena to continue.');
+      }
+      if (siteSettings.eventStatus && siteSettings.eventStatus[formData.event] === false) {
+        return setError('Registrations for this selected event are closed.');
       }
 
-      for (let i = 0; i < formData.members.length; i++) {
-        const m = formData.members[i];
-        if (!m.name?.trim()) {
-          return toast.error(`Member #${i + 2} name is required.`);
+      const step0Fields = ['event', 'teamName', 'leaderName', 'leaderEmail', 'leaderMobile', 'leaderWhatsapp', 'college', 'course', 'branch', 'year'];
+      const newErrors = {};
+      step0Fields.forEach(f => {
+        newErrors[f] = validate(f, formData[f]);
+      });
+
+      if (formData.college === 'OTHER' && !formData.customCollege?.trim()) {
+        newErrors.customCollege = 'Please enter your custom college name';
+      }
+
+      setFieldErrors(prev => ({ ...prev, ...newErrors }));
+      setTouched(prev => {
+        const allTouched = { ...prev };
+        step0Fields.forEach(f => { allTouched[f] = true; });
+        return allTouched;
+      });
+
+      if (Object.values(newErrors).some(Boolean)) {
+        return setError('Please review and complete all required fields.');
+      }
+    }
+
+    if (step === 1) {
+      const teamSizeNum = parseInt(formData.teamSize, 10);
+      if (teamSizeNum > 1) {
+        for (let i = 0; i < formData.members.length; i++) {
+          const m = formData.members[i];
+          if (!m.name || !m.name.trim()) {
+            return setError(`Please enter the full name for Teammate ${i + 2}.`);
+          }
+          if (!m.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m.email.trim())) {
+            return setError(`Please provide a valid email address for Teammate ${i + 2}.`);
+          }
         }
-        if (!m.email?.includes('@')) {
-          return toast.error(`Member #${i + 2} must have a valid email.`);
+
+        // Intra-team uniqueness check
+        const leaderEmail = formData.leaderEmail.trim().toLowerCase();
+        const memberEmails = formData.members.map(m => m.email.trim().toLowerCase());
+        const allEmails = [leaderEmail, ...memberEmails];
+        if (new Set(allEmails).size !== allEmails.length) {
+          return setError('All team emails must be unique. Duplicate email found within your team.');
+        }
+
+        const leaderMobile = formData.leaderMobile.trim();
+        const memberMobiles = formData.members.map(m => m.mobile?.trim()).filter(Boolean);
+        const allMobiles = [leaderMobile, ...memberMobiles];
+        if (new Set(allMobiles).size !== allMobiles.length) {
+          return setError('All mobile numbers within the team must be unique.');
         }
       }
     }
 
-    setSubmitting(true);
+    setStep(prev => prev + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Submit Final Form
+  const submitForm = async () => {
+    setLoading(true);
+    setError(null);
 
     try {
+      if (!siteSettings.registrationOpen) {
+        setLoading(false);
+        return setError(siteSettings.closedMessage || 'Registrations are currently closed.');
+      }
+
+      const teamSizeNum = parseInt(formData.teamSize, 10);
+      const finalCollege = formData.college === 'OTHER'
+        ? (formData.customCollege?.trim() || 'Other')
+        : formData.college;
+
       const payload = {
         teamName: formData.teamName.trim(),
         leaderName: formData.leaderName.trim(),
@@ -435,801 +773,868 @@ const EventRegistration = () => {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
       const res = await axios.post(`${backendUrl}/api/event-register`, payload);
 
-      setRegistrationSuccess({
-        teamId: res.data.teamId,
-        teamName: payload.teamName,
-        eventLabel: evObj ? evObj.label : payload.event,
-        leaderName: payload.leaderName,
-        leaderEmail: payload.leaderEmail,
-        college: payload.college,
-        teamSize: payload.teamSize,
-        membersCount: payload.members.length
-      });
-
-      toast.success(`🎉 Team Registered! Team ID: ${res.data.teamId}`);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
+      if (res.status === 201 || res.data?.teamId) {
+        localStorage.removeItem(LS_KEY);
+        setRegisteredDetails({
+          teamId: res.data.teamId,
+          teamName: formData.teamName,
+          leaderName: formData.leaderName,
+          leaderEmail: formData.leaderEmail,
+          eventLabel: activeEventObj?.label || formData.event,
+          teamSize: teamSizeNum
+        });
+      }
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || 'Registration failed. Please check details & retry.');
+      console.error('Registration submission failed:', err);
+      const msg = err.response?.data?.message || err.message || 'Registration failed. Please check network connection.';
+      setError(msg);
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
-
-  const copyTeamId = () => {
-    if (registrationSuccess?.teamId) {
-      navigator.clipboard.writeText(registrationSuccess.teamId);
-      setCopiedId(true);
-      toast.info('Team ID copied to clipboard!');
-      setTimeout(() => setCopiedId(false), 2500);
-    }
-  };
-
-  const handleResetForNewRegistration = () => {
-    setRegistrationSuccess(null);
-    setFormData({
-      teamName: '',
-      leaderName: '',
-      leaderEmail: '',
-      leaderMobile: '',
-      leaderWhatsapp: '',
-      college: '',
-      customCollege: '',
-      branch: '',
-      year: '',
-      event: '',
-      teamSize: '1',
-      members: [],
-    });
-  };
-
-  if (settingsLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#070913] text-white pt-28">
-        <Loader2 className="animate-spin text-cyan-400 mb-4" size={48} />
-        <p className="text-gray-400 font-mono tracking-wider text-sm animate-pulse">CONNECTING TO CROSSROADS CORE...</p>
-      </div>
-    );
-  }
-
-  // If website registrations are closed globally
-  if (!siteSettings.registrationOpen) {
-    return (
-      <div className="min-h-screen bg-[#070913] py-24 px-4 pt-36 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-red-950/30 via-transparent to-transparent pointer-events-none" />
-        <div className="max-w-xl w-full bg-slate-900/90 backdrop-blur-2xl border border-red-500/30 rounded-3xl p-8 sm:p-12 text-center shadow-2xl relative z-10">
-          <div className="w-20 h-20 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-6 text-red-400 shadow-lg shadow-red-500/10">
-            <AlertCircle className="w-10 h-10" />
-          </div>
-          <span className="inline-block px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 font-mono text-xs uppercase tracking-widest mb-3">
-            Portal Paused
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4 tracking-tight">
-            Registrations Currently Closed
-          </h2>
-          <p className="text-gray-300 text-base sm:text-lg leading-relaxed mb-8">
-            {siteSettings.closedMessage || 'Online registrations for CROSSROADS 2026 are currently paused. Please check back later or reach out to the campus desk.'}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/events"
-              className="px-6 py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl shadow-lg transition"
-            >
-              Explore Events
-            </Link>
-            <Link
-              to="/contact"
-              className="px-6 py-3.5 bg-slate-800 text-gray-200 hover:text-white font-semibold rounded-xl border border-slate-700 hover:bg-slate-700 transition"
-            >
-              Contact Coordinators
-            </Link>
-          </div>
-        </div>
-        <ToastContainer position="top-center" theme="dark" autoClose={5000} />
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-[#060813] text-gray-100 py-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden pt-32">
-      {/* Ambient Cyber Grid & Glow */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b10_1px,transparent_1px),linear-gradient(to_bottom,#1e293b10_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] pointer-events-none" />
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[42rem] h-[22rem] bg-cyan-600/15 blur-[130px] rounded-full pointer-events-none" />
-      <div className="absolute top-72 right-[-5%] w-[32rem] h-[22rem] bg-purple-600/12 blur-[140px] rounded-full pointer-events-none" />
+    <div className="relative min-h-screen bg-[#070b18] text-white pt-24 sm:pt-28 pb-20 px-3 sm:px-6 lg:px-8 overflow-hidden">
+      {/* Background radial glow */}
+      <div className="absolute top-[20%] left-[50%] -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-blue-600/10 blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[10%] left-[20%] w-[450px] h-[450px] rounded-full bg-purple-600/10 blur-[130px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto relative z-10">
-
-        {/* REGISTRATION SUCCESS VIEW */}
-        {registrationSuccess ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="max-w-2xl mx-auto bg-slate-900/90 backdrop-blur-2xl border border-cyan-500/40 rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden"
-          >
-            {/* Holographic Top Accent */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-cyan-400 via-teal-400 to-indigo-500" />
-
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-cyan-500/20 to-teal-500/20 border border-cyan-400/40 rounded-3xl flex items-center justify-center mx-auto mb-4 text-cyan-400 shadow-xl shadow-cyan-500/10">
-                <CheckCircle2 className="w-10 h-10" />
-              </div>
-              <span className="inline-block px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-xs uppercase tracking-widest font-semibold mb-2">
-                Official Registration Confirmed
+      <div className="max-w-5xl mx-auto relative z-10">
+        {/* Top Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-6"
+        >
+          <div className="text-center md:text-left">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 100 }}
+              className="inline-flex items-center gap-2 mb-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 px-4 py-2 rounded-full border border-blue-500/30"
+            >
+              <Rocket className="w-4 h-4 text-blue-400" />
+              <span className="text-[10px] sm:text-xs font-bold text-blue-300 uppercase tracking-widest font-mono">
+                CROSSROADS 2026 • Official Registration
               </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                Team Pass Minted!
-              </h2>
-              <p className="text-gray-400 text-sm mt-2">
-                A confirmation email with official fest pass has been sent to the leader & CC'd to team members.
-              </p>
+            </motion.div>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight">
+              EVENT <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">REGISTRATION</span>
+            </h1>
+            <p className="text-white/50 text-[10px] sm:text-xs mt-2 font-semibold uppercase tracking-widest">
+              Inter-College Technical & Cultural Fest • HIET Ghaziabad
+            </p>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                Registrations Open: <strong className="text-white">November 28–29, 2026</strong>
+              </span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono text-[10px] sm:text-[11px] font-bold">
+                🏆 Total Prize Pool: <strong className="text-white">₹1,00,000+</strong>
+              </span>
             </div>
+          </div>
 
-            {/* Pass Ticket Card */}
-            <div className="p-6 bg-[#0c1222] border border-cyan-500/30 rounded-2xl relative overflow-hidden mb-8 shadow-inner">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-800 gap-4">
-                <div>
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-gray-500 block">Assigned Team ID</span>
-                  <div className="text-2xl sm:text-3xl font-black font-mono text-cyan-400 tracking-wider mt-0.5">
-                    {registrationSuccess.teamId}
-                  </div>
-                </div>
-                <button
-                  onClick={copyTeamId}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-semibold transition shrink-0"
-                >
-                  {copiedId ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                  <span>{copiedId ? 'Copied!' : 'Copy Team ID'}</span>
-                </button>
-              </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsRulesOpen(true)}
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-500/20 to-indigo-500/20 border border-blue-500/30 hover:border-blue-500/50 text-blue-300 hover:text-white font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-blue-500/10 cursor-pointer"
+            >
+              <ShieldCheck size={16} className="text-blue-400" />
+              <span>Guidelines</span>
+            </button>
 
-              <div className="grid grid-cols-2 gap-4 pt-5 text-sm">
-                <div>
-                  <span className="text-xs text-gray-500 block">Event Arena</span>
-                  <span className="font-semibold text-white">{registrationSuccess.eventLabel}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 block">Team Name</span>
-                  <span className="font-semibold text-white">{registrationSuccess.teamName}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 block">Team Leader</span>
-                  <span className="font-semibold text-white">{registrationSuccess.leaderName}</span>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 block">Squad Headcount</span>
-                  <span className="font-semibold text-cyan-300">
-                    {registrationSuccess.teamSize} Member{registrationSuccess.teamSize > 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="col-span-2 pt-2 border-t border-slate-800/80">
-                  <span className="text-xs text-gray-500 block">Institution</span>
-                  <span className="text-gray-300 text-xs sm:text-sm font-medium">{registrationSuccess.college}</span>
-                </div>
-              </div>
-            </div>
+            <Link
+              to="/events"
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
+            >
+              <ExternalLink size={16} className="text-gray-400" />
+              <span>View 11 Arenas</span>
+            </Link>
+          </div>
+        </motion.div>
 
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <a
-                href="https://chat.whatsapp.com/KTyS5UeLX1q3wVX7omGqcg"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition"
+        {/* Closed Banner Warning if Admin closed registrations */}
+        {!siteSettings.registrationOpen && (
+          <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm flex items-center gap-3">
+            <AlertCircle size={20} className="text-red-400 shrink-0" />
+            <p className="font-semibold">
+              {siteSettings.closedMessage || 'Online registrations for CROSSROADS 2026 are currently closed.'}
+            </p>
+          </div>
+        )}
+
+        {/* Main Card Container */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="relative backdrop-blur-3xl bg-gradient-to-br from-[#12162a]/90 via-[#0d1020]/80 to-[#12162a]/90 border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_0_50px_rgba(59,130,246,0.15)] overflow-hidden mb-8 hover:border-blue-500/30 transition-colors"
+        >
+          <ProgressBar progress={completionProgress} />
+
+          {/* Stepper Header (Desktop) */}
+          <div className="hidden lg:flex items-center justify-between p-8 sm:p-10 border-b border-white/5 relative">
+            <div className="absolute left-[15%] right-[15%] top-[50px] h-[1px] bg-white/10 z-0" />
+            <motion.div
+              className="absolute left-[15%] top-[50px] h-[1px] bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500 z-0 shadow-[0_0_8px_rgba(59,130,246,0.8)]"
+              initial={{ width: "0%" }}
+              animate={{ width: step === 0 ? "0%" : step === 1 ? "50%" : "100%" }}
+              transition={{ type: "spring", stiffness: 80, damping: 20 }}
+            />
+
+            {STEPS.map((s, i) => (
+              <motion.div
+                key={i}
+                className="flex-1 flex flex-col items-center relative z-10"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.1 }}
               >
-                <MessageCircle size={18} />
-                <span>Join Official WhatsApp Community</span>
-                <ExternalLink size={14} />
-              </a>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleResetForNewRegistration}
-                  className="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-gray-200 font-semibold rounded-xl border border-slate-700 flex items-center justify-center gap-2 transition text-sm"
+                <motion.div
+                  className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-sm transition-all border ${
+                    step > i
+                      ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                      : step === i
+                      ? 'bg-gradient-to-br from-blue-600 to-indigo-600 border-blue-400 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]'
+                      : 'bg-[#0d0d12] border-white/10 text-white/30'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
                 >
-                  <RefreshCw size={15} />
-                  <span>Register Another Team</span>
-                </button>
-                <Link
-                  to="/events"
-                  className="flex-1 py-3.5 bg-cyan-950/60 hover:bg-cyan-900 text-cyan-300 font-semibold rounded-xl border border-cyan-500/30 flex items-center justify-center gap-2 transition text-sm"
+                  {step > i ? <Check size={24} /> : i + 1}
+                </motion.div>
+                <span className={`text-[11px] mt-3 font-black uppercase tracking-[0.15em] transition-colors duration-300 ${step >= i ? 'text-blue-400' : 'text-white/20'}`}>
+                  {s}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Stepper Header (Mobile) */}
+          <div className="lg:hidden px-4 sm:px-6 py-6 border-b border-white/5">
+            <div className="flex justify-between items-center mb-3">
+              {STEPS.map((_, i) => (
+                <motion.div
+                  key={i}
+                  className={`h-1.5 flex-1 mx-1 rounded-full transition-all ${
+                    step >= i ? 'bg-gradient-to-r from-blue-500 to-indigo-500' : 'bg-white/10'
+                  }`}
+                  animate={{ scale: step === i ? 1.05 : 1 }}
+                />
+              ))}
+            </div>
+            <p className="text-center text-xs text-blue-400 font-bold uppercase tracking-widest font-mono">
+              Step {step + 1} of {STEPS.length}: {STEPS[step]}
+            </p>
+          </div>
+
+          {/* Form Content Area */}
+          <div className="p-6 sm:p-8 md:p-12">
+            <AnimatePresence mode="wait">
+              {/* STEP 0: CONTACT & EVENT INFO */}
+              {step === 0 && (
+                <motion.div
+                  key="step0"
+                  initial={{ opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 30 }}
+                  transition={{ type: "spring", stiffness: 100 }}
+                  className="space-y-8"
                 >
-                  <Trophy size={15} />
-                  <span>Explore Other Events</span>
-                </Link>
-              </div>
-            </div>
-          </motion.div>
-        ) : (
+                  {/* Event Arena Selection */}
+                  <div className="space-y-3 text-left">
+                    <label className="text-xs sm:text-sm font-bold text-white/80 ml-1 flex items-center gap-2">
+                      <Trophy size={16} className="text-amber-400" />
+                      Select Competition Arena *
+                    </label>
 
-          /* REGISTRATION FORM VIEW */
-          <div>
-            {/* Header Title */}
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs sm:text-sm font-mono tracking-wide mb-4 shadow-lg shadow-cyan-950/50">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping inline-block" />
-                <span>LIVE REGISTRATIONS • CROSSROADS 2026</span>
-              </div>
-              <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight">
-                Claim Your <span className="bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">Arena</span>
-              </h1>
-              <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mt-3">
-                Join 1,000+ top engineering and creative innovators from across colleges. Fill in your squad credentials below.
-              </p>
-
-              {/* Event Date & Deadline Badge Ribbon */}
-              <div className="mt-5 inline-flex flex-wrap items-center justify-center gap-3 px-5 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-700/80 shadow-lg">
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-cyan-300">
-                  <span className="text-base">🗓️</span>
-                  <span>Event Date: <strong>November 28–29, 2026</strong></span>
-                </div>
-                <span className="text-slate-600 hidden sm:inline">•</span>
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-amber-300">
-                  <span className="text-base">⏳</span>
-                  <span>Registration Deadline: <strong>November 20, 2026</strong></span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              
-              {/* LEFT / MAIN FORM (8 cols) */}
-              <div className="lg:col-span-8 bg-slate-900/80 backdrop-blur-xl rounded-3xl border border-slate-800 p-6 sm:p-10 shadow-2xl">
-                <form onSubmit={handleSubmit} className="space-y-10">
-
-                  {/* STEP 1: EVENT ARENA SELECTOR */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm">
-                          1
-                        </div>
-                        <div>
-                          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            Select Event Arena <span className="text-cyan-400 text-sm">*</span>
-                          </h2>
-                          <p className="text-xs text-gray-400">Choose the competition you want to participate in</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Category Filter Pills */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {['All', 'Technical', 'Cultural', 'Fun & Adventure'].map(cat => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setSelectedCategory(cat)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                            selectedCategory === cat
-                              ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20'
-                              : 'bg-slate-800 text-gray-400 hover:text-white hover:bg-slate-700'
-                          }`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Interactive Event Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
-                      {filteredEvents.map(ev => {
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {ALL_EVENTS.map(ev => {
                         const isSelected = formData.event === ev.value;
                         const isClosed = siteSettings.eventStatus && siteSettings.eventStatus[ev.value] === false;
-                        const Icon = ev.icon;
 
                         return (
                           <div
                             key={ev.value}
                             onClick={() => !isClosed && handleEventSelect(ev.value)}
-                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative text-left ${
+                            className={`p-4 rounded-2xl border transition-all text-left flex flex-col justify-between cursor-pointer ${
                               isClosed
-                                ? 'opacity-40 bg-slate-950/40 border-slate-800 cursor-not-allowed'
+                                ? 'opacity-40 cursor-not-allowed bg-slate-900/40 border-slate-800'
                                 : isSelected
-                                ? 'bg-cyan-950/40 border-cyan-400 ring-2 ring-cyan-500/20 shadow-lg shadow-cyan-950/50'
-                                : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60'
+                                ? 'bg-gradient-to-br from-blue-950/70 to-indigo-950/60 border-blue-500 shadow-lg shadow-blue-500/20 scale-[1.02]'
+                                : 'bg-slate-900/50 border-slate-800 hover:border-slate-700 hover:bg-slate-900/80'
                             }`}
                           >
-                            <div className="flex items-start gap-3">
-                              <div className={`p-2.5 rounded-xl bg-gradient-to-br ${ev.color} text-black shrink-0`}>
-                                <Icon size={18} />
+                            <div>
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold px-2 py-0.5 rounded-md bg-cyan-950/60 border border-cyan-800/40">
+                                  {ev.category}
+                                </span>
+                                <span className="text-[10px] font-mono text-gray-400 font-semibold">
+                                  {ev.badge}
+                                </span>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <h3 className={`text-sm font-bold truncate ${isSelected ? 'text-cyan-300' : 'text-white'}`}>
-                                    {ev.label}
-                                  </h3>
-                                  {isSelected && (
-                                    <CheckCircle2 size={16} className="text-cyan-400 shrink-0 ml-1" />
-                                  )}
-                                </div>
-                                <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5">{ev.desc}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-gray-300 font-mono">
-                                    {ev.badge}
-                                  </span>
-                                  {isClosed && (
-                                    <span className="text-[10px] text-red-400 font-bold uppercase">Closed</span>
-                                  )}
-                                </div>
-                              </div>
+                              <h4 className="text-sm font-bold text-white leading-tight">
+                                {ev.label}
+                              </h4>
+                              <p className="text-[11px] text-gray-400 mt-1 line-clamp-2">
+                                {ev.desc}
+                              </p>
+                            </div>
+
+                            <div className="mt-3 pt-2 border-t border-slate-800/70 flex items-center justify-between">
+                              <span className="text-[10px] text-blue-300 font-semibold font-mono">
+                                {isSelected ? '✓ Selected' : isClosed ? 'Closed' : 'Click to Select'}
+                              </span>
+                              {isSelected && (
+                                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                              )}
                             </div>
                           </div>
                         );
                       })}
                     </div>
+                    {touched.event && fieldErrors.event && (
+                      <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider ml-2">
+                        {fieldErrors.event}
+                      </p>
+                    )}
                   </div>
 
-                  {/* STEP 2: TEAM IDENTITY & HEADCOUNT */}
-                  <div className="pt-8 border-t border-slate-800">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm">
-                        2
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                          Team Identity & Headcount <span className="text-cyan-400 text-sm">*</span>
-                        </h2>
-                        <p className="text-xs text-gray-400">Give your squad a moniker and declare your roster size</p>
-                      </div>
-                    </div>
+                  {/* Leader and Team Credentials */}
+                  <div className="pt-6 border-t border-white/5 space-y-6">
+                    <h3 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <User size={18} className="text-blue-400" />
+                      Team Leader & Institution Credentials
+                    </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-2">
-                          Team / Solo Moniker *
-                        </label>
-                        <input
-                          type="text"
-                          name="teamName"
-                          value={formData.teamName}
-                          onChange={handleChange}
-                          required
-                          placeholder="e.g. Cyber Ninjas / Quantum Coders"
-                          className="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-gray-600 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition text-sm"
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                      <InputField
+                        label="Team Name"
+                        name="teamName"
+                        placeholder="E.g. Cyber Guardians"
+                        value={formData.teamName}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        error={fieldErrors.teamName}
+                        touched={touched.teamName}
+                        icon={Users}
+                      />
+
+                      <InputField
+                        label="Team Leader Full Name"
+                        name="leaderName"
+                        placeholder="E.g. Aman Gupta"
+                        value={formData.leaderName}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        error={fieldErrors.leaderName}
+                        touched={touched.leaderName}
+                        icon={User}
+                      />
+
+                      <InputField
+                        label="Leader Email Address"
+                        name="leaderEmail"
+                        type="email"
+                        placeholder="leader@example.com"
+                        value={formData.leaderEmail}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        error={fieldErrors.leaderEmail}
+                        touched={touched.leaderEmail}
+                        icon={Mail}
+                      />
+
+                      <InputField
+                        label="Leader Calling Phone Number"
+                        name="leaderMobile"
+                        type="tel"
+                        maxLength="10"
+                        placeholder="10-digit calling number"
+                        value={formData.leaderMobile}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        error={fieldErrors.leaderMobile}
+                        touched={touched.leaderMobile}
+                        icon={Phone}
+                      />
+
+                      <div className="space-y-2">
+                        <InputField
+                          label="Leader WhatsApp Number"
+                          name="leaderWhatsapp"
+                          type="tel"
+                          maxLength="10"
+                          placeholder="10-digit WhatsApp number"
+                          value={formData.leaderWhatsapp}
+                          onChange={handleInputChange}
+                          onBlur={handleBlur}
+                          error={fieldErrors.leaderWhatsapp}
+                          touched={touched.leaderWhatsapp}
+                          icon={Phone}
                         />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-2">
-                          Team Size (including leader) *
-                        </label>
-                        {activeEventObj ? (
-                          <div className="flex flex-wrap gap-2">
-                            {activeEventObj.allowedSizes.map(size => (
-                              <button
-                                key={size}
-                                type="button"
-                                onClick={() => handleTeamSizeChange(size.toString())}
-                                className={`px-4 py-3 rounded-xl font-semibold text-xs transition flex items-center gap-1.5 ${
-                                  formData.teamSize === size.toString()
-                                    ? 'bg-cyan-500 text-black font-bold shadow-md shadow-cyan-500/20'
-                                    : 'bg-slate-950 border border-slate-800 text-gray-300 hover:border-slate-700'
-                                }`}
-                              >
-                                <Users size={14} />
-                                <span>{size} {size === 1 ? 'Solo' : 'Members'}</span>
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-500 italic py-3 bg-slate-950/60 rounded-xl px-4 border border-slate-800">
-                            Select an event first to unlock available team sizes
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* STEP 3: LEADER (COMMANDER) CONTACT */}
-                  <div className="pt-8 border-t border-slate-800">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm">
-                        3
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                          Team Leader Credentials <span className="text-cyan-400 text-sm">*</span>
-                        </h2>
-                        <p className="text-xs text-gray-400">Primary point of contact for confirmation emails and slot briefings</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-2">
-                          Full Name *
-                        </label>
-                        <div className="relative">
-                          <User size={16} className="absolute left-3.5 top-3.5 text-gray-500" />
+                        <label className="flex items-center gap-2 text-xs text-blue-300 cursor-pointer ml-2 select-none">
                           <input
-                            type="text"
-                            name="leaderName"
-                            value={formData.leaderName}
-                            onChange={handleChange}
-                            required
-                            placeholder="e.g. Aman Gupta"
-                            className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-gray-600 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition text-sm"
+                            type="checkbox"
+                            checked={sameAsCalling}
+                            onChange={handleSameAsCallingToggle}
+                            className="rounded border-slate-700 text-blue-500 focus:ring-blue-500 bg-slate-900 cursor-pointer"
                           />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-2">
-                          Official Email Address *
+                          <span>Same as Calling Number</span>
                         </label>
-                        <div className="relative">
-                          <Mail size={16} className="absolute left-3.5 top-3.5 text-gray-500" />
-                          <input
-                            type="email"
-                            name="leaderEmail"
-                            value={formData.leaderEmail}
-                            onChange={handleChange}
-                            required
-                            placeholder="leader@gmail.com"
-                            className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-gray-600 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition text-sm"
-                          />
-                        </div>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-2">
-                          Calling Mobile Number *
-                        </label>
-                        <div className="relative">
-                          <Phone size={16} className="absolute left-3.5 top-3.5 text-gray-500" />
-                          <input
-                            type="tel"
-                            name="leaderMobile"
-                            maxLength="10"
-                            value={formData.leaderMobile}
-                            onChange={handleChange}
-                            required
-                            placeholder="10-digit number"
-                            className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-gray-600 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="text-xs font-mono uppercase tracking-wider text-gray-400">
-                            WhatsApp Number *
-                          </label>
-                          <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-cyan-400 hover:text-cyan-300">
-                            <input
-                              type="checkbox"
-                              checked={sameAsCalling}
-                              onChange={handleSameAsCallingToggle}
-                              className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer"
-                            />
-                            <span>Same as calling</span>
-                          </label>
-                        </div>
-                        <div className="relative">
-                          <MessageCircle size={16} className="absolute left-3.5 top-3.5 text-gray-500" />
-                          <input
-                            type="tel"
-                            name="leaderWhatsapp"
-                            maxLength="10"
-                            value={formData.leaderWhatsapp}
-                            onChange={handleChange}
-                            required
-                            disabled={sameAsCalling}
-                            placeholder="WhatsApp number"
-                            className={`w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-gray-600 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition text-sm ${
-                              sameAsCalling ? 'opacity-60 bg-slate-900 cursor-not-allowed' : ''
-                            }`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* STEP 4: ACADEMIC DETAILS */}
-                  <div className="pt-8 border-t border-slate-800">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm">
-                        4
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                          Academic Profile <span className="text-cyan-400 text-sm">*</span>
-                        </h2>
-                        <p className="text-xs text-gray-400">Tell us about your home institution and current semester</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-2">
-                          College / University *
-                        </label>
-                        <select
-                          name="college"
-                          value={formData.college}
-                          onChange={handleChange}
-                          required
-                          className="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-white focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition text-sm cursor-pointer"
-                        >
-                          <option value="">-- Choose your College / University --</option>
-                          {colleges.map((col, idx) => (
-                            <option key={idx} value={col}>{col}</option>
-                          ))}
-                        </select>
-                      </div>
+                      <SelectField
+                        label="College / University"
+                        name="college"
+                        value={formData.college}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        error={fieldErrors.college}
+                        touched={touched.college}
+                        icon={Globe}
+                      >
+                        <option value="">Select College / University</option>
+                        {COLLEGES.map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </SelectField>
 
                       {formData.college === 'OTHER' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          className="p-4 bg-cyan-950/20 border border-cyan-500/30 rounded-xl"
-                        >
-                          <label className="block text-xs font-mono uppercase tracking-wider text-cyan-300 mb-2">
-                            Enter Custom College Name *
-                          </label>
-                          <input
-                            type="text"
+                        <div className="md:col-span-2">
+                          <InputField
+                            label="Specify Your College / Institute Name"
                             name="customCollege"
+                            placeholder="Full name of your College / University"
                             value={formData.customCollege}
-                            onChange={handleChange}
-                            required
-                            placeholder="Specify full name of your university / institute"
-                            className="w-full px-4 py-2.5 bg-slate-950 border border-cyan-500/40 rounded-lg text-white placeholder-gray-600 focus:border-cyan-400 text-sm"
+                            onChange={handleInputChange}
+                            onBlur={handleBlur}
+                            icon={Globe}
                           />
-                        </motion.div>
+                        </div>
                       )}
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-2">
-                            Branch / Department *
-                          </label>
-                          <select
-                            name="branch"
-                            value={formData.branch}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-white focus:border-cyan-400 text-sm cursor-pointer"
-                          >
-                            <option value="">Select Branch</option>
-                            {branches.map(b => (
-                              <option key={b} value={b}>{b}</option>
-                            ))}
-                          </select>
-                        </div>
+                      <SelectField
+                        label="Degree / Course"
+                        name="course"
+                        value={formData.course}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        error={fieldErrors.course}
+                        touched={touched.course}
+                        icon={GraduationCap}
+                      >
+                        <option value="">Select Degree / Course</option>
+                        {COURSES.map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </SelectField>
 
-                        <div>
-                          <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-2">
-                            Year of Study *
-                          </label>
-                          <select
-                            name="year"
-                            value={formData.year}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-white focus:border-cyan-400 text-sm cursor-pointer"
-                          >
-                            <option value="">Select Year</option>
-                            {years.map(y => (
-                              <option key={y} value={y}>{y}</option>
-                            ))}
-                          </select>
-                        </div>
+                      <SelectField
+                        label="Branch / Department"
+                        name="branch"
+                        value={formData.branch}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        error={fieldErrors.branch}
+                        touched={touched.branch}
+                        icon={Binary}
+                      >
+                        <option value="">Select Branch / Department</option>
+                        {BRANCHES.map(b => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </SelectField>
+
+                      <SelectField
+                        label="Academic Year"
+                        name="year"
+                        value={formData.year}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        error={fieldErrors.year}
+                        touched={touched.year}
+                        icon={Target}
+                      >
+                        <option value="">Select Year</option>
+                        {YEARS.map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </SelectField>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STEP 1: TEAM MEMBERS (Step 2 in user terms, project details removed as requested) */}
+              {step === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 30 }}
+                  transition={{ type: "spring", stiffness: 100 }}
+                  className="space-y-8"
+                >
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 to-indigo-950/50 border border-blue-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400 shrink-0">
+                        <Users size={20} />
                       </div>
+                      <div className="text-left">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-blue-400 font-bold block">
+                          Arena: {activeEventObj?.label || 'Selected Event'}
+                        </span>
+                        <h3 className="text-base sm:text-lg font-bold text-white">
+                          Configure Team Size
+                        </h3>
+                        <p className="text-xs text-gray-400">
+                          Allowed: {activeEventObj?.badge || '1-4 Members'} (Including Team Leader)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Team Size Buttons */}
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                      {activeEventObj?.allowedSizes.map(size => {
+                        const isCurrent = parseInt(formData.teamSize, 10) === size;
+                        let labelText = size === 1 ? 'Solo (1 Member)' : `${size} Members Total`;
+
+                        return (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={() => handleTeamSizeChange(size)}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              isCurrent
+                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 border border-blue-400/50 scale-105'
+                                : 'bg-slate-900/80 text-gray-400 border border-slate-800 hover:text-white hover:bg-slate-800'
+                            }`}
+                          >
+                            {labelText}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* STEP 5: ADDITIONAL SQUAD MEMBERS (IF TEAM SIZE > 1) */}
-                  {parseInt(formData.teamSize, 10) > 1 && (
+                  {/* Solo Notice */}
+                  {parseInt(formData.teamSize, 10) === 1 && (
                     <motion.div
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="pt-8 border-t border-slate-800"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-8 sm:p-12 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-3"
                     >
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold text-sm">
-                          5
-                        </div>
-                        <div>
-                          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            Squad Roster ({formData.members.length} Additional Partner{formData.members.length > 1 ? 's' : ''})
-                          </h2>
-                          <p className="text-xs text-gray-400">
-                            Each member will automatically receive the official confirmation email in CC.
-                          </p>
-                        </div>
+                      <div className="w-14 h-14 mx-auto rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                        <User size={28} />
+                      </div>
+                      <h4 className="text-lg font-bold text-white">Solo Participant Arena</h4>
+                      <p className="text-sm text-gray-400 max-w-md mx-auto leading-relaxed">
+                        You have selected a solo participation format. The Team Leader (<strong className="text-blue-300">{formData.leaderName || 'You'}</strong>) will compete individually. No additional team members are required.
+                      </p>
+                      <p className="text-xs text-blue-400 font-mono pt-2">
+                        Click "Continue" below to review and confirm your registration.
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {/* Teammate Cards */}
+                  {parseInt(formData.teamSize, 10) > 1 && (
+                    <div className="space-y-6 text-left">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-gray-300 uppercase tracking-wider font-mono">
+                          Teammates Roster ({formData.members.length} Additional Members)
+                        </h4>
+                        <span className="text-xs text-gray-500">All members will be CC'd on confirmation emails</span>
                       </div>
 
                       <div className="space-y-4">
                         {formData.members.map((member, idx) => (
-                          <div
+                          <motion.div
                             key={idx}
-                            className="p-5 bg-slate-950/70 border border-slate-800 rounded-2xl relative"
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.08 }}
+                            className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-950/80 border border-slate-800 hover:border-blue-500/40 transition-all space-y-4"
                           >
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <Users size={13} /> Squad Member #{idx + 2}
-                              </span>
-                              <span className="text-[11px] text-gray-500">Co-Participant</span>
+                            <div className="flex items-center gap-2.5 text-blue-400 font-bold text-xs uppercase tracking-widest font-mono">
+                              <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-300">
+                                {idx + 2}
+                              </div>
+                              <span>Teammate {idx + 2} Details</span>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-[11px] text-gray-400 uppercase tracking-wider mb-1">
-                                  Full Name *
-                                </label>
-                                <input
-                                  type="text"
-                                  value={member.name}
-                                  onChange={(e) => handleMemberChange(idx, 'name', e.target.value)}
-                                  required
-                                  placeholder={`Member #${idx + 2} Name`}
-                                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder-gray-600 focus:border-purple-400 text-sm"
-                                />
-                              </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                              <InputField
+                                label="Teammate Full Name *"
+                                placeholder="E.g. Priyanshu Singh"
+                                value={member.name}
+                                onChange={e => handleMemberChange(idx, 'name', e.target.value)}
+                                icon={User}
+                              />
 
-                              <div>
-                                <label className="block text-[11px] text-gray-400 uppercase tracking-wider mb-1">
-                                  Email Address *
-                                </label>
-                                <input
-                                  type="email"
-                                  value={member.email}
-                                  onChange={(e) => handleMemberChange(idx, 'email', e.target.value)}
-                                  required
-                                  placeholder={`member${idx + 2}@gmail.com`}
-                                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder-gray-600 focus:border-purple-400 text-sm"
-                                />
-                              </div>
+                              <InputField
+                                label="Teammate Email Address *"
+                                type="email"
+                                placeholder="teammate@example.com"
+                                value={member.email}
+                                onChange={e => handleMemberChange(idx, 'email', e.target.value)}
+                                icon={Mail}
+                              />
+
+                              <InputField
+                                label="Teammate Phone (Optional)"
+                                type="tel"
+                                maxLength="10"
+                                placeholder="10-digit number"
+                                value={member.mobile || ''}
+                                onChange={e => handleMemberChange(idx, 'mobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                icon={Phone}
+                              />
+
+                              <SelectField
+                                label="Degree / Course"
+                                value={member.course || ''}
+                                onChange={e => handleMemberChange(idx, 'course', e.target.value)}
+                                icon={GraduationCap}
+                              >
+                                <option value="">Select Degree / Course</option>
+                                {COURSES.map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </SelectField>
+
+                              <SelectField
+                                label="Branch / Department"
+                                value={member.branch || ''}
+                                onChange={e => handleMemberChange(idx, 'branch', e.target.value)}
+                                icon={Binary}
+                              >
+                                <option value="">Select Branch</option>
+                                {BRANCHES.map(b => (
+                                  <option key={b} value={b}>{b}</option>
+                                ))}
+                              </SelectField>
+
+                              <SelectField
+                                label="Academic Year"
+                                value={member.year || ''}
+                                onChange={e => handleMemberChange(idx, 'year', e.target.value)}
+                                icon={Target}
+                              >
+                                <option value="">Select Year</option>
+                                {YEARS.map(y => (
+                                  <option key={y} value={y}>{y}</option>
+                                ))}
+                              </SelectField>
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
-                    </motion.div>
+                    </div>
                   )}
+                </motion.div>
+              )}
 
-                  {/* SUBMIT BUTTON */}
-                  <div className="pt-4">
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full py-4 sm:py-5 bg-gradient-to-r from-cyan-500 via-teal-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-black font-extrabold text-base sm:text-lg rounded-2xl shadow-xl shadow-cyan-500/20 hover:shadow-cyan-500/35 transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              {/* STEP 2: REVIEW & SUBMIT */}
+              {step === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 100 }}
+                  className="space-y-8"
+                >
+                  <div className="text-center">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                      className="inline-block mb-4 p-4 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl"
                     >
-                      {submitting ? (
-                        <>
-                          <Loader2 className="animate-spin text-black" size={22} />
-                          <span>Forging Team Pass & Dispatching Emails...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles size={20} className="text-black" />
-                          <span>Confirm & Submit Registration</span>
-                          <ArrowRight size={20} className="text-black" />
-                        </>
-                      )}
-                    </button>
-                    <p className="text-center text-gray-500 text-xs mt-3">
-                      🔒 Official registration pass with assigned Team ID will be dispatched to leader email with all members in CC.
+                      <Check className="w-8 h-8 text-emerald-400" />
+                    </motion.div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wider">
+                      Review Your Registration
+                    </h2>
+                    <p className="text-white/50 text-xs sm:text-sm font-medium mt-1">
+                      Verify all information carefully before final submission
                     </p>
                   </div>
 
-                </form>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 text-left">
+                    {/* Event & Leader Summary */}
+                    <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-6 space-y-4">
+                      <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                        <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                          <Trophy size={18} />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono uppercase tracking-widest text-blue-400 font-bold block">
+                            Arena Summary
+                          </span>
+                          <h4 className="text-sm font-bold text-white">
+                            {activeEventObj?.label || formData.event}
+                          </h4>
+                        </div>
+                      </div>
 
-              {/* RIGHT / LIVE PASS PREVIEW & PERKS (4 cols) */}
-              <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-32">
-                
-                {/* LIVE ENTRY PASS PREVIEW */}
-                <div className="bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 rounded-3xl border border-cyan-500/30 p-6 shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
-
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                      <span className="text-[11px] font-mono tracking-widest text-cyan-400 font-bold uppercase">
-                        PASS PREVIEW
-                      </span>
+                      <div className="space-y-3 text-xs sm:text-sm">
+                        <div className="flex justify-between items-center py-1.5 border-b border-white/5">
+                          <span className="text-gray-400">Category:</span>
+                          <span className="text-white font-bold">{activeEventObj?.category || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 border-b border-white/5">
+                          <span className="text-gray-400">Team Name:</span>
+                          <span className="text-cyan-300 font-bold">{formData.teamName}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 border-b border-white/5">
+                          <span className="text-gray-400">Team Size:</span>
+                          <span className="text-white font-bold">{formData.teamSize} Member(s)</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 border-b border-white/5">
+                          <span className="text-gray-400">Leader Name:</span>
+                          <span className="text-white font-semibold">{formData.leaderName}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 border-b border-white/5">
+                          <span className="text-gray-400">Leader Email:</span>
+                          <span className="text-indigo-300 font-mono text-xs">{formData.leaderEmail}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 border-b border-white/5">
+                          <span className="text-gray-400">Leader Phone:</span>
+                          <span className="text-white font-mono">{formData.leaderMobile}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5">
+                          <span className="text-gray-400">College:</span>
+                          <span className="text-white font-semibold truncate max-w-[200px]" title={formData.college === 'OTHER' ? formData.customCollege : formData.college}>
+                            {formData.college === 'OTHER' ? formData.customCollege : formData.college}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-[10px] font-mono text-gray-500">CR-2026</span>
+
+                    {/* Team Roster & Confirmation */}
+                    <div className="space-y-6">
+                      <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-6 space-y-3">
+                        <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                          <div className="p-2 bg-purple-500/20 rounded-lg text-purple-400">
+                            <Users size={18} />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-mono uppercase tracking-widest text-purple-400 font-bold block">
+                              Teammates Roster
+                            </span>
+                            <h4 className="text-sm font-bold text-white">
+                              {formData.members.length > 0 ? `${formData.members.length} Member(s)` : 'Solo Competitor'}
+                            </h4>
+                          </div>
+                        </div>
+
+                        {formData.members.length === 0 ? (
+                          <p className="text-xs text-gray-400 py-3">
+                            Solo Entry — No additional teammates.
+                          </p>
+                        ) : (
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            {formData.members.map((m, i) => (
+                              <div key={i} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs">
+                                <div>
+                                  <p className="font-bold text-white">{m.name || `Member ${i + 2}`}</p>
+                                  <p className="text-[11px] text-gray-400 font-mono">{m.email}</p>
+                                </div>
+                                <span className="text-[10px] text-blue-400 font-mono">Member #{i + 2}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Final Confirmation Note */}
+                      <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex items-start gap-3.5">
+                        <CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5" />
+                        <div className="text-left text-xs leading-relaxed text-gray-300">
+                          <strong className="text-white block mb-0.5">Ready for CROSSROADS 2026</strong>
+                          By completing this registration, you confirm that all entered credentials are correct. An official confirmation email with your unique Team ID will be dispatched to <span className="text-emerald-300 font-semibold">{formData.leaderEmail}</span>.
+                        </div>
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Team Pass Details */}
-                  <div className="space-y-4">
-                    <div>
-                      <span className="text-[10px] uppercase font-mono text-gray-500 block">Squad Moniker</span>
-                      <div className="text-lg font-black text-white truncate">
-                        {formData.teamName.trim() || 'YOUR SQUAD NAME'}
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] uppercase font-mono text-gray-500 block">Selected Event</span>
-                      <div className="text-sm font-bold text-cyan-300 truncate">
-                        {activeEventObj ? activeEventObj.label : 'Select Event Arena'}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80">
-                      <div>
-                        <span className="text-[10px] uppercase font-mono text-gray-500 block">Commander</span>
-                        <span className="text-xs font-semibold text-gray-200 truncate block">
-                          {formData.leaderName.trim() || 'Leader Name'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] uppercase font-mono text-gray-500 block">Roster</span>
-                        <span className="text-xs font-semibold text-cyan-400">
-                          {formData.teamSize} Member{formData.teamSize > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-800/80">
-                      <span className="text-[10px] uppercase font-mono text-gray-500 block">Institution</span>
-                      <span className="text-xs text-gray-400 line-clamp-1">
-                        {formData.college === 'OTHER'
-                          ? (formData.customCollege || 'Other College')
-                          : (formData.college || 'Select College')}
-                      </span>
-                    </div>
-
-                    {/* Decorative Barcode / Hologram */}
-                    <div className="pt-4 border-t border-dashed border-slate-800 flex items-center justify-between">
-                      <div className="h-6 flex items-center gap-1 opacity-40">
-                        {[4, 2, 6, 3, 5, 2, 7, 3, 4, 2, 6, 3, 5, 2, 6, 2].map((w, i) => (
-                          <div key={i} className="bg-gray-400 h-full" style={{ width: `${w}px` }} />
-                        ))}
-                      </div>
-                      <span className="text-[10px] font-mono text-gray-600">HIET FEST 2026</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* FEST PERKS CARD */}
-                <div className="bg-slate-900/60 rounded-3xl border border-slate-800 p-6 space-y-4">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-cyan-400" />
-                    <span>Participant Benefits</span>
-                  </h3>
-                  <ul className="text-xs text-gray-400 space-y-2.5">
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 size={14} className="text-cyan-400 shrink-0 mt-0.5" />
-                      <span>Official Certificate of Participation with verifiable credentials.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 size={14} className="text-cyan-400 shrink-0 mt-0.5" />
-                      <span>Access to technical keynotes, workshops, and high-energy cultural night.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 size={14} className="text-cyan-400 shrink-0 mt-0.5" />
-                      <span>Round Robin high-priority instant registration confirmation dispatch.</span>
-                    </li>
-                  </ul>
-
-                  <div className="pt-3 border-t border-slate-800/80">
-                    <a
-                      href="https://chat.whatsapp.com/KTyS5UeLX1q3wVX7omGqcg"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 font-semibold"
-                    >
-                      <MessageCircle size={14} />
-                      <span>Join Crossroads WhatsApp Group</span>
-                      <ExternalLink size={12} />
-                    </a>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        )}
 
+          {/* Stepper Footer Controls */}
+          <div className="p-6 sm:p-8 border-t border-white/5 bg-gradient-to-r from-white/[0.02] to-transparent flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6">
+            {step > 0 ? (
+              <button
+                type="button"
+                onClick={() => setStep(prev => prev - 1)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold text-xs sm:text-sm uppercase tracking-widest transition-all cursor-pointer"
+              >
+                <ChevronLeft size={18} /> Back
+              </button>
+            ) : <div />}
+
+            {step < STEPS.length - 1 ? (
+              <button
+                type="button"
+                onClick={nextStep}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm uppercase tracking-widest transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 cursor-pointer"
+              >
+                Continue <ChevronRight size={18} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={submitForm}
+                disabled={loading || !siteSettings.registrationOpen}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-12 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>Registering Team...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Complete Registration</span>
+                    <Check size={18} />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </motion.div>
       </div>
 
-      <ToastContainer position="top-center" theme="dark" autoClose={5000} />
+      {/* Floating Bottom Error Toast (CodeArambh style) */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-4"
+          >
+            <div className="bg-gradient-to-r from-red-950/95 to-red-900/90 backdrop-blur-2xl border border-red-500/50 p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 shadow-2xl shadow-red-500/20">
+              <AlertCircle size={20} className="text-red-400 shrink-0" />
+              <p className="text-white text-xs sm:text-sm font-semibold flex-1 text-left">
+                {error}
+              </p>
+              <button
+                onClick={() => setError(null)}
+                className="p-1 text-white/50 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success Modal (CodeArambh style) */}
+      <AnimatePresence>
+        {registeredDetails && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[99999] bg-[#05020c]/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="relative max-w-lg w-full bg-gradient-to-br from-[#12162a]/95 via-[#0b0e1e]/95 to-[#12162a]/95 border border-blue-500/40 p-6 sm:p-8 rounded-3xl shadow-[0_0_60px_rgba(59,130,246,0.3)] overflow-hidden text-center my-auto"
+            >
+              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 shadow-[0_0_12px_#3b82f6]" />
+
+              <div className="mx-auto w-14 h-14 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center mb-4 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                <CheckCircle2 size={30} />
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black font-mono text-white mb-1 uppercase tracking-wide">
+                Registration Confirmed!
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-400 mb-6 max-w-sm mx-auto leading-relaxed">
+                Your team is registered for CROSSROADS 2026. Save your official credentials below.
+              </p>
+
+              {/* Unique Team ID Display */}
+              <div className="space-y-4 text-left mb-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-blue-400/80 block font-mono">
+                    Official Team Registration ID
+                  </label>
+                  <div className="flex gap-2 items-center bg-black/50 border border-blue-500/30 px-4 py-3 rounded-xl font-mono text-xs sm:text-sm text-cyan-300">
+                    <span className="flex-1 select-all font-bold tracking-wide truncate">
+                      {registeredDetails.teamId}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(registeredDetails.teamId, 'teamId')}
+                      className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 hover:bg-blue-500 hover:text-white transition-all text-xs flex items-center gap-1 font-sans shrink-0 cursor-pointer"
+                    >
+                      {copiedField === 'teamId' ? (
+                        <>
+                          <Check size={14} />
+                          <span className="text-[10px] font-bold">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} />
+                          <span className="text-[10px] font-bold">Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Team Name:</span>
+                    <span className="text-white font-bold">{registeredDetails.teamName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Competition Arena:</span>
+                    <span className="text-cyan-300 font-bold">{registeredDetails.eventLabel}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Confirmation Sent To:</span>
+                    <span className="text-indigo-300 font-mono">{registeredDetails.leaderEmail}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Official WhatsApp Group */}
+              <a
+                href="https://chat.whatsapp.com/HR09HaxGTWmBiOKdAvwsg4"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 border border-emerald-400 text-white font-bold text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all font-mono mb-3 cursor-pointer"
+              >
+                <FaWhatsapp size={18} />
+                <span>Join Official WhatsApp Community</span>
+              </a>
+
+              <button
+                onClick={() => navigate('/events')}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer font-mono"
+              >
+                <span>Back to Events</span>
+                <ChevronRight size={16} />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
     </div>
   );
 };
