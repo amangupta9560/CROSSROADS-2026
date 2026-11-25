@@ -10,15 +10,31 @@ const {
   sendTeamConfirmationWithMembersCc,
   EVENT_DISPLAY_NAMES,
   getEventDisplay,
-  transporters
+  transporters,
+  escapeHtml
 } = require('../utils/mailer');
+
+const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const sanitizeSpreadsheetCell = (val) => {
+  if (val === null || val === undefined) return '';
+  const str = String(val);
+  return /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+};
 
 // Admin Login
 const login = (req, res) => {
-  const { username, password } = req.body;
-  
-  if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
-    const token = jwt.sign({ role: 'admin', username }, process.env.JWT_SECRET, { expiresIn: '12h' });
+  const { username, password } = req.body || {};
+  const expectedUser = process.env.ADMIN_USERNAME;
+  const expectedPass = process.env.ADMIN_PASSWORD;
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!expectedUser || !expectedPass || !jwtSecret) {
+    return res.status(500).json({ msg: 'Admin authentication is not configured on the server' });
+  }
+
+  if (username === expectedUser && password === expectedPass) {
+    const token = jwt.sign({ role: 'admin', username }, jwtSecret, { expiresIn: '12h' });
     return res.json({ token, username });
   }
   res.status(401).json({ msg: 'Invalid credentials' });
@@ -141,7 +157,7 @@ const getTeams = async (req, res) => {
     }
 
     if (search && search.trim()) {
-      const term = search.trim();
+      const term = escapeRegex(search.trim());
       const regex = new RegExp(term, 'i');
       query.$or = [
         { teamId: regex },
@@ -173,10 +189,21 @@ const getTeamById = async (req, res) => {
   }
 };
 
-// Update team details
+// Update team details (whitelisted fields only)
 const updateTeam = async (req, res) => {
   try {
-    const updated = await EventTeam.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const allowedFields = ['teamName', 'leader', 'college', 'branch', 'year', 'event', 'teamSize', 'members', 'exported'];
+    const updates = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+    const updated = await EventTeam.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    );
     if (!updated) return res.status(404).json({ msg: 'Team not found' });
     res.json({ msg: 'Team updated successfully', team: updated });
   } catch (err) {
@@ -313,7 +340,7 @@ const exportExcel = async (req, res) => {
     }
 
     if (search && search.trim()) {
-      const regex = new RegExp(search.trim(), 'i');
+      const regex = new RegExp(escapeRegex(search.trim()), 'i');
       query.$or = [
         { teamId: regex },
         { teamName: regex },
@@ -378,18 +405,18 @@ const exportExcel = async (req, res) => {
       teamList.forEach((team, idx) => {
         const membersStr = (team.members || []).map(m => `${m.name} (${m.email})`).join('; ') || 'Solo';
         const row = sheet.addRow([
-          team.teamId,
-          team.teamName,
-          getEventDisplay(team.event),
+          sanitizeSpreadsheetCell(team.teamId),
+          sanitizeSpreadsheetCell(team.teamName),
+          sanitizeSpreadsheetCell(getEventDisplay(team.event)),
           team.teamSize,
-          team.leader?.name || '',
-          team.leader?.email || '',
-          team.leader?.mobile || '',
-          team.leader?.whatsapp || '',
-          team.college,
-          team.branch,
-          team.year,
-          membersStr,
+          sanitizeSpreadsheetCell(team.leader?.name || ''),
+          sanitizeSpreadsheetCell(team.leader?.email || ''),
+          sanitizeSpreadsheetCell(team.leader?.mobile || ''),
+          sanitizeSpreadsheetCell(team.leader?.whatsapp || ''),
+          sanitizeSpreadsheetCell(team.college),
+          sanitizeSpreadsheetCell(team.branch),
+          sanitizeSpreadsheetCell(team.year),
+          sanitizeSpreadsheetCell(membersStr),
           team.appliedAt ? new Date(team.appliedAt).toLocaleDateString('en-IN') : ''
         ]);
 
@@ -526,9 +553,10 @@ const uploadExcel = async (req, res) => {
       const rawTeamSize = getColVal(row, ['teamsize', 'size', 'memberscount']);
 
       const members = [];
+      const leaderLocalPart = (leaderEmail || 'member').split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '') || 'member';
       for (let m = 1; m <= 6; m++) {
         const mName = getColVal(row, [`member${m}name`, `member${m}`, `participant${m}`]);
-        const mEmail = getColVal(row, [`member${m}email`]) || `${leaderEmail || 'member'}.${m}@crossroads.internal`;
+        const mEmail = getColVal(row, [`member${m}email`]) || `${leaderLocalPart}.${rowNumber}.${m}@crossroads.internal`;
         if (mName && mName.toLowerCase() !== leaderName?.toLowerCase()) {
           members.push({ name: mName, email: mEmail });
         }
@@ -747,29 +775,31 @@ const sendConditionalEmail = async (req, res) => {
       badgeText = 'IMPORTANT UPDATE';
     }
 
+    const safeCtaLink = ctaLink && /^https?:\/\//i.test(ctaLink.trim()) ? ctaLink.trim() : '';
+
     const formattedHtml = `
       <div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:680px; margin:auto; background:#0b1120; color:#e2e8f0; border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,0.08);">
         <div style="background:${headerGradient}; padding:40px 30px; text-align:center; color:white;">
           <span style="background:rgba(255,255,255,0.2); padding:5px 16px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase;">${badgeText}</span>
-          <h1 style="margin:16px 0 0; font-size:32px; font-weight:800; letter-spacing:0.5px;">${headline || 'CROSSROADS 2026'}</h1>
+          <h1 style="margin:16px 0 0; font-size:32px; font-weight:800; letter-spacing:0.5px;">${escapeHtml(headline || 'CROSSROADS 2026')}</h1>
         </div>
 
         <div style="padding:35px 30px; background:#111827;">
           <div style="font-size:16px; line-height:1.8; color:#cbd5e1; white-space:pre-wrap;">
-${message}
+${escapeHtml(message)}
           </div>
 
-          ${ctaText && ctaLink ? `
+          ${ctaText && safeCtaLink ? `
             <div style="text-align:center; margin:35px 0 20px;">
-              <a href="${ctaLink}" style="display:inline-block; padding:15px 38px; background:linear-gradient(135deg,#0ea5e9,#6366f1); color:white; font-weight:700; font-size:16px; text-decoration:none; border-radius:999px; box-shadow:0 10px 25px rgba(14,165,233,0.35);">
-                ${ctaText} →
+              <a href="${escapeHtml(safeCtaLink)}" style="display:inline-block; padding:15px 38px; background:linear-gradient(135deg,#0ea5e9,#6366f1); color:white; font-weight:700; font-size:16px; text-decoration:none; border-radius:999px; box-shadow:0 10px 25px rgba(14,165,233,0.35);">
+                ${escapeHtml(ctaText)} →
               </a>
             </div>
           ` : ''}
 
           <hr style="border:none; border-top:1px solid #1f2937; margin:35px 0 25px;">
           <div style="font-size:13px; color:#94a3b8; text-align:center;">
-            <p style="margin:0;">CROSSROADS 2026 Organizing Committee</p>
+            <p style="margin:0;">CROSSROADS 2026 Organizing Committee • Team Tech Fusion</p>
             <p style="margin:4px 0 0;">Hi-Tech Institute of Engineering & Technology, Ghaziabad</p>
           </div>
         </div>
@@ -835,10 +865,10 @@ const sendBroadcast = async (req, res) => {
               <div style="font-family:'Segoe UI',sans-serif; max-width:640px; margin:auto; background:#0b1120; color:#e2e8f0; border-radius:16px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
                 <div style="background:linear-gradient(135deg,#ec4899,#8b5cf6); padding:32px; text-align:center; color:white;">
                   <span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; background:rgba(0,0,0,0.2); padding:4px 14px; border-radius:999px;">OFFICIAL FEST BROADCAST</span>
-                  <h2 style="margin:14px 0 0; font-size:26px;">${title}</h2>
+                  <h2 style="margin:14px 0 0; font-size:26px;">${escapeHtml(title)}</h2>
                 </div>
                 <div style="padding:32px; background:#111827; font-size:16px; line-height:1.8; color:#cbd5e1; white-space:pre-wrap;">
-${message}
+${escapeHtml(message)}
                 </div>
                 <div style="padding:18px; background:#0f172a; text-align:center; font-size:12px; color:#64748b;">
                   CROSSROADS 2026 • HIET Ghaziabad • <a href="https://hiet-crossroads.online" style="color:#38bdf8; text-decoration:none;">hiet-crossroads.online</a>
@@ -996,7 +1026,7 @@ const sendAuthorityReport = async (req, res) => {
     const collegeRowsHtml = topColleges
       .map(([col, count]) => `
         <tr>
-          <td style="padding:8px 14px; border-bottom:1px solid #e2e8f0; color:#334155;">${col}</td>
+          <td style="padding:8px 14px; border-bottom:1px solid #e2e8f0; color:#334155;">${escapeHtml(col)}</td>
           <td style="padding:8px 14px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:600; color:#059669;">${count}</td>
         </tr>
       `).join('');
@@ -1025,7 +1055,7 @@ const sendAuthorityReport = async (req, res) => {
           ${remarks ? `
             <div style="margin:24px 0; padding:18px 22px; background:#f8fafc; border-left:4px solid #3b82f6; border-radius:8px;">
               <strong style="color:#1e3a8a; font-size:14px; text-transform:uppercase;">Admin / Coordinator Note:</strong>
-              <p style="margin:6px 0 0; font-size:14.5px; color:#334155; line-height:1.6;">${remarks}</p>
+              <p style="margin:6px 0 0; font-size:14.5px; color:#334155; line-height:1.6;">${escapeHtml(remarks)}</p>
             </div>
           ` : ''}
 
@@ -1107,17 +1137,17 @@ const sendAuthorityReport = async (req, res) => {
 
       teams.forEach(t => {
         sheet.addRow([
-          t.teamId,
-          t.teamName,
-          getEventDisplay(t.event),
+          sanitizeSpreadsheetCell(t.teamId),
+          sanitizeSpreadsheetCell(t.teamName),
+          sanitizeSpreadsheetCell(getEventDisplay(t.event)),
           t.teamSize,
-          t.leader?.name || '',
-          t.leader?.email || '',
-          t.leader?.mobile || '',
-          t.college,
-          t.branch,
-          t.year,
-          (t.members || []).map(m => m.name).join(', ') || 'Solo',
+          sanitizeSpreadsheetCell(t.leader?.name || ''),
+          sanitizeSpreadsheetCell(t.leader?.email || ''),
+          sanitizeSpreadsheetCell(t.leader?.mobile || ''),
+          sanitizeSpreadsheetCell(t.college),
+          sanitizeSpreadsheetCell(t.branch),
+          sanitizeSpreadsheetCell(t.year),
+          sanitizeSpreadsheetCell((t.members || []).map(m => m.name).join(', ') || 'Solo'),
           t.appliedAt ? new Date(t.appliedAt).toLocaleDateString('en-IN') : ''
         ]);
       });

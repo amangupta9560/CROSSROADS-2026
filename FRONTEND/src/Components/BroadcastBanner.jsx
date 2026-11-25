@@ -15,7 +15,7 @@ const BroadcastBanner = () => {
         if (res.data?.broadcastBanner?.enabled) {
           setBanner(res.data.broadcastBanner);
         }
-      } catch (err) {
+      } catch {
         // Silently fail if server unavailable
       }
     };

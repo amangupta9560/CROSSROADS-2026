@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion as Motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import {
   Calendar,
   Sparkles,
@@ -60,10 +60,10 @@ const Home = () => {
   const heroY = useTransform(smoothScrollY, [0, 1], [0, 220]);
   const heroOpacity = useTransform(smoothScrollY, [0, 0.35], [1, 0]);
 
-  // Live countdown to November 28, 2026, 09:00 AM IST
+  // Live countdown to February 5, 2027, 09:00 AM IST
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const eventDate = new Date('2026-11-28T09:00:00+05:30').getTime();
+      const eventDate = new Date('2027-02-05T09:00:00+05:30').getTime();
       const now = new Date().getTime();
       const difference = eventDate - now;
 
@@ -127,8 +127,8 @@ const Home = () => {
       title: 'Dance Competition',
       category: 'Cultural',
       icon: Sparkles,
-      desc: 'Electrifying solo and group performances judged on synchronization & expression.',
-      tag: 'Solo / Squad',
+      desc: 'Electrifying solo performances judged on choreography, synchronization & expression.',
+      tag: 'Solo Only',
       link: '/event-registration?event=dance-competition',
       color: 'from-purple-500 to-pink-500'
     },
@@ -249,11 +249,11 @@ const Home = () => {
     },
     {
       question: 'When and where will CROSSROADS 2026 take place?',
-      answer: 'CROSSROADS 2026 will be held on November 28–29, 2026, at the sprawling HIET Ghaziabad campus (NH-9). Day 1 kicks off at 8:50 AM with registrations and inauguration, followed by competitions and cultural nights across both days.'
+      answer: 'CROSSROADS 2026 will be held on 05 Feb & 06 Feb 2027 (February 5–6, 2027) at the sprawling HIET Ghaziabad campus (NH-9). Day 1 kicks off at 8:50 AM with registrations and inauguration, followed by competitions and cultural nights across both days.'
     },
     {
-      question: 'What is the last date to register?',
-      answer: 'Online registrations officially close on November 20, 2026 at 11:59 PM. To ensure your team pass is generated and logistical arrangements are finalized, all participants must register online before the deadline.'
+      question: 'When do registrations start and what is the last date?',
+      answer: 'Online registrations start on January 10, 2027 and officially close on January 31, 2027 at 11:59 PM. To ensure your team pass is generated and logistical arrangements are finalized, all participants must register online before the deadline.'
     },
     {
       question: 'Is there any registration fee?',
@@ -269,7 +269,7 @@ const Home = () => {
     },
     {
       question: 'What documents should we bring to the fest?',
-      answer: 'Every participant must carry their valid College Identity Card and a copy of the official confirmation email containing their Team ID (CR26-XXXX). Laptops, robot kits, or project setups should be brought by the respective teams.'
+      answer: 'Every participant must carry their valid College Identity Card and a copy of the official confirmation email containing their Team ID (e.g., HIET/CR/2027/001). Laptops, robot kits, or project setups should be brought by the respective teams.'
     }
   ];
 
@@ -286,45 +286,45 @@ const Home = () => {
       <div className="absolute top-[60rem] left-[-10%] w-[35rem] h-[25rem] bg-purple-600/10 blur-[160px] rounded-full pointer-events-none" />
 
       {/* HERO SECTION */}
-      <motion.div
+      <Motion.div
         className="relative z-10 container mx-auto px-4 pt-32 sm:pt-36 lg:pt-40 pb-16 lg:pb-24 flex flex-col items-center justify-center text-center"
         style={{ y: heroY, opacity: heroOpacity }}
       >
         {/* Registration Live Status & Fest Dates Badges */}
         <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 mb-6">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 font-mono text-xs sm:text-sm font-semibold shadow-lg shadow-cyan-950/50 backdrop-blur-md"
           >
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span>REGISTRATIONS LIVE • CLOSES NOV 20, 2026</span>
-          </motion.div>
+            <span>REGISTRATIONS: JAN 10 – JAN 31, 2027</span>
+          </Motion.div>
 
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/80 text-gray-300 text-xs sm:text-sm font-medium shadow-md backdrop-blur-md"
           >
             <Calendar className="w-3.5 h-3.5 text-amber-400" />
-            <span>November 28–29, 2026</span>
-          </motion.div>
+            <span>05 Feb &amp; 06 Feb 2027</span>
+          </Motion.div>
 
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/80 text-gray-300 text-xs sm:text-sm font-medium shadow-md backdrop-blur-md hidden md:inline-flex"
+            className="items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/80 text-gray-300 text-xs sm:text-sm font-medium shadow-md backdrop-blur-md hidden md:inline-flex"
           >
             <MapPin className="w-3.5 h-3.5 text-rose-400" />
             <span>HIET Ghaziabad (NH-9)</span>
-          </motion.div>
+          </Motion.div>
         </div>
 
         {/* Main Event Title */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
@@ -341,10 +341,10 @@ const Home = () => {
           <p className="mt-4 text-base sm:text-xl lg:text-2xl text-gray-300 font-light max-w-3xl mx-auto leading-relaxed">
             North India's Premier Inter-College Technical & Cultural Fest
           </p>
-        </motion.div>
+        </Motion.div>
 
         {/* Value Chips Ribbon */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.35 }}
@@ -366,10 +366,10 @@ const Home = () => {
             <Users size={14} className="text-purple-400" />
             <span>50+ Colleges Competing</span>
           </div>
-        </motion.div>
+        </Motion.div>
 
         {/* LIVE COUNTDOWN CARD */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
@@ -386,7 +386,7 @@ const Home = () => {
                   {timeLeft.expired ? 'CROSSROADS HAS BEGUN!' : 'COUNTDOWN TO GLORY'}
                 </span>
               </div>
-              <span className="text-[11px] font-mono text-gray-500">HIET CAMPUS • NOV 28-29</span>
+              <span className="text-[11px] font-mono text-gray-500">HIET CAMPUS • FEB 05–06, 2027</span>
             </div>
 
             {!timeLeft.expired ? (
@@ -418,16 +418,17 @@ const Home = () => {
 
             <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
               <span className="flex items-center gap-1.5 text-amber-300 font-semibold">
-                <span>⚠️</span>
-                <span>Online Registration Deadline: <strong>November 20, 2026</strong></span>
+                <span>Reg Starts: <strong>Jan 10, 2027</strong></span>
+                <span>•</span>
+                <span>Last Date: <strong>Jan 31, 2027</strong></span>
               </span>
               <span className="font-mono text-gray-500">100% Free Entry • Limited Slots</span>
             </div>
           </div>
-        </motion.div>
+        </Motion.div>
 
         {/* PRIMARY CALLS TO ACTION */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.65 }}
@@ -458,8 +459,8 @@ const Home = () => {
             <Trophy size={18} className="text-cyan-400" />
             <span>Explore 11 Arenas</span>
           </Link>
-        </motion.div>
-      </motion.div>
+        </Motion.div>
+      </Motion.div>
 
       {/* FEATURED ARENAS SHOWCASE SECTION */}
       <section className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-slate-800/80 bg-slate-950/40">
@@ -505,7 +506,7 @@ const Home = () => {
                   </div>
 
                   <div className="pt-6 mt-6 border-t border-slate-800 flex items-center justify-between">
-                    <span className="text-xs text-gray-500 font-mono">Date: Nov 28–29</span>
+                    <span className="text-xs text-gray-500 font-mono">Date: Feb 05–06, 2027</span>
                     <Link
                       to={item.link}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition group-hover:translate-x-1 duration-200"
@@ -665,13 +666,16 @@ const Home = () => {
               </a>
 
               {/* Tech Fusion Logo Card */}
-              <div
+              <a
+                href="https://linkedin.com/company/hiet-techfusion"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-cyan-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
               >
                 <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
                   <img
                     src="/techfusion.png"
-                    alt="Tech Fusion"
+                    alt="Team Tech Fusion"
                     className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
                   />
                 </div>
@@ -680,10 +684,10 @@ const Home = () => {
                     Technical Club
                   </span>
                   <span className="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-300 transition-colors block">
-                    Tech Fusion
+                    Team Tech Fusion
                   </span>
                 </div>
-              </div>
+              </a>
             </div>
 
             {/* Category Filter Pills */}

@@ -12,7 +12,7 @@ const siteSettingSchema = new mongoose.Schema({
   },
   closedMessage: {
     type: String,
-    default: 'Online registrations for CROSSROADS 2026 closed on November 20, 2026. The main fest takes place on November 28–29, 2026. Please contact the event helpdesk for spot queries.'
+    default: 'Online registrations for CROSSROADS 2026 run from January 10, 2027 to January 31, 2027. The main fest takes place on February 5–6, 2027. Please contact the event helpdesk at techfusion@hietgroup.org for queries.'
   },
   eventStatus: {
     type: Map,
@@ -61,23 +61,31 @@ siteSettingSchema.statics.getSettings = async function() {
   if (!settings) {
     settings = await this.create({ key: 'global_settings' });
   } else {
+    let dirty = false;
     // Ensure newly requested defaults are updated if still having placeholder
     if (!settings.authorityContacts?.directorEmail || settings.authorityContacts.directorEmail === 'director@hiet.org') {
       settings.authorityContacts.directorEmail = 'ag0567688@gmail.com';
+      dirty = true;
     }
     if (!settings.authorityContacts?.hodCseEmail || settings.authorityContacts.hodCseEmail === 'hodcse@hiet.org') {
       settings.authorityContacts.hodCseEmail = 'ag902065@gmail.com';
+      dirty = true;
     }
     if (!settings.authorityContacts?.hodMcaEmail || settings.authorityContacts.hodMcaEmail === 'hodmca@hiet.org') {
       settings.authorityContacts.hodMcaEmail = 'ag902065@gmail.com';
+      dirty = true;
     }
     if (!settings.authorityContacts?.hodEeEmail || settings.authorityContacts.hodEeEmail === 'hodee@hiet.org') {
       settings.authorityContacts.hodEeEmail = 'ag902065@gmail.com';
+      dirty = true;
     }
     if (!settings.authorityContacts?.culturalHeadEmail || settings.authorityContacts.culturalHeadEmail === 'cultural@hiet.org') {
       settings.authorityContacts.culturalHeadEmail = 'ag902065@gmail.com';
+      dirty = true;
     }
-    await settings.save();
+    if (dirty) {
+      await settings.save();
+    }
   }
   return settings;
 };

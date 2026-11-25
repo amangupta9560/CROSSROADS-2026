@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   Calendar, Clock, Trophy, Code, Cpu, Zap, Palette, Music, Flame, Theater, Film,
   Megaphone, Map, Sparkles, MapPin, Star, Award, Users, Lightbulb, Camera, Mic,
@@ -70,6 +70,15 @@ const schedule = {
       icon: Code,
       duration: "Flexible within slot",
       venue: "Block 1 Computer Lab"
+    },
+    {
+      time: "10:00 AM onwards",
+      title: "Rangoli Competition",
+      description: 'Create a 5x5 ft rangoli in teams of 1–3 on the "NATURE" theme (1.5 hrs, no printed references).',
+      category: "cultural",
+      icon: Palette,
+      duration: "1.5 hrs",
+      venue: "Amphitheatre"
     },
     {
       time: "1:00 PM – 2:00 PM",
@@ -248,8 +257,8 @@ export default function Schedule() {
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
-    // Note: Event is 28-29 Nov 2026 → countdown to 28th Nov morning
-    const eventDate = new Date('2026-11-28T09:00:00+05:30').getTime();
+    // Event is 05–06 Feb 2027 → countdown to Feb 05, 2027 09:00 AM IST
+    const eventDate = new Date('2027-02-05T09:00:00+05:30').getTime();
     const interval = setInterval(() => {
       const now = new Date().getTime();
       const distance = eventDate - now;
@@ -289,24 +298,24 @@ export default function Schedule() {
 
       <div className="relative z-10 py-8 sm:py-16 lg:py-20 px-3 sm:px-6 lg:px-8 pt-28 sm:pt-36 lg:pt-34">
         <div className="max-w-7xl mx-auto">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="text-center mb-8 sm:mb-12 lg:mb-16"
           >
-            <motion.div
+            <Motion.div
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ duration: 0.6, type: "spring", bounce: 0.5 }}
               className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-zinc-900/80 to-zinc-800/80 backdrop-blur-xl rounded-full border border-orange-500/30 mb-4 sm:mb-6 lg:mb-8 shadow-lg shadow-orange-500/10"
             >
               <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400" />
-              <span className="text-xs sm:text-sm text-zinc-200 font-semibold tracking-wide">November 28-29, 2026</span>
+              <span className="text-xs sm:text-sm text-zinc-200 font-semibold tracking-wide">05 Feb &amp; 06 Feb 2027</span>
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400" />
-            </motion.div>
+            </Motion.div>
 
-            <motion.h1
+            <Motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -318,18 +327,18 @@ export default function Schedule() {
               <span className="inline-block ml-2 sm:ml-3 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-600 bg-clip-text text-transparent drop-shadow-lg">
                 SCHEDULE
               </span>
-            </motion.h1>
+            </Motion.h1>
 
-            <motion.p
+            <Motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-sm sm:text-lg lg:text-xl text-zinc-400 mb-4 sm:mb-6 lg:mb-8 max-w-2xl mx-auto leading-relaxed px-4"
             >
               Two Days of Innovation, Creativity & Entertainment @ HIET
-            </motion.p>
+            </Motion.p>
 
-            <motion.div
+            <Motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.6 }}
@@ -342,21 +351,21 @@ export default function Schedule() {
                   {countdown}
                 </span>
               </div>
-            </motion.div>
+            </Motion.div>
 
             <p className="mt-4 text-xs sm:text-sm text-cyan-400 font-mono">
-              ⚡ Online Registration Closes On November 20, 2026
+              ⚡ Registrations: January 10 – January 31, 2027
             </p>
-          </motion.div>
+          </Motion.div>
 
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
             className="flex justify-center gap-2 sm:gap-3 lg:gap-4 px-3 mb-8 sm:mb-12 lg:mb-16 flex-wrap"
           >
             {Object.keys(schedule).map((day) => (
-              <motion.button
+              <Motion.button
                 key={day}
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
@@ -364,14 +373,14 @@ export default function Schedule() {
                   setActiveDay(day);
                   setExpandedIndex(null);
                 }}
-                className={`relative px-6 sm:px-10 lg:px-12 py-3 sm:py-4 lg:py-5 rounded-xl sm:rounded-2xl font-black text-sm sm:text-base lg:text-lg transition-all duration-500 overflow-hidden group ${
+                className={`relative px-6 sm:px-10 lg:px-12 py-3 sm:py-4 lg:py-5 rounded-xl sm:rounded-2xl font-black text-sm sm:text-base lg:text-lg transition-all duration-500 overflow-hidden group cursor-pointer ${
                   activeDay === day
                     ? "text-white shadow-2xl"
                     : "bg-zinc-800/30 text-zinc-400 hover:text-white border border-zinc-700/50 hover:border-zinc-600/50 backdrop-blur-sm"
                 }`}
               >
                 {activeDay === day && (
-                  <motion.div
+                  <Motion.div
                     layoutId="activeTab"
                     className="absolute inset-0 bg-gradient-to-r from-orange-500 via-red-500 to-orange-600"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
@@ -379,21 +388,21 @@ export default function Schedule() {
                 )}
                 <span className="relative z-10 flex items-center gap-1.5 sm:gap-2">
                   <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
-                  {day}
+                  {day} • {day === "Day 1" ? "Feb 05" : "Feb 06"}
                   <span className="ml-1 text-[10px] sm:text-xs opacity-75">({schedule[day].length})</span>
                 </span>
                 {activeDay === day && (
-                  <motion.div
+                  <Motion.div
                     className="absolute inset-0 bg-gradient-to-r from-orange-500 to-red-500 opacity-50 blur-xl"
                     animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.3, 0.5] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                 )}
-              </motion.button>
+              </Motion.button>
             ))}
-          </motion.div>
+          </Motion.div>
 
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
@@ -406,7 +415,7 @@ export default function Schedule() {
                 <span className="font-bold text-orange-400">{activeDay}</span>
               </span>
             </div>
-          </motion.div>
+          </Motion.div>
 
           <div className="relative max-w-6xl mx-auto px-3 sm:px-4">
             <div className="absolute left-2 sm:left-6 lg:left-12 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-orange-500/30 to-transparent hidden sm:block" />
@@ -430,7 +439,7 @@ export default function Schedule() {
                   const isExpanded = expandedIndex === index;
 
                   return (
-                    <motion.div
+                    <Motion.div
                       key={`${activeDay}-${index}`}
                       initial={{ opacity: 0, x: -50, scale: 0.9 }}
                       animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -439,21 +448,21 @@ export default function Schedule() {
                       className="relative flex items-start gap-3 sm:gap-6 lg:gap-8 group"
                     >
                       <div className="relative shrink-0 z-10">
-                        <motion.div whileHover={{ scale: 1.15, rotate: 10 }} className="relative">
+                        <Motion.div whileHover={{ scale: 1.15, rotate: 10 }} className="relative">
                           <div className={`w-10 h-10 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br ${colors.gradient} p-0.5 shadow-2xl ${colors.glow}`}>
                             <div className="w-full h-full bg-zinc-950 rounded-xl sm:rounded-2xl flex items-center justify-center">
                               <IconComponent className={`w-4 h-4 sm:w-6 sm:h-6 lg:w-7 lg:h-7 ${colors.text}`} />
                             </div>
                           </div>
-                          <motion.div
+                          <Motion.div
                             animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.2, 0.5] }}
                             transition={{ duration: 2, repeat: Infinity }}
                             className={`absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-br ${colors.gradient} opacity-30 blur-lg`}
                           />
-                        </motion.div>
+                        </Motion.div>
 
                         <div className={`absolute -left-2.25 sm:-left-4.25 lg:-left-5.25 top-1/2 -translate-y-1/2 w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 ${colors.dot} rounded-full shadow-lg ${colors.glow} hidden sm:block`}>
-                          <motion.div
+                          <Motion.div
                             animate={{ scale: [1, 1.5, 1], opacity: [1, 0, 1] }}
                             transition={{ duration: 2, repeat: Infinity, delay: index * 0.2 }}
                             className={`absolute inset-0 ${colors.dot} rounded-full`}
@@ -462,7 +471,7 @@ export default function Schedule() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <motion.div
+                        <Motion.div
                           whileHover={{ scale: 1.01, y: -2 }}
                           className={`bg-gradient-to-br from-zinc-900/90 via-zinc-900/50 to-zinc-800/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl border-2 transition-all duration-500 overflow-hidden ${
                             isExpanded
@@ -494,7 +503,7 @@ export default function Schedule() {
                               </div>
                             </div>
 
-                            <h3 className={`text-lg sm:text-2xl lg:text-3xl font-black text-white mb-2 sm:mb-3 lg:mb-4 leading-tight hover:bg-gradient-to-r hover:${colors.gradient} hover:bg-clip-text hover:text-transparent transition-all duration-300`}>
+                            <h3 className="text-lg sm:text-2xl lg:text-3xl font-black text-white mb-2 sm:mb-3 lg:mb-4 leading-tight group-hover:text-cyan-300 transition-colors duration-300">
                               {event.title}
                             </h3>
 
@@ -502,22 +511,22 @@ export default function Schedule() {
                               {event.description}
                             </p>
 
-                            <motion.button
+                            <Motion.button
                               whileHover={{ x: 5 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => setExpandedIndex(isExpanded ? null : index)}
-                              className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl ${colors.bg} ${colors.text} hover:text-white text-xs sm:text-sm font-bold transition-all duration-300 border ${colors.border} hover:shadow-lg ${colors.glow}`}
+                              className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl ${colors.bg} ${colors.text} hover:text-white text-xs sm:text-sm font-bold transition-all duration-300 border ${colors.border} hover:shadow-lg ${colors.glow} cursor-pointer`}
                             >
                               <span>{isExpanded ? "Show Less" : "View Details"}</span>
-                              <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }}>
+                              <Motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.3 }}>
                                 <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
-                              </motion.div>
-                            </motion.button>
+                              </Motion.div>
+                            </Motion.button>
                           </div>
 
                           <AnimatePresence>
                             {isExpanded && (
-                              <motion.div
+                              <Motion.div
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
@@ -526,7 +535,7 @@ export default function Schedule() {
                               >
                                 <div className="p-4 sm:p-6 lg:p-8">
                                   <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-                                    <motion.div
+                                    <Motion.div
                                       initial={{ opacity: 0, x: -20 }}
                                       animate={{ opacity: 1, x: 0 }}
                                       transition={{ delay: 0.2 }}
@@ -548,69 +557,69 @@ export default function Schedule() {
                                           <div className="text-white font-semibold text-xs sm:text-sm truncate">{event.venue}</div>
                                         </div>
                                       </div>
-                                    </motion.div>
+                                    </Motion.div>
 
-                                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+                                    <Motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
                                       <h4 className="font-black text-sm sm:text-base lg:text-lg text-white mb-3 sm:mb-4 flex items-center gap-2">
                                         <Award className={`w-4 h-4 sm:w-5 sm:h-5 ${colors.text} shrink-0`} />
                                         <span>Quick Info</span>
                                       </h4>
                                       <div className="space-y-2 sm:space-y-3">
-                                        <motion.div
+                                        <Motion.div
                                           whileHover={{ scale: 1.02, x: 5 }}
                                           className={`flex justify-between items-center text-xs sm:text-sm p-2.5 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl bg-zinc-900/50 border ${colors.border} hover:shadow-lg ${colors.glow} transition-all duration-300`}
                                         >
                                           <span className="text-zinc-400 font-medium">Duration</span>
                                           <span className={`font-black ${colors.text}`}>{event.duration}</span>
-                                        </motion.div>
-                                        <motion.div
+                                        </Motion.div>
+                                        <Motion.div
                                           whileHover={{ scale: 1.02, x: 5 }}
                                           className={`flex justify-between items-center text-xs sm:text-sm p-2.5 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl bg-zinc-900/50 border ${colors.border} hover:shadow-lg ${colors.glow} transition-all duration-300`}
                                         >
                                           <span className="text-zinc-400 font-medium">Category</span>
                                           <span className={`capitalize font-black ${colors.text}`}>{event.category}</span>
-                                        </motion.div>
-                                        <motion.div
+                                        </Motion.div>
+                                        <Motion.div
                                           whileHover={{ scale: 1.02, x: 5 }}
                                           className={`flex justify-between items-center text-xs sm:text-sm p-2.5 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl bg-zinc-900/50 border ${colors.border} hover:shadow-lg ${colors.glow} transition-all duration-300`}
                                         >
                                           <span className="text-zinc-400 font-medium">Day</span>
                                           <span className="text-white font-black">{activeDay}</span>
-                                        </motion.div>
-                                        <motion.div
+                                        </Motion.div>
+                                        <Motion.div
                                           whileHover={{ scale: 1.05 }}
                                           className={`flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm p-2.5 sm:p-3 lg:p-4 bg-gradient-to-r ${colors.gradient} rounded-lg sm:rounded-xl shadow-xl ${colors.glow}`}
                                         >
                                           <Star className="w-3 h-3 sm:w-4 sm:h-4 text-white fill-white shrink-0" />
                                           <span className="text-white font-black uppercase tracking-wide">Featured Event</span>
-                                        </motion.div>
+                                        </Motion.div>
                                       </div>
-                                    </motion.div>
+                                    </Motion.div>
                                   </div>
                                 </div>
-                              </motion.div>
+                              </Motion.div>
                             )}
                           </AnimatePresence>
 
-                          <motion.div
+                          <Motion.div
                             className={`absolute inset-0 bg-gradient-to-r ${colors.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 pointer-events-none rounded-2xl sm:rounded-3xl`}
                           />
-                        </motion.div>
+                        </Motion.div>
                       </div>
-                    </motion.div>
+                    </Motion.div>
                   );
                 })}
               </AnimatePresence>
             </div>
           </div>
 
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1.2 }}
             className="text-center py-8 sm:py-12 lg:py-16 mt-8 sm:mt-12 lg:mt-16 border-t border-zinc-800/50"
           >
-            <motion.div
+            <Motion.div
               whileHover={{ scale: 1.05 }}
               className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 lg:py-4 bg-gradient-to-r from-zinc-900/50 to-zinc-800/50 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-zinc-700/50 shadow-xl"
             >
@@ -619,8 +628,8 @@ export default function Schedule() {
                 May the Best Talent Win!
               </span>
               <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-cyan-400 shrink-0" />
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
         </div>
       </div>
     </div>

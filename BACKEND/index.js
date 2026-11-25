@@ -12,7 +12,9 @@ const adminRoutes = require('./routes/adminRoutes');
 let cachedDb = null;
 
 async function connectToDatabase() {
-  if (cachedDb) return cachedDb;
+  if (cachedDb && mongoose.connection.readyState === 1) {
+    return cachedDb;
+  }
 
   try {
     const db = await mongoose.connect(process.env.MONGO_URI, {
@@ -27,6 +29,7 @@ async function connectToDatabase() {
     console.log('MongoDB connected (cached)');
     return db;
   } catch (err) {
+    cachedDb = null;
     console.error('MongoDB connection error:', err);
     throw err;
   }
@@ -34,8 +37,16 @@ async function connectToDatabase() {
 
 const app = express();
 
-// Middleware
-app.use(cors({ origin: '*' }));  // ← change to specific origins in production
+// Middleware — honor FRONTEND_URL when configured (supports comma-separated origins)
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim()).filter(Boolean)
+  : null;
+
+app.use(
+  cors({
+    origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : '*',
+  })
+);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 

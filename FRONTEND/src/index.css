@@ -1,9 +1,116 @@
 @import "tailwindcss";
-html, body {
+
+:root {
+  --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --ease-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+html,
+body {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  font-family: var(--font-sans);
+  background-color: #040711;
+  color: #f1f5f9;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
 }
 
 * {
   box-sizing: border-box;
+}
+
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(32px, -24px, 0) scale(1.06);
+  }
+}
+
+@keyframes aurora-drift-reverse {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-28px, 22px, 0) scale(1.05);
+  }
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translate3d(0, -15vh, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.45;
+  }
+  88% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate3d(0, 115vh, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes beam-pan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+.animate-aurora {
+  animation: aurora-drift 16s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-aurora-reverse {
+  animation: aurora-drift-reverse 20s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-scan-sweep {
+  animation: scan-sweep 13s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  will-change: transform, opacity;
+}
+
+.animate-beam-pan {
+  animation: beam-pan 4.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.tech-ease {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-aurora,
+  .animate-aurora-reverse,
+  .animate-scan-sweep,
+  .animate-beam-pan {
+    animation: none !important;
+  }
+
+  html,
+  body {
+    scroll-behavior: auto;
+  }
 }

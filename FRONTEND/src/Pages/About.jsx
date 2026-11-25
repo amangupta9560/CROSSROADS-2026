@@ -1,521 +1,729 @@
-
 import React from "react";
-import { motion } from "framer-motion";
-import { Code2, Lightbulb, Users, Zap, Trophy, Rocket, ArrowRight, Calendar, MapPin, Award, Target, Sparkles, Clock, Users2, TrendingUp } from "lucide-react";
-import { FaRocket, FaUsers, FaLightbulb } from "react-icons/fa";
+import { motion as Motion } from "framer-motion";
+import {
+  Code2,
+  Lightbulb,
+  Users,
+  Zap,
+  Trophy,
+  Rocket,
+  ArrowRight,
+  ArrowUpRight,
+  Calendar,
+  MapPin,
+  Award,
+  Target,
+  Sparkles,
+  Clock,
+  Users2,
+  TrendingUp,
+  Cpu,
+  Layers,
+  Terminal,
+} from "lucide-react";
 import { Link } from "react-router-dom";
+import TechBackground from "../Components/TechBackground.jsx";
+
+const smoothEase = [0.22, 1, 0.36, 1];
+
+const SpotlightBezelCard = ({ children, className = "", innerClassName = "" }) => {
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--mx", `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty("--my", `${e.clientY - rect.top}px`);
+  };
+
+  return (
+    <div
+      onMouseMove={handleMouseMove}
+      className={`group relative p-[1px] rounded-[1.75rem] bg-gradient-to-br from-white/12 via-cyan-500/15 to-white/5 hover:from-cyan-400/45 hover:via-sky-500/25 hover:to-indigo-500/35 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${className}`}
+    >
+      <div
+        className="pointer-events-none absolute -inset-px rounded-[1.75rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background:
+            "radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), rgba(34, 211, 238, 0.14), transparent 65%)",
+        }}
+      />
+      <div
+        className={`relative h-full rounded-[calc(1.75rem-1px)] bg-[#080e1f]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${innerClassName}`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
 
 const About = () => {
-  const fadeInUp = {
-    initial: { opacity: 0, y: 20 },
-    whileInView: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 },
-    viewport: { once: true, margin: "-100px" }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 },
-    },
-  };
-
   const stats = [
-    { icon: Users2, label: "Expected Participants", value: "500+", color: "blue" },
-    { icon: Trophy, label: "Competitions & Events", value: "25+", color: "sky" },
-    { icon: Award, label: "Prize Pool Worth", value: "₹1L+", color: "blue" },
-    { icon: TrendingUp, label: "Industry Mentors", value: "15+", color: "sky" }
+    { icon: Users2, label: "Innovators Expected", value: "1,500+", tag: "FOOTFALL" },
+    { icon: Trophy, label: "Flagship Arenas", value: "11", tag: "EVENTS" },
+    { icon: Award, label: "Total Prize Pool", value: "₹1L+", tag: "REWARDS" },
+    { icon: TrendingUp, label: "Colleges Competing", value: "50+", tag: "CAMPUSES" },
   ];
 
   const uniqueFeatures = [
     {
       icon: Code2,
-      title: "Pure Technical Focus",
-      desc: "From coding marathons to AI workshops, pure innovation at every turn"
+      title: "Engineering & Code First",
+      desc: "From 20-minute algorithmic code sprints to hardware robotics tracks, built for builders and problem solvers.",
     },
     {
       icon: Users,
-      title: "All-Inclusive Participation",
-      desc: "Tech enthusiasts, designers, leaders, and creators all belong here"
+      title: "Cross-Campus Collaboration",
+      desc: "Developers, roboticists, designers, performers, and strategists competing across unified arenas.",
     },
     {
       icon: Zap,
-      title: "Real-World Relevance",
-      desc: "Challenges mirror industry problems, not classroom textbooks"
+      title: "Applied Problem Solving",
+      desc: "Challenges modeled around live prototyping, debugging under pressure, and rapid system execution.",
     },
     {
       icon: Trophy,
-      title: "Recognition at Scale",
-      desc: "Winners get visibility, portfolio wins, and industry connections"
+      title: "Verified Credentials",
+      desc: "Winners earn cash awards, rolling trophies, and verifiable merit certificates across all 11 events.",
     },
     {
       icon: Rocket,
-      title: "Innovation Platform",
-      desc: "Showcase your ideas, projects, and potential to the world"
+      title: "Prototype Launchpad",
+      desc: "Present hardware and AI prototypes directly before academic mentors and technical judging panels.",
     },
     {
       icon: Lightbulb,
-      title: "Networking Goldmine",
-      desc: "Connect with mentors, peers, seniors, and future collaborators"
-    }
+      title: "Peer & Mentor Network",
+      desc: "Connect directly with faculty heads, Team Tech Fusion organizers, and top student talent from 50+ colleges.",
+    },
   ];
 
   const eventTypes = [
     {
-      category: "Technical Competitions",
-      events: ["Code Puzzle", "Project Exhibition", "Robo Race", "Technical Poster"]
+      category: "Technical & Engineering",
+      badge: "04 ARENAS",
+      events: [
+        "Code Puzzle",
+        "Project Exhibition / Evolution",
+        "Robo Race",
+        "Technical Poster Competition",
+      ],
     },
     {
-      category: "Workshops & Learning",
-      events: ["Industry Expert Sessions", "Hands-on Technical Workshops", "Skill Development Bootcamps"]
+      category: "Cultural & Performing Arts",
+      badge: "03 ARENAS",
+      events: [
+        "Dance Competition (Solo)",
+        "Cultural Events (Group Dance)",
+        "Rock Band & Live Music",
+      ],
     },
     {
-      category: "Cultural & Creative",
-      events: ["Singing", "Dance", "Rock Band", "Short Film Making", "Ad Mad Show"]
+      category: "Creative & Culinary",
+      badge: "03 ARENAS",
+      events: [
+        "Short Film Making",
+        "Rangoli Competition",
+        "Food Without Fire",
+      ],
     },
     {
-      category: "Fun & Engagement",
-      events: ["Treasure Hunt", "Networking Games", "Rangoli Competition", "Food Without Fire"]
-    }
+      category: "Campus Adventure & Honors",
+      badge: "02 HIGHLIGHTS",
+      events: [
+        "Campus-Wide Treasure Hunt (5–8 Squad)",
+        "Crossroads Grand Closing & Awards",
+      ],
+    },
   ];
 
   const whyJoin = [
     {
       icon: Trophy,
-      title: "Career Boost",
-      desc: "Industry recognition, portfolio projects, and potential internship/job opportunities"
+      title: "Portfolio & Recognition",
+      desc: "Stand out with competitive wins, project showcases, and official HIET & Tech Fusion merit honors.",
     },
     {
-      icon: Code2,
-      title: "Skill Enhancement",
-      desc: "Learn cutting-edge technologies, leadership, teamwork, and problem-solving"
+      icon: Cpu,
+      title: "Hands-On Mastery",
+      desc: "Pressure-test your coding speed, circuit design, presentation craft, and stage confidence.",
     },
     {
       icon: Users,
-      title: "Build Your Network",
-      desc: "Connect with like-minded innovators, mentors, and industry professionals"
+      title: "High-Signal Network",
+      desc: "Collaborate with ambitious engineering and creative teams across Delhi-NCR and North India.",
     },
     {
-      icon: Lightbulb,
-      title: "Showcase Your Talent",
-      desc: "Present your ideas and projects on a platform that values creativity"
+      icon: Layers,
+      title: "Zero Entry Fee",
+      desc: "100% free online registration for all college students with instant confirmation Team IDs.",
     },
     {
       icon: Rocket,
-      title: "Create Memories",
-      desc: "Be part of an unforgettable experience that defines your college journey"
+      title: "Two Days of Momentum",
+      desc: "Two uninterrupted days of back-to-back technical duels, exhibitions, and live amphitheatre nights.",
     },
     {
       icon: Zap,
-      title: "Break Your Limits",
-      desc: "Challenge yourself, compete fairly, and discover what you're truly capable of"
-    }
+      title: "Push Past Limits",
+      desc: "Step onto the stage, debug against the clock, and leave sharper than you arrived.",
+    },
   ];
 
-  const highlights = [
-    { icon: Calendar, text: "2 Days of Non-Stop Innovation" },
-    { icon: MapPin, text: "Campus-Wide Interactive Zones" },
-    { icon: Award, text: "Certificates for All Participants" },
-    { icon: Sparkles, text: "Exclusive Networking Sessions" }
+  const timelineMilestones = [
+    {
+      step: "01",
+      label: "Registration Opens",
+      date: "January 10, 2027",
+      detail: "Online squad portal goes live",
+      accent: "text-cyan-300 border-cyan-500/30 bg-cyan-500/10",
+    },
+    {
+      step: "02",
+      label: "Last Date to Register",
+      date: "January 31, 2027",
+      detail: "Portal locks at 11:59 PM IST",
+      accent: "text-amber-300 border-amber-500/30 bg-amber-500/10",
+    },
+    {
+      step: "03",
+      label: "Main Event Dates",
+      date: "05 Feb & 06 Feb 2027",
+      detail: "HIET Ghaziabad Campus (NH-9)",
+      accent: "text-emerald-300 border-emerald-500/30 bg-emerald-500/10",
+    },
   ];
 
   return (
-    <div className="relative bg-gradient-to-br from-black via-gray-900 to-blue-950 min-h-screen overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(59,130,246,0.08),transparent_50%)]"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(14,165,233,0.08),transparent_50%)]"></div>
+    <div className="relative min-h-[100dvh] bg-[#040711] text-slate-100 overflow-hidden selection:bg-cyan-400 selection:text-slate-950">
+      <TechBackground variant="about" />
 
-      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-sky-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-
-      <div className="relative z-10 pt-24 pb-20 px-4 md:px-6 lg:px-8">
+      <div className="relative z-10 pt-28 sm:pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-
-          <motion.section {...fadeInUp} className="mb-20 md:mb-28">
-            <div className="text-center mb-10">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                whileInView={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
+          {/* ASYMMETRIC ARCHITECTURAL HERO */}
+          <section className="mb-20 md:mb-28">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+              <Motion.div
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, ease: smoothEase }}
+                className="lg:col-span-7 text-left"
               >
-                <span className="inline-block px-5 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full text-blue-400 text-sm font-semibold mb-6 backdrop-blur-sm">
-                  Welcome to Innovation
-                </span>
-              </motion.div>
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-                className="text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-blue-400 via-white to-sky-400 bg-clip-text text-transparent mb-6 tracking-tight"
-              >
-                CROSSROADS 2026
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                viewport={{ once: true }}
-                className="text-xl md:text-2xl lg:text-3xl text-gray-300 font-light mb-6"
-              >
-                Where Innovation Meets Opportunity
-              </motion.p>
-              <motion.div
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                viewport={{ once: true }}
-                className="h-1.5 w-32 bg-gradient-to-r from-blue-400 via-white to-sky-400 rounded-full mx-auto"
-              ></motion.div>
-            </div>
-
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12"
-            >
-              {highlights.map((highlight, index) => {
-                const Icon = highlight.icon;
-                return (
-                  <motion.div
-                    key={index}
-                    variants={itemVariants}
-                    className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 md:p-6 text-center hover:border-blue-500/50 transition-all duration-300"
-                  >
-                    <Icon className="text-blue-400 mx-auto mb-3" size={28} />
-                    <p className="text-gray-300 text-sm font-medium">{highlight.text}</p>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              viewport={{ once: true }}
-              className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-8 md:p-10 lg:p-14 shadow-2xl"
-            >
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-6">What is CROSSROADS?</h2>
-              <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-5">
-                CROSSROADS 2026 is an annual college-wide technical and innovation festival designed to ignite creativity, foster collaboration, and celebrate excellence across every domain of expertise. More than just a fest, it's a launchpad for ideas that matter.
-              </p>
-              <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-8">
-                We bring together students, innovators, creators, and leaders—regardless of their background or experience level. Here, code meets creativity, competitions drive excellence, and every participant leaves with new skills, lasting connections, and unforgettable memories.
-              </p>
-              <div className="mt-8 p-6 md:p-8 bg-gradient-to-r from-blue-500/10 to-sky-500/10 border border-blue-500/20 rounded-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl"></div>
-                <p className="text-blue-300 font-semibold text-lg md:text-xl text-center relative z-10">
-                  "CROSSROADS isn't just about winning—it's about becoming unstoppable."
-                </p>
-              </div>
-            </motion.div>
-          </motion.section>
-
-          <motion.section
-            className="mb-20 md:mb-28"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <motion.div {...fadeInUp} className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3">By The Numbers</h2>
-              <p className="text-gray-400 text-lg">Experience the scale of innovation</p>
-              <div className="h-1.5 w-24 bg-gradient-to-r from-blue-400 to-sky-500 rounded-full mx-auto mt-5"></div>
-            </motion.div>
-
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8"
-            >
-              {stats.map((stat, index) => {
-                const Icon = stat.icon;
-                const colorClasses = {
-                  blue: "from-blue-500/20 to-blue-600/20 border-blue-500/30",
-                  sky: "from-sky-500/20 to-sky-600/20 border-sky-500/30",
-                };
-                return (
-                  <motion.div
-                    key={index}
-                    variants={itemVariants}
-                    className={`bg-gradient-to-br ${colorClasses[stat.color]} backdrop-blur-xl border rounded-3xl p-6 md:p-8 text-center hover:scale-105 transition-transform duration-300 shadow-lg`}
-                  >
-                    <Icon className="text-white mx-auto mb-4" size={40} />
-                    <div className="text-3xl md:text-4xl font-bold text-white mb-2">{stat.value}</div>
-                    <div className="text-gray-300 text-sm font-medium">{stat.label}</div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </motion.section>
-
-          <motion.section
-            className="mb-20 md:mb-28"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                viewport={{ once: true }}
-                className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-8 md:p-10 lg:p-12 shadow-xl hover:shadow-blue-500/10 transition-shadow duration-300"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-2xl flex items-center justify-center">
-                    <FaRocket className="text-blue-400" size={28} />
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-white">Our Vision</h2>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-300 font-mono text-[11px] uppercase tracking-[0.18em] mb-6">
+                  <Terminal size={13} />
+                  <span>HIET Ghaziabad • Team Tech Fusion</span>
                 </div>
-                <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-5">
-                  To create a vibrant ecosystem where technical talent, creativity, and innovation thrive without boundaries.
-                </p>
-                <p className="text-gray-400 text-base leading-relaxed">
-                  We envision CROSSROADS as the catalyst that transforms ambitious ideas into impactful projects, and energetic students into industry-ready innovators who shape the future of technology.
-                </p>
-              </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                viewport={{ once: true }}
-                className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-8 md:p-10 lg:p-12 shadow-xl hover:shadow-sky-500/10 transition-shadow duration-300"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 bg-gradient-to-br from-sky-500/20 to-sky-600/20 rounded-2xl flex items-center justify-center">
-                    <FaUsers className="text-sky-400" size={28} />
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-white">Our Mission</h2>
-                </div>
-                <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-5">
-                  To empower students with real-world experience, industry exposure, and collaborative platforms.
-                </p>
-                <p className="text-gray-400 text-base leading-relaxed">
-                  We're committed to fostering leadership, building technical excellence, enabling peer-to-peer learning, and creating opportunities that matter for every participant's growth.
-                </p>
-              </motion.div>
-            </div>
-          </motion.section>
+                <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.04] text-white mb-6">
+                  Where Engineering,{" "}
+                  <span className="bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
+                    Code &amp; Culture
+                  </span>{" "}
+                  Converge.
+                </h1>
 
-          <motion.section className="mb-20 md:mb-28">
-            <motion.div {...fadeInUp} className="text-center mb-14">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3">What Makes CROSSROADS Unique</h2>
-              <p className="text-gray-400 text-lg">Standing out from the crowd</p>
-              <div className="h-1.5 w-24 bg-gradient-to-r from-blue-400 to-sky-500 rounded-full mx-auto mt-5"></div>
-            </motion.div>
+                <p className="text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl mb-8">
+                  CROSSROADS 2026 is the flagship annual inter-college technical and cultural
+                  festival hosted by Hi-Tech Institute of Engineering &amp; Technology (HIET)
+                  in collaboration with Team Tech Fusion. Over 20+ years of institutional legacy
+                  meet 11 high-energy competitive arenas.
+                </p>
 
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
-            >
-              {uniqueFeatures.map((feature, index) => {
-                const Icon = feature.icon;
-                return (
-                  <motion.div
-                    key={index}
-                    variants={itemVariants}
-                    className="group bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-7 md:p-8 hover:shadow-2xl hover:shadow-blue-500/20 hover:-translate-y-2 hover:border-blue-500/50 transition-all duration-300"
+                <div className="flex flex-wrap items-center gap-3.5 mb-8">
+                  <Link
+                    to="/event-registration"
+                    className="group inline-flex items-center gap-3 pl-6 pr-2 py-2.5 rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 text-slate-950 font-bold text-sm shadow-[0_10px_30px_rgba(34,211,238,0.22)] hover:shadow-[0_14px_34px_rgba(34,211,238,0.38)] active:scale-[0.98] transition-all duration-300"
                   >
-                    <div className="mb-5">
-                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-sky-500/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                        <Icon className="text-blue-400 group-hover:text-sky-400 transition-colors" size={28} />
+                    <span>Register Your Team</span>
+                    <span className="w-8 h-8 rounded-full bg-slate-950/15 flex items-center justify-center group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300">
+                      <ArrowUpRight size={16} />
+                    </span>
+                  </Link>
+
+                  <Link
+                    to="/events"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/12 hover:border-cyan-400/35 text-slate-200 font-semibold text-sm transition-all duration-300"
+                  >
+                    <span>Explore 11 Arenas</span>
+                    <ArrowRight size={15} className="text-cyan-400" />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono text-slate-400">
+                  {[
+                    { icon: Calendar, text: "05 & 06 Feb 2027" },
+                    { icon: MapPin, text: "HIET NH-9 Campus" },
+                    { icon: Award, text: "₹1L+ Prize Pool" },
+                    { icon: Sparkles, text: "100% Free Entry" },
+                  ].map((chip, idx) => {
+                    const Icon = chip.icon;
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.07]"
+                      >
+                        <Icon size={14} className="text-cyan-400 shrink-0" />
+                        <span className="truncate">{chip.text}</span>
                       </div>
+                    );
+                  })}
+                </div>
+              </Motion.div>
+
+              {/* Right Telemetry Panel: Schedule Windows */}
+              <Motion.div
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.75, delay: 0.12, ease: smoothEase }}
+                className="lg:col-span-5"
+              >
+                <SpotlightBezelCard innerClassName="p-6 sm:p-8">
+                  <div className="flex items-center justify-between pb-4 mb-5 border-b border-white/10">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-cyan-400 block">
+                        Schedule Telemetry
+                      </span>
+                      <h2 className="font-display text-xl font-bold text-white mt-0.5">
+                        Official 2027 Timeline
+                      </h2>
                     </div>
-                    <h3 className="text-lg md:text-xl font-bold text-white mb-3">{feature.title}</h3>
-                    <p className="text-gray-400 text-sm md:text-base leading-relaxed">{feature.desc}</p>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </motion.section>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono text-emerald-300">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      SCHEDULED
+                    </span>
+                  </div>
 
-          <motion.section className="mb-20 md:mb-28">
-            <motion.div {...fadeInUp} className="text-center mb-14">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3">Types of Events</h2>
-              <p className="text-gray-400 text-lg">Something exciting for everyone</p>
-              <div className="h-1.5 w-24 bg-gradient-to-r from-blue-400 to-sky-500 rounded-full mx-auto mt-5"></div>
-            </motion.div>
-
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              className="grid md:grid-cols-2 gap-6 md:gap-8"
-            >
-              {eventTypes.map((eventType, index) => (
-                <motion.div
-                  key={index}
-                  variants={itemVariants}
-                  className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-7 md:p-9 hover:border-sky-500/50 transition-all duration-300 shadow-lg"
-                >
-                  <h3 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent mb-6">{eventType.category}</h3>
-                  <ul className="space-y-3">
-                    {eventType.events.map((event, idx) => (
-                      <li key={idx} className="flex items-start gap-3 text-gray-300 group">
-                        <ArrowRight className="text-blue-400 mt-1 shrink-0 group-hover:translate-x-1 transition-transform" size={18} />
-                        <span className="group-hover:text-white transition-colors">{event}</span>
-                      </li>
+                  <div className="space-y-3.5">
+                    {timelineMilestones.map((m) => (
+                      <div
+                        key={m.step}
+                        className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-start gap-3.5 hover:border-cyan-400/30 transition-colors duration-300"
+                      >
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold border shrink-0 ${m.accent}`}
+                        >
+                          {m.step}
+                        </span>
+                        <div className="min-w-0">
+                          <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
+                            {m.label}
+                          </span>
+                          <p className="font-display text-base sm:text-lg font-bold text-white">
+                            {m.date}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-0.5">{m.detail}</p>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
-                </motion.div>
-              ))}
-            </motion.div>
-          </motion.section>
+                  </div>
 
-          <motion.section className="mb-20 md:mb-28">
-            <motion.div {...fadeInUp} className="text-center mb-14">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3">Who Can Participate?</h2>
-              <p className="text-gray-400 text-lg">Everyone is welcome at CROSSROADS</p>
-              <div className="h-1.5 w-24 bg-gradient-to-r from-blue-400 to-sky-500 rounded-full mx-auto mt-5"></div>
-            </motion.div>
+                  <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                    <span className="flex items-center gap-1.5">
+                      <Clock size={12} className="text-cyan-400" />
+                      <span>28.6733° N, 77.4913° E</span>
+                    </span>
+                    <span className="text-cyan-300">HIET • GZB</span>
+                  </div>
+                </SpotlightBezelCard>
+              </Motion.div>
+            </div>
+          </section>
 
-            <motion.div
+          {/* WHAT IS CROSSROADS + VISION & MISSION */}
+          <section className="mb-20 md:mb-28 space-y-8">
+            <Motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: 0.65, ease: smoothEase }}
+            >
+              <SpotlightBezelCard innerClassName="p-7 sm:p-10 lg:p-12">
+                <div className="grid lg:grid-cols-12 gap-8 items-center">
+                  <div className="lg:col-span-8">
+                    <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-400 block mb-2">
+                      Mission Brief
+                    </span>
+                    <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
+                      What is CROSSROADS?
+                    </h2>
+                    <p className="text-slate-300 text-base sm:text-lg leading-relaxed mb-4">
+                      CROSSROADS is HIET&apos;s flagship festival built to ignite technical creativity,
+                      encourage multidisciplinary collaboration, and celebrate student excellence
+                      across engineering, design, and live performance.
+                    </p>
+                    <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
+                      Whether you write clean algorithms under a 20-minute timer, build an
+                      all-terrain robot, present working hardware prototypes, or command the
+                      amphitheatre stage, CROSSROADS gives every builder a real arena to perform.
+                    </p>
+                  </div>
+                  <div className="lg:col-span-4">
+                    <div className="p-6 rounded-2xl bg-gradient-to-br from-cyan-500/10 via-sky-500/5 to-indigo-500/10 border border-cyan-400/20">
+                      <p className="font-display text-lg font-semibold text-cyan-200 leading-snug">
+                        &ldquo;CROSSROADS isn&apos;t just about winning trophies—it&apos;s about
+                        shipping ideas and discovering what your squad can build.&rdquo;
+                      </p>
+                      <span className="block mt-3 text-[11px] font-mono uppercase tracking-widest text-slate-400">
+                        Team Tech Fusion • HIET
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </SpotlightBezelCard>
+            </Motion.div>
+
+            <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+              <Motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{ duration: 0.65, ease: smoothEase }}
+              >
+                <SpotlightBezelCard innerClassName="p-7 sm:p-9">
+                  <div className="flex items-center gap-3.5 mb-5">
+                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-400/25 flex items-center justify-center text-cyan-300">
+                      <Rocket size={22} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 block">
+                        North Star
+                      </span>
+                      <h3 className="font-display text-2xl font-bold text-white">Our Vision</h3>
+                    </div>
+                  </div>
+                  <p className="text-slate-300 text-base leading-relaxed mb-3">
+                    To cultivate a high-agency student ecosystem where engineering talent, creative
+                    expression, and rapid prototyping thrive without barriers.
+                  </p>
+                  <p className="text-slate-400 text-sm leading-relaxed">
+                    We envision CROSSROADS as the launchpad that turns student prototypes into
+                    real-world products and campus peers into lifelong collaborators.
+                  </p>
+                </SpotlightBezelCard>
+              </Motion.div>
+
+              <Motion.div
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{ duration: 0.65, delay: 0.08, ease: smoothEase }}
+              >
+                <SpotlightBezelCard innerClassName="p-7 sm:p-9">
+                  <div className="flex items-center gap-3.5 mb-5">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-400/25 flex items-center justify-center text-indigo-300">
+                      <Users size={22} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-indigo-400 block">
+                        Execution
+                      </span>
+                      <h3 className="font-display text-2xl font-bold text-white">Our Mission</h3>
+                    </div>
+                  </div>
+                  <p className="text-slate-300 text-base leading-relaxed mb-3">
+                    To deliver fair, hands-on competitive arenas backed by transparent judging,
+                    verifiable credentials, and zero registration cost.
+                  </p>
+                  <p className="text-slate-400 text-sm leading-relaxed">
+                    We bring 50+ colleges together on one campus to sharpen technical craft,
+                    teamwork, leadership, and creative confidence.
+                  </p>
+                </SpotlightBezelCard>
+              </Motion.div>
+            </div>
+          </section>
+
+          {/* BY THE NUMBERS */}
+          <section className="mb-20 md:mb-28">
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true, margin: "-100px" }}
-              className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-8 md:p-12 lg:p-14 shadow-2xl"
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, ease: smoothEase }}
+              className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10"
             >
-              <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-10">
-                CROSSROADS welcomes everyone—no matter your technical background or experience level. Whether you're a coding wizard, a design enthusiast, a leader, or someone trying something new, there's a place for you here.
-              </p>
-
-              <div className="grid md:grid-cols-2 gap-5 md:gap-6">
-                {[
-                  "First-year students exploring their interests",
-                  "Final-year students building their portfolios",
-                  "Tech enthusiasts and competitive coders",
-                  "UI/UX designers and creative minds",
-                  "Aspiring entrepreneurs and innovators",
-                  "Leaders and team organizers",
-                  "Artists and cultural performers",
-                  "Everyone with curiosity and passion"
-                ].map((category, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                    viewport={{ once: true }}
-                    className="flex items-center gap-4 text-gray-300 bg-gray-800/30 rounded-xl p-4 hover:bg-gray-800/50 transition-all"
-                  >
-                    <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-sky-500 rounded-full shrink-0"></div>
-                    <span className="text-sm md:text-base">{category}</span>
-                  </motion.div>
-                ))}
+              <div>
+                <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-400 block mb-2">
+                  Scale &amp; Telemetry
+                </span>
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">
+                  By The Numbers
+                </h2>
               </div>
-            </motion.div>
-          </motion.section>
+              <p className="text-slate-400 text-sm sm:text-base max-w-md">
+                Measured across 11 competitive arenas hosted at HIET Ghaziabad on 05 &amp; 06 Feb 2027.
+              </p>
+            </Motion.div>
 
-          <motion.section className="mb-20 md:mb-28">
-            <motion.div {...fadeInUp} className="text-center mb-14">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3">Why Join CROSSROADS?</h2>
-              <p className="text-gray-400 text-lg">Transform your college experience</p>
-              <div className="h-1.5 w-24 bg-gradient-to-r from-blue-400 to-sky-500 rounded-full mx-auto mt-5"></div>
-            </motion.div>
-
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
-            >
-              {whyJoin.map((reason, index) => {
-                const Icon = reason.icon;
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {stats.map((stat, idx) => {
+                const Icon = stat.icon;
                 return (
-                  <motion.div
-                    key={index}
-                    variants={itemVariants}
-                    className="group bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-7 md:p-8 hover:shadow-2xl hover:shadow-sky-500/20 hover:-translate-y-2 hover:border-sky-500/50 transition-all duration-300"
+                  <Motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.2 }}
+                    transition={{ duration: 0.55, delay: idx * 0.06, ease: smoothEase }}
                   >
-                    <div className="mb-5">
-                      <div className="w-14 h-14 bg-gradient-to-br from-sky-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                        <Icon className="text-sky-400 group-hover:text-blue-400 transition-colors" size={28} />
+                    <SpotlightBezelCard innerClassName="p-6 sm:p-7">
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/25 flex items-center justify-center text-cyan-300">
+                          <Icon size={20} />
+                        </div>
+                        <span className="text-[10px] font-mono tracking-widest text-slate-500">
+                          {stat.tag}
+                        </span>
                       </div>
-                    </div>
-                    <h3 className="text-lg md:text-xl font-bold text-white mb-3">{reason.title}</h3>
-                    <p className="text-gray-400 text-sm md:text-base leading-relaxed">{reason.desc}</p>
-                  </motion.div>
+                      <div className="font-mono text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                        {stat.value}
+                      </div>
+                      <div className="text-xs sm:text-sm text-slate-400 mt-1.5 font-medium">
+                        {stat.label}
+                      </div>
+                    </SpotlightBezelCard>
+                  </Motion.div>
                 );
               })}
-            </motion.div>
-          </motion.section>
+            </div>
+          </section>
 
-          <motion.section
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true, margin: "-100px" }}
-            className="mb-12"
-          >
-            <div className="relative bg-gradient-to-r from-blue-500/10 via-white/5 to-sky-500/10 border border-blue-500/30 rounded-3xl p-10 md:p-14 lg:p-20 text-center overflow-hidden shadow-2xl">
-              <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 right-0 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl"></div>
+          {/* WHAT MAKES CROSSROADS UNIQUE */}
+          <section className="mb-20 md:mb-28">
+            <Motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, ease: smoothEase }}
+              className="mb-12"
+            >
+              <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-400 block mb-2">
+                Core Architecture
+              </span>
+              <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">
+                What Makes CROSSROADS Different
+              </h2>
+            </Motion.div>
 
-              <div className="relative z-10">
-                <Target className="text-blue-400 mx-auto mb-6" size={48} />
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-                  Ready to Cross the Line?
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {uniqueFeatures.map((feature, idx) => {
+                const Icon = feature.icon;
+                return (
+                  <Motion.div
+                    key={feature.title}
+                    initial={{ opacity: 0, y: 22 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.15 }}
+                    transition={{ duration: 0.55, delay: idx * 0.05, ease: smoothEase }}
+                    className="h-full"
+                  >
+                    <SpotlightBezelCard innerClassName="p-7 flex flex-col justify-between">
+                      <div>
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/15 to-indigo-500/15 border border-cyan-400/20 flex items-center justify-center mb-5 text-cyan-300 group-hover:scale-105 transition-transform duration-300">
+                          <Icon size={22} />
+                        </div>
+                        <h3 className="font-display text-xl font-bold text-white mb-2.5 group-hover:text-cyan-200 transition-colors">
+                          {feature.title}
+                        </h3>
+                        <p className="text-slate-400 text-sm leading-relaxed">{feature.desc}</p>
+                      </div>
+                    </SpotlightBezelCard>
+                  </Motion.div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* TYPES OF EVENTS */}
+          <section className="mb-20 md:mb-28">
+            <Motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, ease: smoothEase }}
+              className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12"
+            >
+              <div>
+                <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-400 block mb-2">
+                  Competition Matrix
+                </span>
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">
+                  Arenas &amp; Domains
                 </h2>
-                <p className="text-base md:text-lg lg:text-xl text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-                  CROSSROADS 2026 is calling. It's time to step up, challenge yourself, and discover what you're truly capable of. Whether you're here to compete, create, connect, or inspire—your journey starts now.
-                </p>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+              </div>
+              <Link
+                to="/events"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-300 hover:text-cyan-200 transition-colors"
+              >
+                <span>Open Full Arena Catalog</span>
+                <ArrowRight size={15} />
+              </Link>
+            </Motion.div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {eventTypes.map((eventType, idx) => (
+                <Motion.div
+                  key={eventType.category}
+                  initial={{ opacity: 0, y: 22 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.15 }}
+                  transition={{ duration: 0.55, delay: idx * 0.06, ease: smoothEase }}
                 >
-                  <Link to='/event-registration' className="px-10 md:px-12 py-4 md:py-5 bg-gradient-to-r from-blue-500 to-sky-500 text-white font-bold rounded-full hover:shadow-2xl hover:shadow-blue-500/40 transition-all duration-300 text-base md:text-lg group inline-block">
-                    Get Involved
-                    <ArrowRight className="inline-block ml-2 group-hover:translate-x-1 transition-transform" size={20} />
-                  </Link>
-                </motion.div>
+                  <SpotlightBezelCard innerClassName="p-7 sm:p-8">
+                    <div className="flex items-center justify-between gap-3 mb-5">
+                      <h3 className="font-display text-xl sm:text-2xl font-bold text-white">
+                        {eventType.category}
+                      </h3>
+                      <span className="px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/10 text-[10px] font-mono text-cyan-300 shrink-0">
+                        {eventType.badge}
+                      </span>
+                    </div>
+                    <ul className="space-y-2.5">
+                      {eventType.events.map((ev) => (
+                        <li
+                          key={ev}
+                          className="flex items-center gap-3 text-slate-300 text-sm sm:text-base py-1.5 border-b border-white/[0.04] last:border-b-0"
+                        >
+                          <ArrowRight size={15} className="text-cyan-400 shrink-0" />
+                          <span>{ev}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </SpotlightBezelCard>
+                </Motion.div>
+              ))}
+            </div>
+          </section>
+
+          {/* WHO CAN PARTICIPATE & WHY JOIN */}
+          <section className="mb-20 md:mb-28 space-y-16">
+            <Motion.div
+              initial={{ opacity: 0, y: 22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: 0.65, ease: smoothEase }}
+            >
+              <SpotlightBezelCard innerClassName="p-7 sm:p-10 lg:p-12">
+                <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-400 block mb-2">
+                  Open Eligibility
+                </span>
+                <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
+                  Who Can Participate?
+                </h2>
+                <p className="text-slate-300 text-base sm:text-lg leading-relaxed max-w-3xl mb-8">
+                  CROSSROADS is open to all undergraduate and postgraduate students across India
+                  with a valid college ID card—from first-year explorers to final-year engineers
+                  and performers.
+                </p>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  {[
+                    "First-year explorers",
+                    "Final-year builders",
+                    "Competitive programmers",
+                    "Hardware & robotics teams",
+                    "UI/UX & poster designers",
+                    "Campus filmmakers",
+                    "Dancers & live bands",
+                    "Inter-college squads",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/[0.03] border border-white/[0.07] text-slate-200 text-sm font-medium"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </SpotlightBezelCard>
+            </Motion.div>
+
+            <div>
+              <Motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.6, ease: smoothEase }}
+                className="mb-10"
+              >
+                <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-400 block mb-2">
+                  Participant Value
+                </span>
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">
+                  Why Join CROSSROADS?
+                </h2>
+              </Motion.div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {whyJoin.map((reason, idx) => {
+                  const Icon = reason.icon;
+                  return (
+                    <Motion.div
+                      key={reason.title}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.15 }}
+                      transition={{ duration: 0.55, delay: idx * 0.05, ease: smoothEase }}
+                      className="h-full"
+                    >
+                      <SpotlightBezelCard innerClassName="p-7">
+                        <div className="w-11 h-11 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-sky-300 mb-4">
+                          <Icon size={20} />
+                        </div>
+                        <h3 className="font-display text-lg font-bold text-white mb-2">
+                          {reason.title}
+                        </h3>
+                        <p className="text-slate-400 text-sm leading-relaxed">{reason.desc}</p>
+                      </SpotlightBezelCard>
+                    </Motion.div>
+                  );
+                })}
               </div>
             </div>
-          </motion.section>
+          </section>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center py-10 border-t border-gray-800/50"
+          {/* FINAL CTA CARD */}
+          <Motion.section
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.7, ease: smoothEase }}
+            className="mb-10"
           >
-            <p className="text-gray-500 text-sm md:text-base mb-2">
-              CROSSROADS 2026 | 28-29 November 2026
-            </p>
-            <p className="text-gray-600 text-xs md:text-sm">
-              Where Innovation Meets Opportunity
-            </p>
-          </motion.div>
+            <SpotlightBezelCard innerClassName="p-8 sm:p-12 lg:p-16 text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.14),transparent_60%)] pointer-events-none" />
+              <div className="relative z-10 max-w-3xl mx-auto">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-300 mx-auto mb-6">
+                  <Target size={26} />
+                </div>
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+                  Ready to Step Into the Arena?
+                </h2>
+                <p className="text-slate-300 text-base sm:text-lg leading-relaxed mb-8">
+                  Registrations open on <strong className="text-white">January 10, 2027</strong> and
+                  close on <strong className="text-amber-300">January 31, 2027</strong>. Lock your
+                  squad before <strong className="text-cyan-300">05 &amp; 06 February 2027</strong>.
+                </p>
 
+                <Link
+                  to="/event-registration"
+                  className="group inline-flex items-center gap-3 pl-7 pr-2.5 py-3 rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 text-slate-950 font-bold text-base shadow-[0_12px_36px_rgba(34,211,238,0.28)] hover:shadow-[0_16px_42px_rgba(34,211,238,0.45)] active:scale-[0.98] transition-all duration-300"
+                >
+                  <span>Get Involved Now</span>
+                  <span className="w-9 h-9 rounded-full bg-slate-950/15 flex items-center justify-center group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300">
+                    <ArrowUpRight size={18} />
+                  </span>
+                </Link>
+              </div>
+            </SpotlightBezelCard>
+          </Motion.section>
+
+          <div className="text-center pt-8 border-t border-white/10 font-mono text-xs sm:text-sm text-slate-400 space-y-1">
+            <p className="text-slate-200 font-semibold">
+              CROSSROADS 2026 | 05 Feb &amp; 06 Feb 2027
+            </p>
+            <p className="text-slate-500">
+              Registration Window: January 10 – January 31, 2027 • HIET Ghaziabad
+            </p>
+          </div>
         </div>
       </div>
     </div>

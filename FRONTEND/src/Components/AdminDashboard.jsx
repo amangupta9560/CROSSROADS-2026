@@ -1,6 +1,6 @@
 // AdminDashboard.jsx - Comprehensive CROSSROADS 2026 Management Suite with Round Robin SMTP
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -132,7 +132,7 @@ const AdminDashboard = () => {
   };
 
   // Initial Data Fetch
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('adminToken');
     if (!token) {
       navigate('/admin/login');
@@ -148,14 +148,14 @@ const AdminDashboard = () => {
         axios.get(`${backendUrl}/api/admin/teams`, getAuthHeaders()),
         axios.get(`${backendUrl}/api/admin/settings`, getAuthHeaders()),
         axios.get(`${backendUrl}/api/admin/broadcasts`, getAuthHeaders()),
-        axios.get(`${backendUrl}/api/admin/smtp-status`, getAuthHeaders()).catch(() => ({ data: { pool: smtpPool } }))
+        axios.get(`${backendUrl}/api/admin/smtp-status`, getAuthHeaders()).catch(() => ({ data: { pool: [] } }))
       ]);
 
       setAnalytics(analyticsRes.data);
       setTeams(teamsRes.data.teams || []);
       setSiteSettings(settingsRes.data);
       setBroadcasts(broadcastsRes.data || []);
-      if (smtpRes.data?.pool) setSmtpPool(smtpRes.data.pool);
+      if (smtpRes.data?.pool?.length > 0) setSmtpPool(smtpRes.data.pool);
 
       // Pre-fill authority director email and HODs
       if (settingsRes.data?.authorityContacts?.directorEmail) {
@@ -176,11 +176,11 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     fetchAllData();
-  }, [navigate]);
+  }, [fetchAllData]);
 
   // Logout Handler
   const handleLogout = () => {
@@ -428,7 +428,7 @@ const AdminDashboard = () => {
       await axios.delete(`${backendUrl}/api/admin/broadcasts/${broadcastId}`, getAuthHeaders());
       toast.success('Broadcast removed');
       setBroadcasts(prev => prev.filter(b => b._id !== broadcastId));
-    } catch (err) {
+    } catch {
       toast.error('Failed to remove broadcast');
     }
   };
@@ -445,7 +445,7 @@ const AdminDashboard = () => {
 
       setPreviewMatchedCount(res.data.totalRecipients);
       toast.success(`Found ${res.data.totalRecipients} matching recipient email(s) across ${res.data.totalMatchedTeams} team(s)`);
-    } catch (err) {
+    } catch {
       toast.error('Failed to calculate recipients');
     } finally {
       setActionLoading(false);
@@ -495,7 +495,7 @@ const AdminDashboard = () => {
         setEmailForm({
           subject: 'CROSSROADS 2026 – Reporting Schedule & Slot Timings',
           headline: 'Official Event Schedule & Arrival Guidelines',
-          message: `Dear Participants,\n\nPlease note the reporting time and schedule for your registered event at CROSSROADS 2026.\n\n• Reporting Time: 09:00 AM sharp at the central registration desk\n• Document Required: College ID Card / Aadhaar Card & Team ID\n• In case of queries, reach out to your respective event student coordinators upon arrival.\n\nBest regards,\nCROSSROADS 2026 Team`,
+          message: `Dear Participants,\n\nPlease note the reporting time and schedule for your registered event at CROSSROADS 2026 (05 Feb & 06 Feb 2027).\n\n• Reporting Time: 09:00 AM sharp at the central registration desk\n• Document Required: College ID Card / Aadhaar Card & Team ID\n• In case of queries, reach out to techfusion@hietgroup.org or +91 8802323375.\n\nBest regards,\nTeam Tech Fusion • CROSSROADS 2026`,
           ctaText: 'View Schedule',
           ctaLink: 'https://hiet-crossroads.online/schedule',
           urgency: 'normal'
@@ -1286,6 +1286,19 @@ const AdminDashboard = () => {
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase mb-2">Filter by Export Status</label>
+                  <select
+                    value={exportFilterStatus}
+                    onChange={(e) => setExportFilterStatus(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    <option value="all">All Records</option>
+                    <option value="unexported">Unexported Only</option>
+                    <option value="exported">Already Exported Only</option>
+                  </select>
+                </div>
+
                 <div className="flex items-center gap-3 p-3.5 bg-slate-800/50 rounded-xl border border-slate-700">
                   <input
                     type="checkbox"
@@ -1899,17 +1912,45 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="pt-6">
-                <label className="block text-xs font-semibold text-gray-300 uppercase mb-2">
-                  Message Displayed When Registrations Are Closed
-                </label>
-                <input
-                  type="text"
-                  value={siteSettings.closedMessage || ''}
-                  onChange={(e) => setSiteSettings({ ...siteSettings, closedMessage: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
-                  placeholder="Online registrations for CROSSROADS 2026 are currently paused."
-                />
+              <div className="pt-6 space-y-5">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase mb-2">
+                    Message Displayed When Registrations Are Closed
+                  </label>
+                  <input
+                    type="text"
+                    value={siteSettings.closedMessage || ''}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, closedMessage: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+                    placeholder="Online registrations run Jan 10 – Jan 31, 2027. Main fest: Feb 05–06, 2027."
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-800/40 rounded-xl border border-slate-700/70">
+                  <div>
+                    <div className="text-sm font-bold text-white">Website Top Announcement Banner</div>
+                    <div className="text-xs text-gray-400">Toggle visibility of the pinned announcement banner at the top of the site</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSiteSettings({
+                      ...siteSettings,
+                      broadcastBanner: {
+                        ...siteSettings.broadcastBanner,
+                        enabled: !siteSettings.broadcastBanner?.enabled
+                      }
+                    })}
+                    className={`w-14 h-7 rounded-full p-1 transition duration-300 cursor-pointer shrink-0 ${
+                      siteSettings.broadcastBanner?.enabled ? 'bg-indigo-500' : 'bg-slate-700'
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-full bg-white transition duration-300 transform ${
+                        siteSettings.broadcastBanner?.enabled ? 'translate-x-7' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2074,7 +2115,7 @@ const AdminDashboard = () => {
         <AnimatePresence>
           {selectedTeam && (
             <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <motion.div
+              <Motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -2251,7 +2292,7 @@ const AdminDashboard = () => {
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </Motion.div>
             </div>
           )}
         </AnimatePresence>

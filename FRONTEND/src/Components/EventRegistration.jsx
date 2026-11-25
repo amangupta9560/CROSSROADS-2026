@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   Trophy,
   Users,
@@ -234,7 +234,7 @@ const LS_KEY = 'cr2026_reg_draft';
 
 const ProgressBar = React.memo(({ progress }) => (
   <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-white/5 via-white/10 to-white/5 overflow-hidden z-20">
-    <motion.div
+    <Motion.div
       initial={{ width: 0 }}
       animate={{ width: `${progress}%` }}
       transition={{ type: "spring", stiffness: 100, damping: 30 }}
@@ -245,7 +245,7 @@ const ProgressBar = React.memo(({ progress }) => (
 ProgressBar.displayName = 'ProgressBar';
 
 const InputField = ({ label, icon: Icon, error, touched, ...props }) => (
-  <motion.div
+  <Motion.div
     className="space-y-2 text-left"
     whileHover={{ scale: 1.01 }}
     transition={{ type: "spring", stiffness: 300 }}
@@ -266,19 +266,19 @@ const InputField = ({ label, icon: Icon, error, touched, ...props }) => (
       />
     </div>
     {touched && error && (
-      <motion.p
+      <Motion.p
         initial={{ opacity: 0, y: -5 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-[10px] text-red-400 font-bold uppercase tracking-wider ml-2"
       >
         {error}
-      </motion.p>
+      </Motion.p>
     )}
-  </motion.div>
+  </Motion.div>
 );
 
 const SelectField = ({ label, children, error, touched, icon: Icon, ...props }) => (
-  <motion.div
+  <Motion.div
     className="space-y-2 text-left"
     whileHover={{ scale: 1.01 }}
     transition={{ type: "spring", stiffness: 300 }}
@@ -308,15 +308,15 @@ const SelectField = ({ label, children, error, touched, icon: Icon, ...props }) 
       </div>
     </div>
     {touched && error && (
-      <motion.p
+      <Motion.p
         initial={{ opacity: 0, y: -5 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-[10px] text-red-400 font-bold uppercase tracking-wider ml-2"
       >
         {error}
-      </motion.p>
+      </Motion.p>
     )}
-  </motion.div>
+  </Motion.div>
 );
 
 const RulesModal = ({ isOpen, onClose }) => {
@@ -333,20 +333,20 @@ const RulesModal = ({ isOpen, onClose }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="absolute inset-0 bg-black/80 backdrop-blur-xl"
           />
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -421,8 +421,8 @@ const RulesModal = ({ isOpen, onClose }) => {
                 </div>
               ))}
             </div>
-          </motion.div>
-        </motion.div>
+          </Motion.div>
+        </Motion.div>
       )}
     </AnimatePresence>
   );
@@ -471,7 +471,9 @@ const EventRegistration = () => {
           event: urlEvent || parsed.event || ''
         };
       }
-    } catch (_) {}
+    } catch {
+      // Ignore invalid localStorage draft
+    }
     return {
       teamName: '',
       leaderName: '',
@@ -497,7 +499,9 @@ const EventRegistration = () => {
     const timer = setTimeout(() => {
       try {
         localStorage.setItem(LS_KEY, JSON.stringify(formData));
-      } catch (_) {}
+      } catch {
+        // Ignore storage quota errors
+      }
     }, 600);
     return () => clearTimeout(timer);
   }, [formData, registeredDetails]);
@@ -802,13 +806,13 @@ const EventRegistration = () => {
 
       <div className="max-w-5xl mx-auto relative z-10">
         {/* Top Header Section */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-6"
         >
           <div className="text-center md:text-left">
-            <motion.div
+            <Motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 100 }}
@@ -818,7 +822,7 @@ const EventRegistration = () => {
               <span className="text-[10px] sm:text-xs font-bold text-blue-300 uppercase tracking-widest font-mono">
                 CROSSROADS 2026 • Official Registration
               </span>
-            </motion.div>
+            </Motion.div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight">
               EVENT <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">REGISTRATION</span>
             </h1>
@@ -828,7 +832,10 @@ const EventRegistration = () => {
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-3">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-[10px] sm:text-[11px] font-bold shadow-[0_0_12px_rgba(16,185,129,0.25)]">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                Registrations Open: <strong className="text-white">November 28–29, 2026</strong>
+                Reg: <strong className="text-white">Jan 10 – Jan 31, 2027</strong>
+              </span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-mono text-[10px] sm:text-[11px] font-bold">
+                Event: <strong className="text-white">05 &amp; 06 Feb 2027</strong>
               </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono text-[10px] sm:text-[11px] font-bold">
                 🏆 Total Prize Pool: <strong className="text-white">₹1,00,000+</strong>
@@ -854,7 +861,7 @@ const EventRegistration = () => {
               <span>View 11 Arenas</span>
             </Link>
           </div>
-        </motion.div>
+        </Motion.div>
 
         {/* Closed Banner Warning if Admin closed registrations */}
         {!siteSettings.registrationOpen && (
@@ -867,7 +874,7 @@ const EventRegistration = () => {
         )}
 
         {/* Main Card Container */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -878,7 +885,7 @@ const EventRegistration = () => {
           {/* Stepper Header (Desktop) */}
           <div className="hidden lg:flex items-center justify-between p-8 sm:p-10 border-b border-white/5 relative">
             <div className="absolute left-[15%] right-[15%] top-[50px] h-[1px] bg-white/10 z-0" />
-            <motion.div
+            <Motion.div
               className="absolute left-[15%] top-[50px] h-[1px] bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500 z-0 shadow-[0_0_8px_rgba(59,130,246,0.8)]"
               initial={{ width: "0%" }}
               animate={{ width: step === 0 ? "0%" : step === 1 ? "50%" : "100%" }}
@@ -886,14 +893,14 @@ const EventRegistration = () => {
             />
 
             {STEPS.map((s, i) => (
-              <motion.div
+              <Motion.div
                 key={i}
                 className="flex-1 flex flex-col items-center relative z-10"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.1 }}
               >
-                <motion.div
+                <Motion.div
                   className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-sm transition-all border ${
                     step > i
                       ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'
@@ -904,11 +911,11 @@ const EventRegistration = () => {
                   whileHover={{ scale: 1.05 }}
                 >
                   {step > i ? <Check size={24} /> : i + 1}
-                </motion.div>
+                </Motion.div>
                 <span className={`text-[11px] mt-3 font-black uppercase tracking-[0.15em] transition-colors duration-300 ${step >= i ? 'text-blue-400' : 'text-white/20'}`}>
                   {s}
                 </span>
-              </motion.div>
+              </Motion.div>
             ))}
           </div>
 
@@ -916,7 +923,7 @@ const EventRegistration = () => {
           <div className="lg:hidden px-4 sm:px-6 py-6 border-b border-white/5">
             <div className="flex justify-between items-center mb-3">
               {STEPS.map((_, i) => (
-                <motion.div
+                <Motion.div
                   key={i}
                   className={`h-1.5 flex-1 mx-1 rounded-full transition-all ${
                     step >= i ? 'bg-gradient-to-r from-blue-500 to-indigo-500' : 'bg-white/10'
@@ -935,7 +942,7 @@ const EventRegistration = () => {
             <AnimatePresence mode="wait">
               {/* STEP 0: CONTACT & EVENT INFO */}
               {step === 0 && (
-                <motion.div
+                <Motion.div
                   key="step0"
                   initial={{ opacity: 0, x: -30 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -1166,12 +1173,12 @@ const EventRegistration = () => {
                       </SelectField>
                     </div>
                   </div>
-                </motion.div>
+                </Motion.div>
               )}
 
               {/* STEP 1: TEAM MEMBERS (Step 2 in user terms, project details removed as requested) */}
               {step === 1 && (
-                <motion.div
+                <Motion.div
                   key="step1"
                   initial={{ opacity: 0, x: -30 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -1223,7 +1230,7 @@ const EventRegistration = () => {
 
                   {/* Solo Notice */}
                   {parseInt(formData.teamSize, 10) === 1 && (
-                    <motion.div
+                    <Motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className="p-8 sm:p-12 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-3"
@@ -1238,7 +1245,7 @@ const EventRegistration = () => {
                       <p className="text-xs text-blue-400 font-mono pt-2">
                         Click "Continue" below to review and confirm your registration.
                       </p>
-                    </motion.div>
+                    </Motion.div>
                   )}
 
                   {/* Teammate Cards */}
@@ -1253,7 +1260,7 @@ const EventRegistration = () => {
 
                       <div className="space-y-4">
                         {formData.members.map((member, idx) => (
-                          <motion.div
+                          <Motion.div
                             key={idx}
                             initial={{ opacity: 0, y: 15 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -1331,17 +1338,17 @@ const EventRegistration = () => {
                                 ))}
                               </SelectField>
                             </div>
-                          </motion.div>
+                          </Motion.div>
                         ))}
                       </div>
                     </div>
                   )}
-                </motion.div>
+                </Motion.div>
               )}
 
               {/* STEP 2: REVIEW & SUBMIT */}
               {step === 2 && (
-                <motion.div
+                <Motion.div
                   key="step2"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -1350,13 +1357,13 @@ const EventRegistration = () => {
                   className="space-y-8"
                 >
                   <div className="text-center">
-                    <motion.div
+                    <Motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                       className="inline-block mb-4 p-4 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl"
                     >
                       <Check className="w-8 h-8 text-emerald-400" />
-                    </motion.div>
+                    </Motion.div>
                     <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wider">
                       Review Your Registration
                     </h2>
@@ -1462,7 +1469,7 @@ const EventRegistration = () => {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </Motion.div>
               )}
             </AnimatePresence>
           </div>
@@ -1508,13 +1515,13 @@ const EventRegistration = () => {
               </button>
             )}
           </div>
-        </motion.div>
+        </Motion.div>
       </div>
 
       {/* Floating Bottom Error Toast (CodeArambh style) */}
       <AnimatePresence>
         {error && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
@@ -1533,20 +1540,20 @@ const EventRegistration = () => {
                 <X size={16} />
               </button>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 
       {/* Success Modal (CodeArambh style) */}
       <AnimatePresence>
         {registeredDetails && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[99999] bg-[#05020c]/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto"
           >
-            <motion.div
+            <Motion.div
               initial={{ scale: 0.9, y: 20, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.9, y: 20, opacity: 0 }}
@@ -1629,8 +1636,8 @@ const EventRegistration = () => {
                 <span>Back to Events</span>
                 <ChevronRight size={16} />
               </button>
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 

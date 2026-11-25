@@ -1,6 +1,5 @@
 import { useState } from 'react';
-// eslint-disable-next-line no-unused-vars
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +15,8 @@ const AdminLogin = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/admin/login`, { username, password });
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      const res = await axios.post(`${backendUrl}/api/admin/login`, { username, password });
       localStorage.setItem('adminToken', res.data.token);
       toast.success('Login successful!');
       navigate('/admin/dashboard');
@@ -31,7 +31,7 @@ const AdminLogin = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-blue-950 to-slate-900 overflow-hidden pt-24 pb-20 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
@@ -71,19 +71,19 @@ const AdminLogin = () => {
                 />
               </div>
             </div>
-            <motion.button
+            <Motion.button
               type="submit"
               disabled={loading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full py-3 bg-linear-to-r from-orange-500 to-purple-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 bg-linear-to-r from-orange-500 to-purple-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? <Loader2 className="animate-spin" size={20} /> : null}
               {loading ? 'Logging in...' : 'Login'}
-            </motion.button>
+            </Motion.button>
           </div>
         </form>
-      </motion.div>
+      </Motion.div>
     </div>
   );
 };

@@ -101,19 +101,30 @@ const getEventDisplay = (eventKey) => {
   return EVENT_DISPLAY_NAMES[eventKey] || eventKey.toUpperCase().replace(/-/g, ' ');
 };
 
+// Escape user-provided strings before embedding in HTML emails
+const escapeHtml = (str) => {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 // Generates registration confirmation HTML
 const generateRegistrationConfirmationHtml = (team) => {
   const memberListHtml = team.members && team.members.length > 0
     ? team.members.map((m, i) => `
       <tr>
         <td style="padding:10px; border-bottom:1px solid #334155; color:#cbd5e1;">Member ${i + 1}</td>
-        <td style="padding:10px; border-bottom:1px solid #334155; color:#f8fafc; font-weight:500;">${m.name}</td>
-        <td style="padding:10px; border-bottom:1px solid #334155; color:#94a3b8;">${m.email}</td>
+        <td style="padding:10px; border-bottom:1px solid #334155; color:#f8fafc; font-weight:500;">${escapeHtml(m.name)}</td>
+        <td style="padding:10px; border-bottom:1px solid #334155; color:#94a3b8;">${escapeHtml(m.email)}</td>
       </tr>
     `).join('')
     : '<tr><td colspan="3" style="padding:12px; text-align:center; color:#94a3b8;">Solo Participant (Individual Registration)</td></tr>';
 
-  const eventName = getEventDisplay(team.event);
+  const eventName = escapeHtml(getEventDisplay(team.event));
 
   return `
     <div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:720px; margin:auto; background:#0b1120; color:#e2e8f0; border-radius:20px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.08);">
@@ -121,28 +132,29 @@ const generateRegistrationConfirmationHtml = (team) => {
         <h1 style="margin:0; font-size:38px; letter-spacing:1px; font-weight:800;">CROSSROADS 2026</h1>
         <p style="margin:10px 0 0; font-size:17px; opacity:0.95;">✨ Team Registration Confirmed ✨</p>
         <div style="margin-top:22px; background:rgba(255,255,255,0.18); backdrop-filter:blur(10px); display:inline-block; padding:10px 26px; border-radius:999px; font-weight:700; font-size:15px; border:1px solid rgba(255,255,255,0.3); letter-spacing:0.5px;">
-          🎟 Team ID: <strong>${team.teamId}</strong>
+          🎟 Team ID: <strong>${escapeHtml(team.teamId)}</strong>
         </div>
       </div>
 
       <div style="padding:35px 30px; background:#111827;">
-        <p style="font-size:17px; line-height:1.6; margin-top:0;">Hello <strong>${team.leader?.name}</strong> & Team,</p>
+        <p style="font-size:17px; line-height:1.6; margin-top:0;">Hello <strong>${escapeHtml(team.leader?.name)}</strong> & Team,</p>
         <p style="font-size:15.5px; line-height:1.7; color:#cbd5e1;">
-          Your team <strong style="color:#38bdf8;">${team.teamName}</strong> is successfully registered for <strong style="color:#fbbf24;">${eventName}</strong> at CROSSROADS 2026.
+          Your team <strong style="color:#38bdf8;">${escapeHtml(team.teamName)}</strong> is successfully registered for <strong style="color:#fbbf24;">${eventName}</strong> at CROSSROADS 2026.
         </p>
 
         <div style="margin:28px 0; padding:22px; background:rgba(255,255,255,0.03); border-radius:14px; border:1px solid rgba(255,255,255,0.08);">
           <h3 style="margin-top:0; font-size:19px; color:#38bdf8; margin-bottom:15px;">📋 Registration Overview</h3>
           <table style="width:100%; font-size:14.5px; border-collapse:collapse;">
-            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600; width:38%;">Team ID</td><td style="color:#38bdf8; font-weight:700; font-family:monospace;">${team.teamId}</td></tr>
-            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Team Name</td><td style="color:#f8fafc; font-weight:600;">${team.teamName}</td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600; width:38%;">Team ID</td><td style="color:#38bdf8; font-weight:700; font-family:monospace;">${escapeHtml(team.teamId)}</td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Team Name</td><td style="color:#f8fafc; font-weight:600;">${escapeHtml(team.teamName)}</td></tr>
             <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Event</td><td style="color:#fbbf24; font-weight:600;">${eventName}</td></tr>
-            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Fest Dates</td><td style="color:#38bdf8; font-weight:600;">November 28–29, 2026</td></tr>
-            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Team Size</td><td><span style="background:#1e293b; padding:4px 12px; border-radius:12px; color:#38bdf8;">${team.teamSize} member(s)</span></td></tr>
-            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Team Leader</td><td style="color:#f8fafc;">${team.leader?.name} (${team.leader?.email})</td></tr>
-            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Mobile / WhatsApp</td><td style="color:#f8fafc;">${team.leader?.mobile} / ${team.leader?.whatsapp || team.leader?.mobile}</td></tr>
-            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">College</td><td style="color:#f8fafc;">${team.college}</td></tr>
-            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Branch & Year</td><td style="color:#f8fafc;">${team.branch} • ${team.year}</td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Fest Dates</td><td style="color:#38bdf8; font-weight:600;">05 Feb &amp; 06 Feb 2027</td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Registration Window</td><td style="color:#cbd5e1; font-weight:500;">January 10 – January 31, 2027</td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Team Size</td><td><span style="background:#1e293b; padding:4px 12px; border-radius:12px; color:#38bdf8;">${escapeHtml(team.teamSize)} member(s)</span></td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Team Leader</td><td style="color:#f8fafc;">${escapeHtml(team.leader?.name)} (${escapeHtml(team.leader?.email)})</td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Mobile / WhatsApp</td><td style="color:#f8fafc;">${escapeHtml(team.leader?.mobile)} / ${escapeHtml(team.leader?.whatsapp || team.leader?.mobile)}</td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">College</td><td style="color:#f8fafc;">${escapeHtml(team.college)}</td></tr>
+            <tr><td style="padding:8px 0; color:#94a3b8; font-weight:600;">Branch & Year</td><td style="color:#f8fafc;">${escapeHtml(team.branch)} • ${escapeHtml(team.year)}</td></tr>
           </table>
         </div>
 
@@ -156,8 +168,8 @@ const generateRegistrationConfirmationHtml = (team) => {
             </tr>
             <tr>
               <td style="padding:10px; border-bottom:1px solid #334155; color:#38bdf8; font-weight:600;">Leader (Primary)</td>
-              <td style="padding:10px; border-bottom:1px solid #334155; color:#f8fafc; font-weight:600;">${team.leader?.name}</td>
-              <td style="padding:10px; border-bottom:1px solid #334155; color:#94a3b8;">${team.leader?.email}</td>
+              <td style="padding:10px; border-bottom:1px solid #334155; color:#f8fafc; font-weight:600;">${escapeHtml(team.leader?.name)}</td>
+              <td style="padding:10px; border-bottom:1px solid #334155; color:#94a3b8;">${escapeHtml(team.leader?.email)}</td>
             </tr>
             ${memberListHtml}
           </table>
@@ -174,9 +186,9 @@ const generateRegistrationConfirmationHtml = (team) => {
         <hr style="border:none; border-top:1px solid #1f2937; margin:30px 0;">
 
         <div style="text-align:center; font-size:13px; color:#94a3b8;">
-          <p style="margin:0;">CROSSROADS 2026 Organizing Committee</p>
+          <p style="margin:0;">CROSSROADS 2026 Organizing Committee • Team Tech Fusion</p>
           <p style="margin:4px 0 0;">Hi-Tech Institute of Engineering & Technology, Ghaziabad</p>
-          <p style="margin:6px 0 0;">Email: <a href="mailto:crossroads20255@gmail.com" style="color:#38bdf8; text-decoration:none;">crossroads20255@gmail.com</a></p>
+          <p style="margin:6px 0 0;">Email: <a href="mailto:techfusion@hietgroup.org" style="color:#38bdf8; text-decoration:none;">techfusion@hietgroup.org</a> • WhatsApp: +91 8802323375</p>
         </div>
       </div>
     </div>
@@ -222,5 +234,6 @@ module.exports = {
   sendTeamConfirmationWithMembersCc,
   EVENT_DISPLAY_NAMES,
   getEventDisplay,
-  generateRegistrationConfirmationHtml
+  generateRegistrationConfirmationHtml,
+  escapeHtml
 };
