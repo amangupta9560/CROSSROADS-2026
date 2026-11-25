@@ -195,10 +195,15 @@ const AdminDashboard = () => {
 
     try {
       setLoading(true);
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/+$/, '');
 
       const [analyticsRes, teamsRes, settingsRes, broadcastsRes, smtpRes, emailLogsRes] = await Promise.all([
-        axios.get(`${backendUrl}/api/admin/stats`, getAuthHeaders()),
+        axios.get(`${backendUrl}/api/admin/stats`, getAuthHeaders()).catch((err) => {
+          if (err.response?.status === 404) {
+            return axios.get(`${backendUrl}/api/admin/analytics`, getAuthHeaders());
+          }
+          throw err;
+        }),
         axios.get(`${backendUrl}/api/admin/teams`, getAuthHeaders()),
         axios.get(`${backendUrl}/api/admin/settings`, getAuthHeaders()),
         axios.get(`${backendUrl}/api/admin/broadcasts`, getAuthHeaders()),

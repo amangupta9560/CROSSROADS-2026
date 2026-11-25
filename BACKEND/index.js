@@ -42,14 +42,31 @@ async function connectToDatabase() {
 
 const app = express();
 
-// Middleware — honor FRONTEND_URL when configured (supports comma-separated origins)
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim()).filter(Boolean)
-  : null;
+// Middleware — normalize allowed origins cleanly for Vercel/Netlify/local development
+const defaultOrigins = [
+  'https://crossroads-hiet.netlify.app',
+  'https://hiet-crossroads.online',
+  'http://localhost:5173',
+  'http://localhost:4173'
+];
+const envOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean)
+  : [];
+const allowedOriginSet = new Set([...defaultOrigins, ...envOrigins]);
 
 app.use(
   cors({
-    origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : '*',
+    origin: (requestOrigin, callback) => {
+      if (!requestOrigin) return callback(null, true);
+      const cleanOrigin = requestOrigin.replace(/\/+$/, '');
+      if (allowedOriginSet.has(cleanOrigin) || allowedOriginSet.has('*')) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${cleanOrigin} not allowed by CORS`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+    optionsSuccessStatus: 200
   })
 );
 app.use(express.json({ limit: '10mb' }));

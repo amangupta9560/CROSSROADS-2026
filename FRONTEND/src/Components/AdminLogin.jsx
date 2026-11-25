@@ -3,29 +3,50 @@ import { motion as Motion } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Lock, User } from 'lucide-react';
+import { AlertCircle, Loader2, Lock, User } from 'lucide-react';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoginError('');
     setLoading(true);
+    const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/+$/, '');
+    const isLiveOrigin = typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+    if (isLiveOrigin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(backendUrl)) {
+      const msg = 'Frontend build points to localhost:5000. Configure VITE_BACKEND_URL in Netlify to your deployed Vercel backend URL and redeploy.';
+      setLoginError(msg);
+      toast.error(msg);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
       const res = await axios.post(`${backendUrl}/api/admin/login`, {
         email: email.trim(),
         username: email.trim(),
         password
       });
+      if (!res.data?.token || typeof res.data.token !== 'string') {
+        const msg = 'Invalid login response from server (check VITE_BACKEND_URL points to the Express API, not the frontend domain).';
+        setLoginError(msg);
+        toast.error(msg);
+        return;
+      }
       localStorage.setItem('adminToken', res.data.token);
       toast.success('Login successful!');
       navigate('/admin/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.msg || 'Login failed');
+      const serverMsg = err.response?.data?.msg || err.response?.data?.message;
+      const msg = serverMsg || `Cannot reach authentication server (${backendUrl || 'same-origin'}). Verify backend is running & CORS allows this origin.`;
+      setLoginError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -77,6 +98,12 @@ const AdminLogin = () => {
                 />
               </div>
             </div>
+            {loginError && (
+              <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-200 text-xs flex items-start gap-2.5 leading-relaxed">
+                <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                <span>{loginError}</span>
+              </div>
+            )}
             <Motion.button
               type="submit"
               disabled={loading}
