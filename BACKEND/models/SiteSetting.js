@@ -12,7 +12,7 @@ const siteSettingSchema = new mongoose.Schema({
   },
   closedMessage: {
     type: String,
-    default: 'Online registrations for CROSSROADS 2026 run from January 10, 2027 to January 31, 2027. The main fest takes place on February 5–6, 2027. Please contact the event helpdesk at techfusion@hietgroup.org for queries.'
+    default: 'Online registrations for CROSSROADS 2027 run from January 10, 2027 to January 31, 2027. The main fest takes place on February 5–6, 2027. Please contact the event helpdesk at techfusion@hietgroup.org for queries.'
   },
   eventStatus: {
     type: Map,
@@ -33,7 +33,7 @@ const siteSettingSchema = new mongoose.Schema({
   },
   broadcastBanner: {
     enabled: { type: Boolean, default: false },
-    text: { type: String, default: 'Welcome to CROSSROADS 2026! Check out the schedule and register for events.' },
+    text: { type: String, default: 'Welcome to CROSSROADS 2027! Check out the schedule and register for events.' },
     link: { type: String, default: '/events' },
     level: { type: String, enum: ['info', 'warning', 'urgent', 'success'], default: 'info' }
   },
@@ -81,6 +81,14 @@ siteSettingSchema.statics.getSettings = async function() {
     }
     if (!settings.authorityContacts?.culturalHeadEmail || settings.authorityContacts.culturalHeadEmail === 'cultural@hiet.org') {
       settings.authorityContacts.culturalHeadEmail = 'ag902065@gmail.com';
+      dirty = true;
+    }
+    if (settings.closedMessage && (settings.closedMessage.includes('November 20, 2026') || settings.closedMessage.includes('CROSSROADS 2026'))) {
+      settings.closedMessage = 'Online registrations for CROSSROADS 2027 run from January 10, 2027 to January 31, 2027. The main fest takes place on February 5–6, 2027. Please contact the event helpdesk at techfusion@hietgroup.org for queries.';
+      dirty = true;
+    }
+    if (settings.broadcastBanner?.text === 'Welcome to CROSSROADS 2026! Check out the schedule and register for events.') {
+      settings.broadcastBanner.text = 'Welcome to CROSSROADS 2027! Check out the schedule and register for events.';
       dirty = true;
     }
     if (dirty) {

@@ -220,7 +220,7 @@ const About = () => {
                 </h1>
 
                 <p className="text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl mb-8">
-                  CROSSROADS 2026 is the flagship annual inter-college technical and cultural
+                  CROSSROADS 2027 is the flagship annual inter-college technical and cultural
                   festival hosted by Hi-Tech Institute of Engineering &amp; Technology (HIET)
                   in collaboration with Team Tech Fusion. Over 20+ years of institutional legacy
                   meet 11 high-energy competitive arenas.
@@ -718,7 +718,7 @@ const About = () => {
 
           <div className="text-center pt-8 border-t border-white/10 font-mono text-xs sm:text-sm text-slate-400 space-y-1">
             <p className="text-slate-200 font-semibold">
-              CROSSROADS 2026 | 05 Feb &amp; 06 Feb 2027
+              CROSSROADS 2027 | 05 Feb &amp; 06 Feb 2027
             </p>
             <p className="text-slate-500">
               Registration Window: January 10 – January 31, 2027 • HIET Ghaziabad

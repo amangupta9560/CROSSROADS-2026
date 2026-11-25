@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://hiet-crossroads.online/sitemap.xml
+Sitemap: https://crossroads-hiet.netlify.app/sitemap.xml

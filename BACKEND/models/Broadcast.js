@@ -12,7 +12,11 @@ const broadcastSchema = new mongoose.Schema({
   },
   target: {
     type: String,
-    default: 'all' // 'all', or specific event value like 'code-puzzle', or track
+    default: 'all' // 'all', specific event, 'technical', 'cultural', or 'college'
+  },
+  targetCollege: {
+    type: String,
+    default: 'all'
   },
   channel: {
     type: String,

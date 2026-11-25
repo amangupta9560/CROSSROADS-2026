@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, Lock, User } from 'lucide-react';
 
 const AdminLogin = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -16,7 +16,11 @@ const AdminLogin = () => {
     setLoading(true);
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
-      const res = await axios.post(`${backendUrl}/api/admin/login`, { username, password });
+      const res = await axios.post(`${backendUrl}/api/admin/login`, {
+        email: email.trim(),
+        username: email.trim(),
+        password
+      });
       localStorage.setItem('adminToken', res.data.token);
       toast.success('Login successful!');
       navigate('/admin/dashboard');
@@ -39,19 +43,20 @@ const AdminLogin = () => {
       >
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold bg-linear-to-r from-orange-400 to-purple-400 bg-clip-text text-transparent">Admin Login</h1>
-          <p className="text-gray-400 mt-2">Access CROSSROADS 2026 Dashboard</p>
+          <p className="text-gray-400 mt-2">Access CROSSROADS 2027 Dashboard</p>
         </div>
         <form onSubmit={handleSubmit} className="bg-linear-to-br from-slate-900/40 to-slate-900/40 backdrop-blur-2xl border border-orange-500/20 rounded-3xl p-8 shadow-2xl">
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Username</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Admin Email</label>
               <div className="relative">
                 <User className="absolute left-3 top-3.5 text-gray-500" size={20} />
                 <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter admin email"
                   required
                   className={`${inputClasses} pl-10`}
                 />
@@ -63,6 +68,7 @@ const AdminLogin = () => {
                 <Lock className="absolute left-3 top-3.5 text-gray-500" size={20} />
                 <input
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"

@@ -113,7 +113,7 @@ const BrandEmblem = () => {
 
         <div className="flex items-center gap-1.5 sm:gap-2">
           <span className="text-[10px] sm:text-xs font-mono font-semibold text-cyan-400">
-            2026
+            2027
           </span>
           <span className="relative flex h-1.5 w-1.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -255,7 +255,7 @@ export default function Navbar() {
                     </div>
                     <div>
                       <h2 className="font-display text-base font-bold text-white leading-none">
-                        CROSSROADS 2026
+                        CROSSROADS 2027
                       </h2>
                       <span className="text-[10px] font-mono text-cyan-400">
                         HIET GHAZIABAD

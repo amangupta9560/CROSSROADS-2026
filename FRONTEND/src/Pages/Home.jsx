@@ -244,12 +244,12 @@ const Home = () => {
 
   const faqs = [
     {
-      question: 'What is CROSSROADS 2026?',
-      answer: 'CROSSROADS 2026 is the annual inter-college technical and cultural festival hosted by Hi-Tech Institute of Engineering & Technology (HIET), Ghaziabad. It brings together over 1,500 students from engineering, management, and arts institutions across North India to compete in 11 flagship arenas.'
+      question: 'What is CROSSROADS 2027?',
+      answer: 'CROSSROADS 2027 is the annual inter-college technical and cultural festival hosted by Hi-Tech Institute of Engineering & Technology (HIET), Ghaziabad. It brings together over 1,500 students from engineering, management, and arts institutions across North India to compete in 11 flagship arenas.'
     },
     {
-      question: 'When and where will CROSSROADS 2026 take place?',
-      answer: 'CROSSROADS 2026 will be held on 05 Feb & 06 Feb 2027 (February 5–6, 2027) at the sprawling HIET Ghaziabad campus (NH-9). Day 1 kicks off at 8:50 AM with registrations and inauguration, followed by competitions and cultural nights across both days.'
+      question: 'When and where will CROSSROADS 2027 take place?',
+      answer: 'CROSSROADS 2027 will be held on 05 Feb & 06 Feb 2027 (February 5–6, 2027) at the sprawling HIET Ghaziabad campus (NH-9). Day 1 kicks off at 8:50 AM with registrations and inauguration, followed by competitions and cultural nights across both days.'
     },
     {
       question: 'When do registrations start and what is the last date?',
@@ -257,7 +257,7 @@ const Home = () => {
     },
     {
       question: 'Is there any registration fee?',
-      answer: 'No! Registration for CROSSROADS 2026 is completely free of cost for all student participants. Simply choose your event, submit your squad details, and your official Team Pass will be emailed instantly.'
+      answer: 'No! Registration for CROSSROADS 2027 is completely free of cost for all student participants. Simply choose your event, submit your squad details, and your official Team Pass will be emailed instantly.'
     },
     {
       question: 'Can I participate in multiple events?',
@@ -335,7 +335,7 @@ const Home = () => {
               CROSSROADS
             </span>
             <span className="text-white ml-3 sm:ml-5 drop-shadow-[0_0_35px_rgba(56,189,248,0.4)]">
-              2026
+              2027
             </span>
           </h1>
           <p className="mt-4 text-base sm:text-xl lg:text-2xl text-gray-300 font-light max-w-3xl mx-auto leading-relaxed">
@@ -612,7 +612,7 @@ const Home = () => {
               Meet Our <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">Team & Leadership</span>
             </h2>
             <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto mt-3">
-              Visionary leaders, advisory board, and academic department heads driving innovation and excellence at CROSSROADS 2026.
+              Visionary leaders, advisory board, and academic department heads driving innovation and excellence at CROSSROADS 2027.
             </p>
 
             {/* Institutional, Academic & Technical Society Logos */}
@@ -766,7 +766,7 @@ const Home = () => {
               Frequently Asked <span className="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">Questions</span>
             </h2>
             <p className="text-gray-400 text-base sm:text-lg max-w-xl mx-auto mt-3">
-              Everything you need to know about participating in CROSSROADS 2026.
+              Everything you need to know about participating in CROSSROADS 2027.
             </p>
           </div>
 

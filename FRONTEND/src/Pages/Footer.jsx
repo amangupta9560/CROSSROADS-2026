@@ -275,7 +275,7 @@ const Footer = () => {
                     <span className="text-[#ff6b35]">CROSSROADS</span>
                     <span className="text-yellow-400">@</span>
                     <span className="text-transparent bg-clip-text bg-linear-to-r from-[#b466ff] to-[#ff66c4]">
-                      2026
+                      2027
                     </span>
                   </h2>
                   <div className="h-0.5 w-16 bg-linear-to-r from-[#ff6b35] via-[#b466ff] to-[#ff66c4] rounded-full mb-3"></div>
@@ -334,7 +334,7 @@ const Footer = () => {
                 <span className="text-[#ff6b35]">CROSSROADS</span>
                 <span className="text-yellow-400">@</span>
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-[#b466ff] to-[#ff66c4]">
-                  2026
+                  2027
                 </span>
               </h2>
               <div className="h-px w-full max-w-md mx-auto bg-linear-to-r from-transparent via-[#ff6b35] to-transparent mb-3"></div>
@@ -349,7 +349,7 @@ const Footer = () => {
 
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
               <div className="space-y-0.5 text-xs text-gray-400">
-                <p>© 2026 Crossroad Technical Fest. All rights reserved.</p>
+                <p>© 2027 Crossroad Technical Fest. All rights reserved.</p>
                 <p className="text-gray-500">
                   Created by{' '}
                   <a

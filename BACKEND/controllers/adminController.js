@@ -1,43 +1,453 @@
 // controllers/adminController.js
 const EventTeam = require('../models/EventTeam');
+const EmailLog = require('../models/EmailLog');
+const Admin = require('../models/Admin');
 const Counter = require('../models/Counter');
 const SiteSetting = require('../models/SiteSetting');
 const Broadcast = require('../models/Broadcast');
 const jwt = require('jsonwebtoken');
 const ExcelJS = require('exceljs');
+const { ensureInitialAdminExists } = require('../utils/seedAdmin');
 const {
-  sendMailRoundRobin,
-  sendTeamConfirmationWithMembersCc,
+  BRAND_NAME,
+  FRONTEND_URL,
+  IDENTITY,
+  transporters,
   EVENT_DISPLAY_NAMES,
   getEventDisplay,
-  transporters,
-  escapeHtml
+  escapeHtml,
+  buildResponsiveEmailDocument,
+  buildTeamConfirmationEmailPayload
 } = require('../utils/mailer');
+const { buildFormattedRegistrationWorkbook } = require('../utils/excelReport');
+const {
+  TECHNICAL_EVENTS,
+  REGISTRATION_STATUSES,
+  getIstTodayRange,
+  buildRegistrationFilterQuery,
+  queryTeamsSmart
+} = require('../utils/queryBuilder');
+const {
+  enqueueEmail,
+  enqueueBatchEmails,
+  processPendingEmailQueue,
+  resendEmailLogById
+} = require('../utils/emailWorker');
 
-const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/**
+ * Compute single-round-trip MongoDB $facet analytics pipeline
+ * returning KPI overview, event-wise metrics, college-wise counts, and 7-day IST trend.
+ */
+const runAnalyticsFacetPipeline = async (matchStage = {}) => {
+  const { start: todayStart, end: todayEnd } = getIstTodayRange();
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const sevenDaysStart = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
 
-const sanitizeSpreadsheetCell = (val) => {
-  if (val === null || val === undefined) return '';
-  const str = String(val);
-  return /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  const pipeline = [];
+  if (matchStage && Object.keys(matchStage).length > 0) {
+    pipeline.push({ $match: matchStage });
+  }
+
+  pipeline.push({
+    $addFields: {
+      normalizedCollege: {
+        $let: {
+          vars: { trimmed: { $trim: { input: { $ifNull: ['$college', 'Unspecified'] } } } },
+          in: { $cond: [{ $eq: ['$$trimmed', ''] }, 'Unspecified', '$$trimmed'] }
+        }
+      },
+      effectiveSize: { $ifNull: ['$teamSize', 1] },
+      effectiveStatus: { $ifNull: ['$status', 'pending'] },
+      isTechnical: { $in: ['$event', TECHNICAL_EVENTS] },
+      appliedDateIst: {
+        $dateToString: {
+          format: '%Y-%m-%d',
+          date: { $add: [{ $ifNull: ['$appliedAt', '$$NOW'] }, IST_OFFSET_MS] }
+        }
+      }
+    }
+  });
+
+  pipeline.push({
+    $facet: {
+      overview: [
+        {
+          $group: {
+            _id: null,
+            totalTeams: { $sum: 1 },
+            totalParticipants: { $sum: '$effectiveSize' },
+            todayTeams: {
+              $sum: {
+                $cond: [
+                  { $and: [{ $gte: ['$appliedAt', todayStart] }, { $lt: ['$appliedAt', todayEnd] }] },
+                  1,
+                  0
+                ]
+              }
+            },
+            todayParticipants: {
+              $sum: {
+                $cond: [
+                  { $and: [{ $gte: ['$appliedAt', todayStart] }, { $lt: ['$appliedAt', todayEnd] }] },
+                  '$effectiveSize',
+                  0
+                ]
+              }
+            },
+            technicalCount: { $sum: { $cond: ['$isTechnical', 1, 0] } },
+            culturalCount: { $sum: { $cond: ['$isTechnical', 0, 1] } },
+            pendingCount: { $sum: { $cond: [{ $eq: ['$effectiveStatus', 'pending'] }, 1, 0] } },
+            verifiedCount: { $sum: { $cond: [{ $eq: ['$effectiveStatus', 'verified'] }, 1, 0] } },
+            checkedInCount: { $sum: { $cond: [{ $eq: ['$effectiveStatus', 'checked-in'] }, 1, 0] } },
+            rejectedCount: { $sum: { $cond: [{ $eq: ['$effectiveStatus', 'rejected'] }, 1, 0] } },
+            exportedCount: { $sum: { $cond: [{ $eq: ['$exported', true] }, 1, 0] } },
+            collegesSet: { $addToSet: '$normalizedCollege' }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            totalTeams: 1,
+            totalParticipants: 1,
+            todayTeams: 1,
+            todayParticipants: 1,
+            technicalCount: 1,
+            culturalCount: 1,
+            pendingCount: 1,
+            verifiedCount: 1,
+            checkedInCount: 1,
+            rejectedCount: 1,
+            exportedCount: 1,
+            totalColleges: { $size: '$collegesSet' }
+          }
+        }
+      ],
+      eventWise: [
+        {
+          $group: {
+            _id: { $ifNull: ['$event', 'unknown'] },
+            count: { $sum: 1 },
+            teamsCount: { $sum: 1 },
+            participants: { $sum: '$effectiveSize' },
+            studentsCount: { $sum: '$effectiveSize' },
+            collegesSet: { $addToSet: '$normalizedCollege' },
+            soloCount: { $sum: { $cond: [{ $eq: ['$effectiveSize', 1] }, 1, 0] } },
+            groupCount: { $sum: { $cond: [{ $gt: ['$effectiveSize', 1] }, 1, 0] } }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            event: '$_id',
+            count: 1,
+            teamsCount: 1,
+            participants: 1,
+            studentsCount: 1,
+            collegesCount: { $size: '$collegesSet' },
+            soloCount: 1,
+            groupCount: 1
+          }
+        },
+        { $sort: { count: -1, studentsCount: -1 } }
+      ],
+      allColleges: [
+        {
+          $group: {
+            _id: '$normalizedCollege',
+            college: { $first: '$normalizedCollege' },
+            count: { $sum: 1 },
+            teamsCount: { $sum: 1 },
+            studentsCount: { $sum: '$effectiveSize' },
+            eventsSet: { $addToSet: '$event' },
+            verifiedCount: {
+              $sum: { $cond: [{ $in: ['$effectiveStatus', ['verified', 'checked-in']] }, 1, 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            college: 1,
+            count: 1,
+            teamsCount: 1,
+            studentsCount: 1,
+            eventsSet: 1,
+            eventsCount: { $size: '$eventsSet' },
+            verifiedCount: 1
+          }
+        },
+        { $sort: { studentsCount: -1, teamsCount: -1 } }
+      ],
+      trendRaw: [
+        { $match: { appliedAt: { $gte: sevenDaysStart } } },
+        {
+          $group: {
+            _id: '$appliedDateIst',
+            teams: { $sum: 1 },
+            students: { $sum: '$effectiveSize' }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]
+    }
+  });
+
+  const [facetRes] = await EventTeam.aggregate(pipeline);
+  const ov = facetRes?.overview?.[0] || {
+    totalTeams: 0,
+    totalParticipants: 0,
+    todayTeams: 0,
+    todayParticipants: 0,
+    technicalCount: 0,
+    culturalCount: 0,
+    pendingCount: 0,
+    verifiedCount: 0,
+    checkedInCount: 0,
+    rejectedCount: 0,
+    exportedCount: 0,
+    totalColleges: 0
+  };
+
+  const eventWise = (facetRes?.eventWise || []).map((ev) => ({
+    ...ev,
+    eventName: getEventDisplay(ev._id),
+    track: TECHNICAL_EVENTS.includes(ev._id) ? 'Technical' : 'Cultural'
+  }));
+
+  const allColleges = (facetRes?.allColleges || []).map((c) => ({
+    _id: c._id,
+    college: c.college,
+    count: c.count,
+    teamsCount: c.teamsCount,
+    studentsCount: c.studentsCount,
+    eventsCount: c.eventsCount,
+    verifiedCount: c.verifiedCount,
+    events: (c.eventsSet || []).map((ev) => getEventDisplay(ev))
+  }));
+
+  // Zero-fill trailing 7 IST calendar days cleanly for smooth sparklines/bar charts
+  const trendMap = new Map((facetRes?.trendRaw || []).map((d) => [d._id, d]));
+  const dailyTrend = [];
+  for (let i = 6; i >= 0; i--) {
+    const dayDate = new Date(todayStart.getTime() - i * 24 * 60 * 60 * 1000 + IST_OFFSET_MS);
+    const isoDate = dayDate.toISOString().slice(0, 10);
+    const label = dayDate.toLocaleDateString('en-IN', {
+      timeZone: 'UTC',
+      day: '2-digit',
+      month: 'short'
+    });
+    const entry = trendMap.get(isoDate);
+    dailyTrend.push({
+      date: isoDate,
+      label,
+      teams: entry ? entry.teams : 0,
+      students: entry ? entry.students : 0
+    });
+  }
+
+  return {
+    total: ov.totalTeams,
+    totalTeams: ov.totalTeams,
+    totalParticipants: ov.totalParticipants,
+    totalStudents: ov.totalParticipants,
+    totalColleges: ov.totalColleges,
+    today: ov.todayTeams,
+    todayParticipants: ov.todayParticipants,
+    technicalCount: ov.technicalCount,
+    culturalCount: ov.culturalCount,
+    statusBreakdown: {
+      pending: ov.pendingCount,
+      verified: ov.verifiedCount,
+      checkedIn: ov.checkedInCount,
+      rejected: ov.rejectedCount,
+      exported: ov.exportedCount
+    },
+    eventWise,
+    collegeWise: allColleges.slice(0, 8),
+    allColleges,
+    dailyTrend
+  };
 };
 
-// Admin Login
-const login = (req, res) => {
-  const { username, password } = req.body || {};
-  const expectedUser = process.env.ADMIN_USERNAME;
-  const expectedPass = process.env.ADMIN_PASSWORD;
-  const jwtSecret = process.env.JWT_SECRET;
+/**
+ * Lightweight JS aggregation over pre-fetched team slice (used in report generation).
+ */
+const computeAggregations = (teams) => {
+  const { start: todayStart, end: todayEnd } = getIstTodayRange();
+  let totalParticipants = 0;
+  let todayCount = 0;
+  let todayParticipants = 0;
+  let technicalCount = 0;
+  let culturalCount = 0;
 
-  if (!expectedUser || !expectedPass || !jwtSecret) {
-    return res.status(500).json({ msg: 'Admin authentication is not configured on the server' });
-  }
+  const eventMap = new Map();
+  const collegeMap = new Map();
 
-  if (username === expectedUser && password === expectedPass) {
-    const token = jwt.sign({ role: 'admin', username }, jwtSecret, { expiresIn: '12h' });
-    return res.json({ token, username });
+  teams.forEach((t) => {
+    const size = t.teamSize || 1;
+    totalParticipants += size;
+
+    const applied = t.appliedAt ? new Date(t.appliedAt) : null;
+    if (applied && applied >= todayStart && applied < todayEnd) {
+      todayCount += 1;
+      todayParticipants += size;
+    }
+
+    if (TECHNICAL_EVENTS.includes(t.event)) technicalCount += 1;
+    else culturalCount += 1;
+
+    const evKey = t.event || 'unknown';
+    if (!eventMap.has(evKey)) {
+      eventMap.set(evKey, {
+        _id: evKey,
+        event: evKey,
+        eventName: getEventDisplay(evKey),
+        track: TECHNICAL_EVENTS.includes(evKey) ? 'Technical' : 'Cultural',
+        count: 0,
+        teamsCount: 0,
+        participants: 0,
+        studentsCount: 0,
+        collegesSet: new Set(),
+        soloCount: 0,
+        groupCount: 0
+      });
+    }
+    const ev = eventMap.get(evKey);
+    ev.count += 1;
+    ev.teamsCount += 1;
+    ev.participants += size;
+    ev.studentsCount += size;
+    if (t.college) ev.collegesSet.add(t.college.trim());
+    if (size === 1) ev.soloCount += 1;
+    else ev.groupCount += 1;
+
+    const colName = (t.college || 'Unspecified').trim();
+    if (!collegeMap.has(colName)) {
+      collegeMap.set(colName, {
+        _id: colName,
+        college: colName,
+        count: 0,
+        teamsCount: 0,
+        studentsCount: 0,
+        eventsSet: new Set(),
+        eventBreakdown: {}
+      });
+    }
+    const col = collegeMap.get(colName);
+    col.count += 1;
+    col.teamsCount += 1;
+    col.studentsCount += size;
+    col.eventsSet.add(getEventDisplay(evKey));
+    col.eventBreakdown[evKey] = (col.eventBreakdown[evKey] || 0) + size;
+  });
+
+  const eventWise = Array.from(eventMap.values())
+    .map((ev) => ({
+      _id: ev._id,
+      event: ev.event,
+      eventName: ev.eventName,
+      track: ev.track,
+      count: ev.count,
+      teamsCount: ev.teamsCount,
+      participants: ev.participants,
+      studentsCount: ev.studentsCount,
+      collegesCount: ev.collegesSet.size,
+      soloCount: ev.soloCount,
+      groupCount: ev.groupCount
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const allColleges = Array.from(collegeMap.values())
+    .map((c) => ({
+      _id: c._id,
+      college: c.college,
+      count: c.count,
+      teamsCount: c.teamsCount,
+      studentsCount: c.studentsCount,
+      eventsCount: c.eventsSet.size,
+      events: Array.from(c.eventsSet),
+      eventBreakdown: c.eventBreakdown
+    }))
+    .sort((a, b) => b.studentsCount - a.studentsCount || b.teamsCount - a.teamsCount);
+
+  return {
+    total: teams.length,
+    totalTeams: teams.length,
+    totalParticipants,
+    totalStudents: totalParticipants,
+    totalColleges: allColleges.length,
+    today: todayCount,
+    todayParticipants,
+    technicalCount,
+    culturalCount,
+    eventWise,
+    collegeWise: allColleges.slice(0, 8),
+    allColleges
+  };
+};
+
+const parseEmailList = (input) => {
+  if (!input) return [];
+  const rawList = Array.isArray(input) ? input : String(input).split(/[,;\n]+/);
+  const seen = new Set();
+  const valid = [];
+  for (const item of rawList) {
+    const email = String(item || '').trim();
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !seen.has(email.toLowerCase())) {
+      seen.add(email.toLowerCase());
+      valid.push(email);
+    }
   }
-  res.status(401).json({ msg: 'Invalid credentials' });
+  return valid;
+};
+
+// Admin Login (authenticates against seeded Admin credentials in MongoDB)
+const login = async (req, res) => {
+  try {
+    const { email, username, password } = req.body || {};
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!jwtSecret) {
+      return res.status(500).json({ msg: 'JWT_SECRET is not configured on the server' });
+    }
+
+    const inputEmail = String(email || username || '').trim().toLowerCase();
+    if (!inputEmail || !password) {
+      return res.status(400).json({ msg: 'Email and password are required' });
+    }
+
+    let admin = await Admin.findOne({ email: inputEmail, isActive: true }).select('+passwordHash');
+
+    // Auto-seed initial admin from env vars only if Admin collection is completely empty
+    if (!admin) {
+      await ensureInitialAdminExists();
+      admin = await Admin.findOne({ email: inputEmail, isActive: true }).select('+passwordHash');
+    }
+
+    if (!admin || !admin.verifyPassword(String(password))) {
+      return res.status(401).json({ msg: 'Invalid credentials' });
+    }
+
+    admin.lastLoginAt = new Date();
+    await admin.save();
+
+    const token = jwt.sign(
+      { id: admin._id, role: 'admin', email: admin.email, username: admin.email },
+      jwtSecret,
+      { expiresIn: '12h' }
+    );
+
+    return res.json({
+      token,
+      username: admin.email,
+      email: admin.email,
+      name: admin.name,
+      role: admin.role
+    });
+  } catch (err) {
+    console.error('Admin login error:', err);
+    return res.status(500).json({ msg: 'Authentication failed', error: err.message });
+  }
 };
 
 // Return SMTP Pool Status (Round Robin Accounts)
@@ -51,132 +461,48 @@ const getSmtpStatus = (req, res) => {
   res.json({ pool, totalActive: pool.length });
 };
 
-// Analytics Dashboard Data
+// Real-Time Dashboard Stats via single MongoDB $facet pipeline (serves /stats & /analytics)
 const getAnalytics = async (req, res) => {
   try {
-    const totalTeams = await EventTeam.countDocuments();
-
-    // Today's registrations
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
-
-    const todayCount = await EventTeam.countDocuments({
-      appliedAt: { $gte: todayStart, $lt: todayEnd }
-    });
-
-    // Total participants (sum of teamSize)
-    const participantsAgg = await EventTeam.aggregate([
-      { $group: { _id: null, totalParticipants: { $sum: '$teamSize' } } }
-    ]);
-    const totalParticipants = participantsAgg[0]?.totalParticipants || totalTeams;
-
-    // Event-wise aggregation
-    const eventWise = await EventTeam.aggregate([
-      { 
-        $group: { 
-          _id: '$event', 
-          count: { $sum: 1 }, 
-          participants: { $sum: '$teamSize' },
-          details: { $push: '$$ROOT' } 
-        } 
-      },
-      { $sort: { count: -1 } }
-    ]);
-
-    // Track Breakdown (Technical vs Cultural)
-    const technicalEvents = ['code-puzzle', 'project-exhibition', 'robo-race', 'technical-poster'];
-    let technicalCount = 0;
-    let culturalCount = 0;
-
-    eventWise.forEach(e => {
-      if (technicalEvents.includes(e._id)) {
-        technicalCount += e.count;
-      } else {
-        culturalCount += e.count;
-      }
-    });
-
-    // College distribution (Top colleges)
-    const collegeWise = await EventTeam.aggregate([
-      { $group: { _id: '$college', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 8 }
-    ]);
-
-    res.json({
-      total: totalTeams,
-      today: todayCount,
-      totalParticipants,
-      technicalCount,
-      culturalCount,
-      eventWise,
-      collegeWise
-    });
+    const summary = await runAnalyticsFacetPipeline({});
+    res.json(summary);
   } catch (err) {
-    console.error('Analytics error:', err);
+    console.error('Analytics $facet error:', err);
     res.status(500).json({ msg: 'Server error fetching analytics', error: err.message });
   }
 };
+const getDashboardStats = getAnalytics;
 
-// Fetch filtered teams list
+// Advanced Filter Insights via single MongoDB $facet + filtered teams
+const getAdvancedInsights = async (req, res) => {
+  try {
+    const matchQuery = buildRegistrationFilterQuery(req.query);
+    const [summary, { teams, usedTextIndex }] = await Promise.all([
+      runAnalyticsFacetPipeline(matchQuery),
+      queryTeamsSmart(EventTeam, req.query, { lean: true })
+    ]);
+    res.json({
+      ...summary,
+      teams,
+      usedTextIndex
+    });
+  } catch (err) {
+    console.error('Advanced insights error:', err);
+    res.status(500).json({ msg: 'Error computing advanced insights', error: err.message });
+  }
+};
+
+// Fetch filtered registrations using full-text $text index + regex fallback (/teams & /registrations)
 const getTeams = async (req, res) => {
   try {
-    const { event, search, college, dateFrom, dateTo, status } = req.query;
-    let query = {};
-
-    if (event && event !== 'all') {
-      query.event = event;
-    }
-
-    if (status === 'exported') {
-      query.exported = true;
-    } else if (status === 'unexported') {
-      query.exported = false;
-    }
-
-    if (college && college !== 'all') {
-      if (college === 'hiet') {
-        query.college = { $regex: /hi-?tech|hiet/i };
-      } else if (college === 'outside') {
-        query.college = { $not: { $regex: /hi-?tech|hiet/i } };
-      } else {
-        query.college = college;
-      }
-    }
-
-    if (dateFrom || dateTo) {
-      query.appliedAt = {};
-      if (dateFrom) query.appliedAt.$gte = new Date(dateFrom);
-      if (dateTo) {
-        const toD = new Date(dateTo);
-        toD.setHours(23, 59, 59, 999);
-        query.appliedAt.$lte = toD;
-      }
-    }
-
-    if (search && search.trim()) {
-      const term = escapeRegex(search.trim());
-      const regex = new RegExp(term, 'i');
-      query.$or = [
-        { teamId: regex },
-        { teamName: regex },
-        { 'leader.name': regex },
-        { 'leader.email': regex },
-        { 'leader.mobile': regex },
-        { college: regex },
-        { event: regex }
-      ];
-    }
-
-    const teams = await EventTeam.find(query).sort({ appliedAt: -1 });
-    res.json({ teams, total: teams.length });
+    const { teams, usedTextIndex } = await queryTeamsSmart(EventTeam, req.query, { lean: false });
+    res.json({ teams, total: teams.length, usedTextIndex });
   } catch (err) {
     console.error('Error fetching teams:', err);
     res.status(500).json({ msg: 'Error fetching teams', error: err.message });
   }
 };
+const getAllRegistrations = getTeams;
 
 // Get single team details
 const getTeamById = async (req, res) => {
@@ -192,12 +518,27 @@ const getTeamById = async (req, res) => {
 // Update team details (whitelisted fields only)
 const updateTeam = async (req, res) => {
   try {
-    const allowedFields = ['teamName', 'leader', 'college', 'branch', 'year', 'event', 'teamSize', 'members', 'exported'];
+    const allowedFields = [
+      'teamName',
+      'leader',
+      'college',
+      'branch',
+      'year',
+      'event',
+      'teamSize',
+      'members',
+      'exported',
+      'status',
+      'adminNotes'
+    ];
     const updates = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
       }
+    }
+    if (updates.status) {
+      updates.statusUpdatedAt = new Date();
     }
     const updated = await EventTeam.findByIdAndUpdate(
       req.params.id,
@@ -208,6 +549,37 @@ const updateTeam = async (req, res) => {
     res.json({ msg: 'Team updated successfully', team: updated });
   } catch (err) {
     res.status(500).json({ msg: err.message });
+  }
+};
+
+// Dedicated Registration Status Update (Pending / Verified / Checked-In / Rejected)
+const updateRegistrationStatus = async (req, res) => {
+  try {
+    const { status, adminNotes } = req.body || {};
+    if (!REGISTRATION_STATUSES.includes(status)) {
+      return res.status(400).json({
+        msg: `Invalid status. Allowed values: ${REGISTRATION_STATUSES.join(', ')}`
+      });
+    }
+
+    const updateFields = { status, statusUpdatedAt: new Date() };
+    if (adminNotes !== undefined) updateFields.adminNotes = String(adminNotes).trim();
+
+    const updated = await EventTeam.findByIdAndUpdate(
+      req.params.id,
+      updateFields,
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ msg: 'Registration not found' });
+
+    res.json({
+      success: true,
+      msg: `Team ${updated.teamId} status updated to "${status}"`,
+      team: updated
+    });
+  } catch (err) {
+    console.error('Status update error:', err);
+    res.status(500).json({ msg: 'Failed to update registration status', error: err.message });
   }
 };
 
@@ -222,21 +594,30 @@ const deleteTeam = async (req, res) => {
   }
 };
 
-// Resend confirmation email to team (TO: leader, CC: all members) via Round Robin
+// Resend confirmation email to team (TO: leader, CC: all members) via EmailLog + Round Robin
 const resendConfirmationEmail = async (req, res) => {
   try {
     const team = await EventTeam.findById(req.params.id);
     if (!team) return res.status(404).json({ msg: 'Team not found' });
 
-    const result = await sendTeamConfirmationWithMembersCc(team, true);
+    const payload = buildTeamConfirmationEmailPayload(team, true);
+    const result = await enqueueEmail(payload, { sendImmediately: true });
+
+    if (!result.success) {
+      return res.status(502).json({
+        msg: `Email queued/failed (${result.error}). Logged in Email Queue & Logs for retry.`,
+        logId: result.log?._id
+      });
+    }
 
     res.json({
       success: true,
-      msg: `Confirmation email dispatched to Leader (${result.leaderEmail})${result.ccCount > 0 ? ` with ${result.ccCount} member(s) in CC` : ''} via Round Robin (${result.sentVia})`,
-      leaderEmail: result.leaderEmail,
-      ccCount: result.ccCount,
-      ccList: result.ccList,
-      sentVia: result.sentVia
+      msg: `Confirmation email dispatched to Leader (${payload.leaderEmail})${payload.ccCount > 0 ? ` with ${payload.ccCount} member(s) in CC` : ''} via Round Robin (${result.sentVia})`,
+      leaderEmail: payload.leaderEmail,
+      ccCount: payload.ccCount,
+      ccList: payload.ccList,
+      sentVia: result.sentVia,
+      logId: result.log?._id
     });
   } catch (err) {
     console.error('Resend email error:', err);
@@ -244,51 +625,39 @@ const resendConfirmationEmail = async (req, res) => {
   }
 };
 
-// Send bulk confirmation emails at any time (TO: leader, CC: members) via Round Robin
+// Send bulk confirmation emails through EmailLog + Round Robin SMTP pool
 const sendBulkConfirmations = async (req, res) => {
   try {
     const { teamIds = [], filter = {} } = req.body;
 
-    let query = {};
-    if (Array.isArray(teamIds) && teamIds.length > 0) {
-      query._id = { $in: teamIds };
-    } else {
-      if (filter.event && filter.event !== 'all') query.event = filter.event;
-      if (filter.track && filter.track !== 'all') {
-        const technicalEvents = ['code-puzzle', 'project-exhibition', 'robo-race', 'technical-poster'];
-        if (filter.track === 'technical') query.event = { $in: technicalEvents };
-        else if (filter.track === 'cultural') query.event = { $nin: technicalEvents };
-      }
-      if (filter.college && filter.college !== 'all') {
-        if (filter.college === 'hiet') query.college = { $regex: /hi-?tech|hiet/i };
-        else if (filter.college === 'outside') query.college = { $not: { $regex: /hi-?tech|hiet/i } };
-      }
-    }
+    const query = Array.isArray(teamIds) && teamIds.length > 0
+      ? { _id: { $in: teamIds } }
+      : buildRegistrationFilterQuery(filter);
 
     const targetTeams = await EventTeam.find(query);
     if (targetTeams.length === 0) {
       return res.status(404).json({ msg: 'No teams match the criteria for sending confirmations' });
     }
 
-    let sentCount = 0;
-    let failedCount = 0;
-
+    const emailPayloads = [];
     for (const team of targetTeams) {
       try {
-        await sendTeamConfirmationWithMembersCc(team, true);
-        sentCount++;
-      } catch (err) {
-        console.warn(`Bulk confirmation failed for team ${team.teamId}:`, err.message);
-        failedCount++;
+        emailPayloads.push(buildTeamConfirmationEmailPayload(team, true));
+      } catch {
+        // Skip invalid missing leader emails
       }
     }
 
+    const batchResult = await enqueueBatchEmails(emailPayloads);
+
     res.json({
       success: true,
-      msg: `Bulk confirmations complete! Sent to ${sentCount} teams (Leader in TO, Members in CC) using Round Robin SMTP. Failed: ${failedCount}`,
-      sentCount,
-      failedCount,
-      totalTeams: targetTeams.length
+      msg: `Bulk confirmations logged! Sent immediately: ${batchResult.sent}, Queued for worker: ${batchResult.remainingQueued}, Failed: ${batchResult.failed} (Pool: ${batchResult.usedAccounts.join(', ') || 'Round Robin'}).`,
+      sentCount: batchResult.sent,
+      failedCount: batchResult.failed,
+      remainingQueued: batchResult.remainingQueued,
+      totalTeams: targetTeams.length,
+      usedAccounts: batchResult.usedAccounts
     });
   } catch (err) {
     console.error('Bulk confirmation error:', err);
@@ -296,171 +665,35 @@ const sendBulkConfirmations = async (req, res) => {
   }
 };
 
-// Filter-wise Excel Export
+// Filter-wise Formatted In-Memory Excel Export (RowSpan + ColSpan, Navy/Gold, Auto-Fit)
 const exportExcel = async (req, res) => {
   try {
-    const { event, track, college, status, dateFrom, dateTo, search, markExported } = req.query;
-
-    let query = {};
-    if (event && event !== 'all') {
-      query.event = event;
-    } else if (track && track !== 'all') {
-      const technicalEvents = ['code-puzzle', 'project-exhibition', 'robo-race', 'technical-poster'];
-      if (track === 'technical') {
-        query.event = { $in: technicalEvents };
-      } else if (track === 'cultural') {
-        query.event = { $nin: technicalEvents };
-      }
-    }
-
-    if (status === 'unexported') {
-      query.exported = false;
-    } else if (status === 'exported') {
-      query.exported = true;
-    }
-
-    if (college && college !== 'all') {
-      if (college === 'hiet') {
-        query.college = { $regex: /hi-?tech|hiet/i };
-      } else if (college === 'outside') {
-        query.college = { $not: { $regex: /hi-?tech|hiet/i } };
-      } else {
-        query.college = college;
-      }
-    }
-
-    if (dateFrom || dateTo) {
-      query.appliedAt = {};
-      if (dateFrom) query.appliedAt.$gte = new Date(dateFrom);
-      if (dateTo) {
-        const toD = new Date(dateTo);
-        toD.setHours(23, 59, 59, 999);
-        query.appliedAt.$lte = toD;
-      }
-    }
-
-    if (search && search.trim()) {
-      const regex = new RegExp(escapeRegex(search.trim()), 'i');
-      query.$or = [
-        { teamId: regex },
-        { teamName: regex },
-        { 'leader.name': regex },
-        { 'leader.email': regex },
-        { college: regex }
-      ];
-    }
-
-    const teams = await EventTeam.find(query).sort({ appliedAt: -1 });
+    const { teams } = await queryTeamsSmart(EventTeam, req.query, { lean: true });
 
     if (teams.length === 0) {
       return res.status(404).json({ msg: 'No teams match the export filters' });
     }
 
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'CROSSROADS 2026 Admin';
-    workbook.created = new Date();
+    const { event, track, specificCollege, markExported } = req.query;
+    const scopeLabel = specificCollege && specificCollege !== 'all'
+      ? specificCollege
+      : event && event !== 'all'
+        ? getEventDisplay(event)
+        : track && track !== 'all'
+          ? `${track.toUpperCase()} Track`
+          : 'All Events & Colleges';
 
-    const headers = [
-      'TEAM ID',
-      'TEAM NAME',
-      'EVENT NAME',
-      'TEAM SIZE',
-      'LEADER NAME',
-      'LEADER EMAIL',
-      'LEADER MOBILE',
-      'LEADER WHATSAPP',
-      'COLLEGE NAME',
-      'BRANCH',
-      'YEAR',
-      'MEMBERS LIST',
-      'REGISTERED DATE'
-    ];
-
-    const populateSheet = (sheet, teamList, sheetTitle) => {
-      sheet.addRow([`CROSSROADS 2026 - ${sheetTitle}`]);
-      sheet.mergeCells('A1:M1');
-      const titleCell = sheet.getCell('A1');
-      titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
-      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E1B4B' } };
-      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-      sheet.getRow(1).height = 30;
-
-      sheet.addRow([`Generated on: ${new Date().toLocaleString('en-IN')} | Total Teams: ${teamList.length}`]);
-      sheet.mergeCells('A2:M2');
-      const subCell = sheet.getCell('A2');
-      subCell.font = { italic: true, size: 10, color: { argb: 'FF334155' } };
-      subCell.alignment = { horizontal: 'center' };
-      sheet.getRow(2).height = 20;
-
-      sheet.addRow([]);
-
-      sheet.addRow(headers);
-      const headerRowIndex = 4;
-      const headerRow = sheet.getRow(headerRowIndex);
-      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4338CA' } };
-      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-      headerRow.height = 25;
-
-      teamList.forEach((team, idx) => {
-        const membersStr = (team.members || []).map(m => `${m.name} (${m.email})`).join('; ') || 'Solo';
-        const row = sheet.addRow([
-          sanitizeSpreadsheetCell(team.teamId),
-          sanitizeSpreadsheetCell(team.teamName),
-          sanitizeSpreadsheetCell(getEventDisplay(team.event)),
-          team.teamSize,
-          sanitizeSpreadsheetCell(team.leader?.name || ''),
-          sanitizeSpreadsheetCell(team.leader?.email || ''),
-          sanitizeSpreadsheetCell(team.leader?.mobile || ''),
-          sanitizeSpreadsheetCell(team.leader?.whatsapp || ''),
-          sanitizeSpreadsheetCell(team.college),
-          sanitizeSpreadsheetCell(team.branch),
-          sanitizeSpreadsheetCell(team.year),
-          sanitizeSpreadsheetCell(membersStr),
-          team.appliedAt ? new Date(team.appliedAt).toLocaleDateString('en-IN') : ''
-        ]);
-
-        if (idx % 2 === 1) {
-          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-        }
-      });
-
-      sheet.columns = [
-        { width: 22 },
-        { width: 26 },
-        { width: 28 },
-        { width: 12 },
-        { width: 22 },
-        { width: 30 },
-        { width: 16 },
-        { width: 16 },
-        { width: 32 },
-        { width: 14 },
-        { width: 14 },
-        { width: 40 },
-        { width: 18 }
-      ];
-    };
-
-    const overallSheet = workbook.addWorksheet('Filtered Teams');
-    populateSheet(overallSheet, teams, 'Filtered Teams Summary');
-
-    const uniqueEvents = [...new Set(teams.map(t => t.event))];
-    if (uniqueEvents.length > 1) {
-      uniqueEvents.forEach(ev => {
-        const evTeams = teams.filter(t => t.event === ev);
-        const tabTitle = getEventDisplay(ev).substring(0, 28).replace(/[\/\\?*:[\]]/g, '');
-        const evSheet = workbook.addWorksheet(tabTitle);
-        populateSheet(evSheet, evTeams, getEventDisplay(ev));
-      });
-    }
+    const workbook = await buildFormattedRegistrationWorkbook(teams, scopeLabel);
 
     if (markExported === 'true' || markExported === true) {
-      const ids = teams.map(t => t._id);
+      const ids = teams.map((t) => t._id);
       await EventTeam.updateMany({ _id: { $in: ids } }, { $set: { exported: true } });
     }
 
-    const filename = `CROSSROADS_2026_${event || track || 'Registrations'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const slug = (event && event !== 'all' ? event : track && track !== 'all' ? track : 'All')
+      .replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `CROSSROADS_2027_${slug}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
@@ -497,9 +730,9 @@ const uploadExcel = async (req, res) => {
       const values = row.values;
       if (!Array.isArray(values)) return;
 
-      const rowStr = values.map(v => String(v || '').toLowerCase().trim());
-      const hasLeader = rowStr.some(v => v.includes('leader') || v.includes('name') || v.includes('student'));
-      const hasEmailOrContact = rowStr.some(v => v.includes('email') || v.includes('mobile') || v.includes('phone'));
+      const rowStr = values.map((v) => String(v || '').toLowerCase().trim());
+      const hasLeader = rowStr.some((v) => v.includes('leader') || v.includes('name') || v.includes('student'));
+      const hasEmailOrContact = rowStr.some((v) => v.includes('email') || v.includes('mobile') || v.includes('phone'));
 
       if (hasLeader && hasEmailOrContact) {
         headerRowIndex = rowNumber;
@@ -523,7 +756,7 @@ const uploadExcel = async (req, res) => {
 
     const getColVal = (row, keywords) => {
       for (const [colIdx, header] of Object.entries(colMap)) {
-        if (keywords.some(k => header.includes(k))) {
+        if (keywords.some((k) => header.includes(k))) {
           const val = row.getCell(Number(colIdx)).value;
           if (val === null || val === undefined) return '';
           if (typeof val === 'object' && val.text) return String(val.text).trim();
@@ -594,7 +827,7 @@ const uploadExcel = async (req, res) => {
         let eventKey = targetEvent;
         if (!eventKey && r.rawEvent) {
           const cleanEv = r.rawEvent.toLowerCase().trim().replace(/\s+/g, '-');
-          const matched = Object.keys(EVENT_DISPLAY_NAMES).find(k => cleanEv.includes(k) || k.includes(cleanEv));
+          const matched = Object.keys(EVENT_DISPLAY_NAMES).find((k) => cleanEv.includes(k) || k.includes(cleanEv));
           eventKey = matched || 'project-exhibition';
         }
         if (!eventKey) eventKey = 'project-exhibition';
@@ -645,6 +878,7 @@ const uploadExcel = async (req, res) => {
           event: eventKey,
           teamSize,
           members: r.members,
+          status: 'verified',
           appliedAt: new Date(),
           exported: false
         });
@@ -663,14 +897,13 @@ const uploadExcel = async (req, res) => {
       totalRows: rowsToProcess.length,
       errors: errors.slice(0, 5)
     });
-
   } catch (err) {
     console.error('Excel upload error:', err);
     res.status(500).json({ msg: 'Failed to process Excel upload', error: err.message });
   }
 };
 
-// Conditional Email Sender via Round Robin
+// Conditional Email Sender via EmailLog + Round Robin (per-recipient audit + resend)
 const sendConditionalEmail = async (req, res) => {
   try {
     const {
@@ -684,65 +917,20 @@ const sendConditionalEmail = async (req, res) => {
       previewOnly = false
     } = req.body;
 
-    let query = {};
-
-    if (filter.event && filter.event !== 'all') {
-      if (Array.isArray(filter.event)) {
-        query.event = { $in: filter.event };
-      } else {
-        query.event = filter.event;
-      }
-    }
-
-    if (filter.track && filter.track !== 'all') {
-      const technicalEvents = ['code-puzzle', 'project-exhibition', 'robo-race', 'technical-poster'];
-      if (filter.track === 'technical') {
-        query.event = { $in: technicalEvents };
-      } else if (filter.track === 'cultural') {
-        query.event = { $nin: technicalEvents };
-      }
-    }
-
-    if (filter.collegeType && filter.collegeType !== 'all') {
-      if (filter.collegeType === 'hiet') {
-        query.college = { $regex: /hi-?tech|hiet/i };
-      } else if (filter.collegeType === 'outside') {
-        query.college = { $not: { $regex: /hi-?tech|hiet/i } };
-      } else if (filter.specificCollege) {
-        query.college = filter.specificCollege;
-      }
-    }
-
-    if (filter.branch && filter.branch !== 'all') {
-      query.branch = filter.branch;
-    }
-    if (filter.year && filter.year !== 'all') {
-      query.year = filter.year;
-    }
-
-    if (filter.teamType === 'solo') {
-      query.teamSize = 1;
-    } else if (filter.teamType === 'group') {
-      query.teamSize = { $gt: 1 };
-    }
-
-    if (filter.status === 'unexported') {
-      query.exported = false;
-    } else if (filter.status === 'exported') {
-      query.exported = true;
-    }
-
-    const matchedTeams = await EventTeam.find(query);
+    const query = buildRegistrationFilterQuery(filter);
+    const matchedTeams = await EventTeam.find(query).lean();
 
     const emailMap = new Map();
-    matchedTeams.forEach(t => {
+    matchedTeams.forEach((t) => {
       if (t.leader?.email && !emailMap.has(t.leader.email.toLowerCase())) {
         emailMap.set(t.leader.email.toLowerCase(), {
           name: t.leader.name,
-          email: t.leader.email,
+          email: t.leader.email.trim(),
           teamName: t.teamName,
           teamId: t.teamId,
-          event: getEventDisplay(t.event)
+          teamRef: t._id,
+          event: t.event,
+          eventDisplay: getEventDisplay(t.event)
         });
       }
     });
@@ -765,119 +953,143 @@ const sendConditionalEmail = async (req, res) => {
       return res.status(400).json({ msg: 'Subject and message are required' });
     }
 
-    let headerGradient = 'linear-gradient(135deg,#0ea5e9,#6366f1)';
-    let badgeText = 'COMMUNICATION';
+    let headerGradient = 'linear-gradient(135deg,#0f172a,#1e3a8a,#0284c7)';
+    let accentColor = '#0284c7';
+    let badgeText = 'OFFICIAL COMMUNICATION';
     if (urgency === 'urgent') {
-      headerGradient = 'linear-gradient(135deg,#dc2626,#ea580c)';
+      headerGradient = 'linear-gradient(135deg,#7f1d1d,#dc2626,#ea580c)';
+      accentColor = '#dc2626';
       badgeText = 'URGENT NOTIFICATION';
     } else if (urgency === 'important') {
-      headerGradient = 'linear-gradient(135deg,#f59e0b,#d97706)';
+      headerGradient = 'linear-gradient(135deg,#78350f,#d97706,#f59e0b)';
+      accentColor = '#d97706';
       badgeText = 'IMPORTANT UPDATE';
     }
 
     const safeCtaLink = ctaLink && /^https?:\/\//i.test(ctaLink.trim()) ? ctaLink.trim() : '';
-
-    const formattedHtml = `
-      <div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:680px; margin:auto; background:#0b1120; color:#e2e8f0; border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,0.08);">
-        <div style="background:${headerGradient}; padding:40px 30px; text-align:center; color:white;">
-          <span style="background:rgba(255,255,255,0.2); padding:5px 16px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase;">${badgeText}</span>
-          <h1 style="margin:16px 0 0; font-size:32px; font-weight:800; letter-spacing:0.5px;">${escapeHtml(headline || 'CROSSROADS 2026')}</h1>
+    const bodyHtml = `
+      <div style="font-size:15.5px; line-height:1.8; color:#334155; white-space:pre-wrap;">${escapeHtml(message)}</div>
+      ${ctaText && safeCtaLink ? `
+        <div style="text-align:center; margin:26px 0 8px;">
+          <a href="${escapeHtml(safeCtaLink)}" style="display:inline-block; padding:13px 32px; background:linear-gradient(135deg,#0284c7,#1e3a8a); color:#ffffff; font-weight:700; font-size:15px; text-decoration:none; border-radius:999px;">
+            ${escapeHtml(ctaText)} &rarr;
+          </a>
         </div>
-
-        <div style="padding:35px 30px; background:#111827;">
-          <div style="font-size:16px; line-height:1.8; color:#cbd5e1; white-space:pre-wrap;">
-${escapeHtml(message)}
-          </div>
-
-          ${ctaText && safeCtaLink ? `
-            <div style="text-align:center; margin:35px 0 20px;">
-              <a href="${escapeHtml(safeCtaLink)}" style="display:inline-block; padding:15px 38px; background:linear-gradient(135deg,#0ea5e9,#6366f1); color:white; font-weight:700; font-size:16px; text-decoration:none; border-radius:999px; box-shadow:0 10px 25px rgba(14,165,233,0.35);">
-                ${escapeHtml(ctaText)} →
-              </a>
-            </div>
-          ` : ''}
-
-          <hr style="border:none; border-top:1px solid #1f2937; margin:35px 0 25px;">
-          <div style="font-size:13px; color:#94a3b8; text-align:center;">
-            <p style="margin:0;">CROSSROADS 2026 Organizing Committee • Team Tech Fusion</p>
-            <p style="margin:4px 0 0;">Hi-Tech Institute of Engineering & Technology, Ghaziabad</p>
-          </div>
-        </div>
-      </div>
+      ` : ''}
     `;
 
-    const recipientEmails = recipients.map(r => r.email);
-    let sentCount = 0;
-    const batchSize = 25;
+    const formattedHtml = buildResponsiveEmailDocument({
+      badgeText,
+      title: headline || BRAND_NAME,
+      subtitle: `${BRAND_NAME} • ${IDENTITY.institute}`,
+      headerGradient,
+      accentColor,
+      bodyHtml
+    });
 
-    for (let i = 0; i < recipientEmails.length; i += batchSize) {
-      const batch = recipientEmails.slice(i, i + batchSize);
-      await sendMailRoundRobin({
-        bcc: batch,
-        subject: subject,
-        html: formattedHtml
-      });
-      sentCount += batch.length;
-    }
+    const payloads = recipients.map((r) => ({
+      category: 'conditional_email',
+      to: [r.email],
+      subject,
+      html: formattedHtml,
+      teamId: r.teamId,
+      teamRef: r.teamRef,
+      event: r.event
+    }));
+
+    const batchResult = await enqueueBatchEmails(payloads);
 
     res.json({
       success: true,
-      msg: `Conditional email successfully dispatched to ${sentCount} recipient(s) across Round Robin SMTP pool.`,
-      sentCount,
+      msg: `Conditional email logged! Sent: ${batchResult.sent}, Queued: ${batchResult.remainingQueued}, Failed: ${batchResult.failed}. Inspect or retry anytime in Email Queue & Logs.`,
+      sentCount: batchResult.sent,
+      failedCount: batchResult.failed,
+      remainingQueued: batchResult.remainingQueued,
       totalMatchedTeams: matchedTeams.length
     });
-
   } catch (err) {
     console.error('Conditional email error:', err);
     res.status(500).json({ msg: 'Failed to send conditional emails', error: err.message });
   }
 };
 
-// Centralized Broadcast System via Round Robin
+// Centralized Broadcast System via EmailLog Queue & Round Robin (supports All, Event, Track, or Specific College)
 const sendBroadcast = async (req, res) => {
   try {
-    const { title, message, target = 'all', channel = 'email', urgency = 'normal', showOnWebsite = false } = req.body;
+    const {
+      title,
+      message,
+      target = 'all',
+      targetCollege = 'all',
+      channel = 'email',
+      urgency = 'normal',
+      showOnWebsite = false
+    } = req.body;
 
     if (!title || !message) {
       return res.status(400).json({ msg: 'Broadcast title and message are required' });
     }
 
     let recipientsCount = 0;
+    let queueStats = { sent: 0, remainingQueued: 0, failed: 0 };
 
     if (channel === 'email' || channel === 'both') {
-      let query = {};
+      const filterInput = {};
       if (target && target !== 'all') {
-        query.event = target;
+        if (target === 'technical' || target === 'cultural') filterInput.track = target;
+        else if (target !== 'college') filterInput.event = target;
+      }
+      if (targetCollege && targetCollege !== 'all') {
+        filterInput.specificCollege = targetCollege;
       }
 
-      const teams = await EventTeam.find(query);
-      const emailSet = new Set(teams.map(t => t.leader?.email).filter(Boolean));
-      const emailList = Array.from(emailSet);
+      const query = buildRegistrationFilterQuery(filterInput);
+      const teams = await EventTeam.find(query).lean();
 
-      if (emailList.length > 0) {
-        const batchSize = 30;
-        for (let i = 0; i < emailList.length; i += batchSize) {
-          const batch = emailList.slice(i, i + batchSize);
-          await sendMailRoundRobin({
-            bcc: batch,
-            subject: `📢 [BROADCAST] ${title}`,
-            html: `
-              <div style="font-family:'Segoe UI',sans-serif; max-width:640px; margin:auto; background:#0b1120; color:#e2e8f0; border-radius:16px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
-                <div style="background:linear-gradient(135deg,#ec4899,#8b5cf6); padding:32px; text-align:center; color:white;">
-                  <span style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; background:rgba(0,0,0,0.2); padding:4px 14px; border-radius:999px;">OFFICIAL FEST BROADCAST</span>
-                  <h2 style="margin:14px 0 0; font-size:26px;">${escapeHtml(title)}</h2>
-                </div>
-                <div style="padding:32px; background:#111827; font-size:16px; line-height:1.8; color:#cbd5e1; white-space:pre-wrap;">
-${escapeHtml(message)}
-                </div>
-                <div style="padding:18px; background:#0f172a; text-align:center; font-size:12px; color:#64748b;">
-                  CROSSROADS 2026 • HIET Ghaziabad • <a href="https://hiet-crossroads.online" style="color:#38bdf8; text-decoration:none;">hiet-crossroads.online</a>
-                </div>
-              </div>
-            `
+      const recipientMap = new Map();
+      teams.forEach((t) => {
+        const email = t.leader?.email?.trim();
+        if (email && !recipientMap.has(email.toLowerCase())) {
+          recipientMap.set(email.toLowerCase(), {
+            email,
+            teamId: t.teamId,
+            teamRef: t._id,
+            event: t.event
           });
         }
-        recipientsCount = emailList.length;
+      });
+
+      const recipients = Array.from(recipientMap.values());
+      recipientsCount = recipients.length;
+
+      if (recipients.length > 0) {
+        const htmlDoc = buildResponsiveEmailDocument({
+          badgeText: 'OFFICIAL FEST BROADCAST',
+          title,
+          subtitle: `${BRAND_NAME} • ${IDENTITY.institute}`,
+          headerGradient: 'linear-gradient(135deg,#0f172a,#312e81,#0284c7)',
+          accentColor: '#4f46e5',
+          bodyHtml: `
+            <div style="font-size:15.5px; line-height:1.8; color:#334155; white-space:pre-wrap;">${escapeHtml(message)}</div>
+            <div style="text-align:center; margin:24px 0 6px;">
+              <a href="${FRONTEND_URL}/events" style="display:inline-block; padding:12px 28px; background:linear-gradient(135deg,#0284c7,#4f46e5); color:#ffffff; text-decoration:none; border-radius:999px; font-weight:700; font-size:14px;">
+                Open ${BRAND_NAME} Portal &rarr;
+              </a>
+            </div>
+          `
+        });
+
+        const payloads = recipients.map((r) => ({
+          category: 'broadcast',
+          to: [r.email],
+          subject: `📢 [BROADCAST] ${title}`,
+          html: htmlDoc,
+          teamId: r.teamId,
+          teamRef: r.teamRef,
+          event: r.event
+        }));
+
+        queueStats = await enqueueBatchEmails(payloads);
       }
     }
 
@@ -896,6 +1108,7 @@ ${escapeHtml(message)}
       title,
       message,
       target,
+      targetCollege,
       channel,
       urgency,
       showOnWebsite: showOnWebsite || channel === 'website_banner' || channel === 'both',
@@ -905,10 +1118,10 @@ ${escapeHtml(message)}
 
     res.json({
       success: true,
-      msg: `Broadcast published successfully! Dispatched to ${recipientsCount} recipient(s) via Round Robin SMTP.`,
-      broadcast: broadcastRecord
+      msg: `Broadcast logged for ${recipientsCount} recipient(s)! Sent immediately: ${queueStats.sent}, Queued: ${queueStats.remainingQueued}, Failed: ${queueStats.failed}.`,
+      broadcast: broadcastRecord,
+      queueStats
     });
-
   } catch (err) {
     console.error('Broadcast error:', err);
     res.status(500).json({ msg: 'Broadcast publication failed', error: err.message });
@@ -963,231 +1176,522 @@ const updateSettings = async (req, res) => {
   }
 };
 
-// Send Authority Report (Director in 'to', HODs in 'cc' based on tracks and domains)
-const sendAuthorityReport = async (req, res) => {
+const REPORT_TYPE_META = {
+  executive_summary: {
+    badge: 'EXECUTIVE REGISTRATION REPORT',
+    subtitlePrefix: 'Comprehensive Status & Breakdown',
+    gradient: 'linear-gradient(135deg,#0f172a 0%,#1e3a8a 52%,#0284c7 100%)',
+    accent: '#0284c7',
+    defaultSalutation: 'Respected Sir / Ma’am,'
+  },
+  event_roster: {
+    badge: 'EVENT-WISE REGISTRATION ROSTER',
+    subtitlePrefix: 'Arena-Wise Teams & Participant Details',
+    gradient: 'linear-gradient(135deg,#0f172a 0%,#0f766e 55%,#0284c7 100%)',
+    accent: '#0d9488',
+    defaultSalutation: 'Dear Coordinator / Recipient,'
+  },
+  college_digest: {
+    badge: 'COLLEGE PARTICIPATION DIGEST',
+    subtitlePrefix: 'Institution-Wise Teams & Student Count',
+    gradient: 'linear-gradient(135deg,#0f172a 0%,#312e81 55%,#0284c7 100%)',
+    accent: '#4f46e5',
+    defaultSalutation: 'Dear Team / Recipient,'
+  },
+  today_snapshot: {
+    badge: 'TODAY’S LIVE REGISTRATION SNAPSHOT',
+    subtitlePrefix: 'Daily Registrations Digest (IST)',
+    gradient: 'linear-gradient(135deg,#064e3b 0%,#047857 52%,#0284c7 100%)',
+    accent: '#059669',
+    defaultSalutation: 'Respected Sir / Ma’am,'
+  },
+  authority_digest: {
+    badge: 'OFFICIAL STAKEHOLDER DOSSIER (HOD / DIRECTOR)',
+    subtitlePrefix: 'Official Fest Status Briefing & Master Sheet',
+    gradient: 'linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0369a1 100%)',
+    accent: '#1d4ed8',
+    defaultSalutation: 'Respected HOD Sir / Director Sir & Core Committee,'
+  }
+};
+
+/**
+ * Shared responsive Registration Report / Official Stakeholder Dossier builder & dispatcher.
+ * Powers `/api/admin/send-registration-report`, `/api/admin/send-authority-report`,
+ * and `/api/admin/send-stakeholder-report`, persisting full EmailLog audit & retry metadata.
+ */
+const handleRegistrationReportDispatch = async (req, res, isLegacyOrStakeholder = false) => {
   try {
     const {
-      track = 'all',
+      toEmails,
       directorEmail,
       ccEmails = [],
+      bccEmails = [],
+      dossierToHod = false,
+      reportType = isLegacyOrStakeholder ? 'authority_digest' : 'executive_summary',
+      track = 'all',
+      event = 'all',
+      collegeType = 'all',
+      specificCollege = 'all',
+      branch = 'all',
+      year = 'all',
+      teamType = 'all',
+      dateFrom = '',
+      dateTo = '',
+      subject = '',
+      salutation = '',
       remarks = '',
-      attachExcel = true
-    } = req.body;
+      attachExcel = true,
+      includeRosterTable = true,
+      preferredSmtpUser = '',
+      replyTo = '',
+      previewHtmlOnly = false
+    } = req.body || {};
 
-    const settings = await SiteSetting.getSettings();
-    // Default Director email: ag0567688@gmail.com
-    const finalDirector = directorEmail || settings.authorityContacts?.directorEmail || 'ag0567688@gmail.com';
+    const meta = REPORT_TYPE_META[reportType] || REPORT_TYPE_META.executive_summary;
 
-    let query = {};
-    let trackLabel = 'All Tracks & Events';
-    const technicalEvents = ['code-puzzle', 'project-exhibition', 'robo-race', 'technical-poster'];
-    const culturalEvents = ['cultural-events', 'dance-competition', 'rangoli-competition', 'food-without-fire', 'rock-band', 'short-film-maker', 'treasure-hunt'];
+    const filterInput = {
+      event: event && event !== 'all' ? event : undefined,
+      track: (!event || event === 'all') && track !== 'all' ? track : undefined,
+      collegeType,
+      specificCollege,
+      branch,
+      year,
+      teamType,
+      dateFrom,
+      dateTo
+    };
 
-    if (track === 'technical') {
-      query.event = { $in: technicalEvents };
-      trackLabel = 'Technical Track (CSE / MCA / Projects)';
-    } else if (track === 'cultural') {
-      query.event = { $in: culturalEvents };
-      trackLabel = 'Cultural & Creative Track';
-    } else if (track === 'robotics') {
-      query.event = 'robo-race';
-      trackLabel = 'Robotics Track (Robo Race)';
-    } else if (track !== 'all') {
-      query.event = track;
-      trackLabel = getEventDisplay(track);
+    const query = buildRegistrationFilterQuery(filterInput);
+    let istDayRange = null;
+    if (reportType === 'today_snapshot' && !dateFrom && !dateTo) {
+      istDayRange = getIstTodayRange();
+      query.appliedAt = { $gte: istDayRange.start, $lt: istDayRange.end };
     }
 
-    const teams = await EventTeam.find(query).sort({ appliedAt: -1 });
-    const totalCount = teams.length;
-    const totalParticipants = teams.reduce((sum, t) => sum + (t.teamSize || 1), 0);
+    const teams = await EventTeam.find(query).sort({ appliedAt: -1 }).lean();
+    const stats = computeAggregations(teams);
+    const scopeLabel = specificCollege && specificCollege !== 'all'
+      ? specificCollege
+      : event && event !== 'all'
+        ? getEventDisplay(event)
+        : track && track !== 'all'
+          ? `${track.toUpperCase()} Track`
+          : 'All Events & Colleges';
 
-    const eventCounts = {};
-    teams.forEach(t => {
-      eventCounts[t.event] = (eventCounts[t.event] || 0) + 1;
-    });
+    const eventRowsHtml = stats.eventWise
+      .map((ev) => {
+        const pct = stats.total > 0 ? Math.round((ev.count / stats.total) * 100) : 0;
+        return `
+          <tr>
+            <td style="padding:9px 10px; border-bottom:1px solid #e2e8f0; font-weight:600; color:#0f172a; font-size:13px;">${escapeHtml(ev.eventName)}</td>
+            <td style="padding:9px 8px; border-bottom:1px solid #e2e8f0; text-align:center; font-size:12px; color:#475569;">${escapeHtml(ev.track)}</td>
+            <td style="padding:9px 8px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700; color:#1d4ed8; font-size:13px;">${ev.teamsCount}</td>
+            <td style="padding:9px 8px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700; color:#047857; font-size:13px;">${ev.studentsCount}</td>
+            <td style="padding:9px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#334155; font-size:13px;">${ev.collegesCount}</td>
+            <td style="padding:9px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#475569; font-size:12px;">${pct}%</td>
+          </tr>
+        `;
+      })
+      .join('');
 
-    const collegeCounts = {};
-    teams.forEach(t => {
-      collegeCounts[t.college] = (collegeCounts[t.college] || 0) + 1;
-    });
-
-    const topColleges = Object.entries(collegeCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    const eventRowsHtml = Object.entries(eventCounts)
-      .map(([ev, count]) => `
+    const collegeRowsHtml = stats.allColleges
+      .slice(0, 25)
+      .map((col, idx) => `
         <tr>
-          <td style="padding:10px 14px; border-bottom:1px solid #e2e8f0; font-weight:600; color:#1e293b;">${getEventDisplay(ev)}</td>
-          <td style="padding:10px 14px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700; color:#2563eb;">${count}</td>
+          <td style="padding:8px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#64748b; font-size:12px;">${idx + 1}</td>
+          <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; color:#0f172a; font-weight:600; font-size:12.5px;">${escapeHtml(col.college)}</td>
+          <td style="padding:8px 8px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700; color:#1d4ed8; font-size:13px;">${col.teamsCount}</td>
+          <td style="padding:8px 8px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700; color:#047857; font-size:13px;">${col.studentsCount}</td>
+          <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; color:#475569; font-size:12px;">${escapeHtml(col.events.join(', '))}</td>
         </tr>
-      `).join('');
+      `)
+      .join('');
 
-    const collegeRowsHtml = topColleges
-      .map(([col, count]) => `
-        <tr>
-          <td style="padding:8px 14px; border-bottom:1px solid #e2e8f0; color:#334155;">${escapeHtml(col)}</td>
-          <td style="padding:8px 14px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:600; color:#059669;">${count}</td>
-        </tr>
-      `).join('');
+    const isSpecificEvent = event && event !== 'all';
+    const shouldRenderRoster =
+      teams.length > 0 &&
+      (isSpecificEvent || reportType === 'event_roster' || reportType === 'today_snapshot' || includeRosterTable);
+    const rosterSlice = teams.slice(0, 120);
+    const rosterTruncated = teams.length - rosterSlice.length;
 
-    const reportHtml = `
-      <div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:760px; margin:auto; background:#ffffff; color:#1e293b; border-radius:16px; overflow:hidden; border:1px solid #cbd5e1; box-shadow:0 15px 40px rgba(0,0,0,0.08);">
-        
-        <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb,#3b82f6); padding:36px 30px; text-align:center; color:#ffffff;">
-          <h3 style="margin:0; font-size:13px; letter-spacing:2px; text-transform:uppercase; opacity:0.9;">HI-TECH INSTITUTE OF ENGINEERING & TECHNOLOGY</h3>
-          <h1 style="margin:8px 0 0; font-size:30px; font-weight:800; letter-spacing:0.5px;">CROSSROADS 2026</h1>
-          <p style="margin:8px 0 0; font-size:16px; opacity:0.95;">Official Registration Status Digest • ${trackLabel}</p>
-          <div style="margin-top:16px; display:inline-block; background:rgba(255,255,255,0.2); padding:6px 18px; border-radius:999px; font-size:13px;">
-            Date: <strong>${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-          </div>
+    const rosterRowsHtml = rosterSlice
+      .map((t) => {
+        const membersText = (t.members || []).map((m) => `${m.name} (${m.email})`).join(', ');
+        return `
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #e2e8f0; font-family:monospace; font-size:11.5px; color:#1e3a8a; font-weight:700;">${escapeHtml(t.teamId)}</td>
+            <td style="padding:8px; border-bottom:1px solid #e2e8f0; font-size:12.5px; font-weight:600; color:#0f172a;">
+              ${escapeHtml(t.teamName)}
+              <div style="font-size:11px; color:#0284c7; font-weight:600;">${escapeHtml(getEventDisplay(t.event))}</div>
+            </td>
+            <td style="padding:8px; border-bottom:1px solid #e2e8f0; font-size:12px; color:#334155;">
+              <strong>${escapeHtml(t.leader?.name)}</strong><br />
+              <span style="color:#64748b; font-size:11px;">${escapeHtml(t.leader?.email)} &bull; ${escapeHtml(t.leader?.mobile)}</span>
+            </td>
+            <td style="padding:8px; border-bottom:1px solid #e2e8f0; font-size:12px; color:#334155;">
+              ${escapeHtml(t.college)}<br />
+              <span style="color:#64748b; font-size:11px;">${escapeHtml(t.branch)} &bull; ${escapeHtml(t.year)}</span>
+            </td>
+            <td style="padding:8px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700; color:#047857; font-size:12.5px;">
+              ${t.teamSize || 1}
+              ${membersText ? `<div style="font-size:10.5px; color:#64748b; font-weight:400; text-align:left; margin-top:2px;">${escapeHtml(membersText)}</div>` : ''}
+            </td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const showEventWiseTable = reportType !== 'college_digest' && (!isSpecificEvent || stats.eventWise.length > 0);
+    const showCollegeTable = reportType === 'college_digest' || reportType === 'executive_summary' || reportType === 'authority_digest';
+
+    const bodyHtml = `
+      <p style="font-size:15.5px; margin:0 0 8px; color:#0f172a; font-weight:600;">
+        ${escapeHtml(salutation || meta.defaultSalutation)}
+      </p>
+      <p style="font-size:14.5px; line-height:1.65; color:#334155; margin:0 0 18px;">
+        Here is the official registration dossier for <strong>${BRAND_NAME}</strong> covering
+        <strong style="color:#0284c7;">${escapeHtml(scopeLabel)}</strong> as of
+        <strong>${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} IST</strong>.
+      </p>
+
+      ${remarks ? `
+        <div style="margin:0 0 20px; padding:14px 16px; background:#f8fafc; border-left:4px solid ${meta.accent}; border-radius:6px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#1e3a8a;">Coordinator Note</div>
+          <p style="margin:5px 0 0; font-size:14px; color:#334155; line-height:1.6; white-space:pre-wrap;">${escapeHtml(remarks)}</p>
         </div>
+      ` : ''}
 
-        <div style="padding:32px 30px;">
-          <p style="font-size:16px; margin-top:0; color:#0f172a;">
-            Respected <strong>Director Sir</strong>,<br>
-            Cc: Respected <strong>Head of Departments & Committee Conveners</strong>,
-          </p>
-          <p style="font-size:15px; line-height:1.7; color:#475569;">
-            Please find below the current real-time registration status for <strong>CROSSROADS 2026</strong> under <strong>${trackLabel}</strong>.
-          </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin:0 0 22px;">
+        <tr>
+          <td class="kpi-col" width="25%" style="padding:0 5px 0 0; vertical-align:top;">
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 8px; text-align:center;">
+              <div style="font-size:10.5px; color:#1e40af; font-weight:700; text-transform:uppercase;">Total Teams</div>
+              <div style="font-size:24px; font-weight:800; color:#1d4ed8; margin-top:3px;">${stats.totalTeams}</div>
+            </div>
+          </td>
+          <td class="kpi-col" width="25%" style="padding:0 5px; vertical-align:top;">
+            <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:12px 8px; text-align:center;">
+              <div style="font-size:10.5px; color:#065f46; font-weight:700; text-transform:uppercase;">Total Students</div>
+              <div style="font-size:24px; font-weight:800; color:#047857; margin-top:3px;">${stats.totalStudents}</div>
+            </div>
+          </td>
+          <td class="kpi-col" width="25%" style="padding:0 5px; vertical-align:top;">
+            <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; padding:12px 8px; text-align:center;">
+              <div style="font-size:10.5px; color:#5b21b6; font-weight:700; text-transform:uppercase;">Total Colleges</div>
+              <div style="font-size:24px; font-weight:800; color:#6d28d9; margin-top:3px;">${stats.totalColleges}</div>
+            </div>
+          </td>
+          <td class="kpi-col" width="25%" style="padding:0 0 0 5px; vertical-align:top;">
+            <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:12px 8px; text-align:center;">
+              <div style="font-size:10.5px; color:#9a3412; font-weight:700; text-transform:uppercase;">Today (IST)</div>
+              <div style="font-size:24px; font-weight:800; color:#c2410c; margin-top:3px;">${stats.today}</div>
+            </div>
+          </td>
+        </tr>
+      </table>
 
-          ${remarks ? `
-            <div style="margin:24px 0; padding:18px 22px; background:#f8fafc; border-left:4px solid #3b82f6; border-radius:8px;">
-              <strong style="color:#1e3a8a; font-size:14px; text-transform:uppercase;">Admin / Coordinator Note:</strong>
-              <p style="margin:6px 0 0; font-size:14.5px; color:#334155; line-height:1.6;">${escapeHtml(remarks)}</p>
-            </div>
-          ` : ''}
-
-          <div style="margin:28px 0; display:flex; gap:16px; flex-wrap:wrap;">
-            <div style="flex:1; min-width:180px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:18px; text-align:center;">
-              <div style="font-size:13px; color:#1e40af; font-weight:600; text-transform:uppercase;">Total Teams</div>
-              <div style="font-size:32px; font-weight:800; color:#1d4ed8; margin-top:4px;">${totalCount}</div>
-            </div>
-            <div style="flex:1; min-width:180px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:12px; padding:18px; text-align:center;">
-              <div style="font-size:13px; color:#065f46; font-weight:600; text-transform:uppercase;">Total Participants</div>
-              <div style="font-size:32px; font-weight:800; color:#047857; margin-top:4px;">${totalParticipants}</div>
-            </div>
-            <div style="flex:1; min-width:180px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:12px; padding:18px; text-align:center;">
-              <div style="font-size:13px; color:#6b21a8; font-weight:600; text-transform:uppercase;">Participating Colleges</div>
-              <div style="font-size:32px; font-weight:800; color:#7e22ce; margin-top:4px;">${Object.keys(collegeCounts).length}</div>
-            </div>
-          </div>
-
-          <div style="margin:30px 0;">
-            <h3 style="font-size:18px; color:#1e293b; margin-bottom:12px; border-bottom:2px solid #e2e8f0; padding-bottom:8px;">
-              📊 Event-Wise Registration Breakdown
-            </h3>
-            <table style="width:100%; border-collapse:collapse; font-size:14px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
+      ${showEventWiseTable ? `
+        <div style="margin:0 0 24px;">
+          <h3 style="margin:0 0 10px; font-size:15.5px; color:#0f172a; border-bottom:2px solid #e2e8f0; padding-bottom:6px;">
+            Event-Wise Registration Breakdown
+          </h3>
+          <div style="width:100%; overflow-x:auto;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e2e8f0; border-radius:8px;">
               <thead>
-                <tr style="background:#f1f5f9; text-align:left;">
-                  <th style="padding:10px 14px; color:#475569;">Event Name</th>
-                  <th style="padding:10px 14px; text-align:center; color:#475569;">Registered Teams</th>
+                <tr style="background:#0f172a; color:#ffffff; text-align:left;">
+                  <th style="padding:9px 10px; font-size:11.5px;">Event Arena</th>
+                  <th style="padding:9px 8px; font-size:11.5px; text-align:center;">Track</th>
+                  <th style="padding:9px 8px; font-size:11.5px; text-align:center;">Teams</th>
+                  <th style="padding:9px 8px; font-size:11.5px; text-align:center;">Students</th>
+                  <th style="padding:9px 8px; font-size:11.5px; text-align:center;">Colleges</th>
+                  <th style="padding:9px 8px; font-size:11.5px; text-align:center;">Share</th>
                 </tr>
               </thead>
               <tbody>
-                ${eventRowsHtml || '<tr><td colspan="2" style="padding:12px; text-align:center;">No registrations in this track</td></tr>'}
+                ${eventRowsHtml || '<tr><td colspan="6" style="padding:14px; text-align:center; color:#64748b; font-size:13px;">No registrations match this scope.</td></tr>'}
+                ${stats.eventWise.length > 0 ? `
+                  <tr style="background:#eff6ff; font-weight:700;">
+                    <td style="padding:9px 10px; color:#0f172a; font-size:12.5px;">GRAND TOTAL</td>
+                    <td style="padding:9px 8px; text-align:center; color:#475569; font-size:12px;">All</td>
+                    <td style="padding:9px 8px; text-align:center; color:#1d4ed8; font-size:13px;">${stats.totalTeams}</td>
+                    <td style="padding:9px 8px; text-align:center; color:#047857; font-size:13px;">${stats.totalStudents}</td>
+                    <td style="padding:9px 8px; text-align:center; color:#6d28d9; font-size:13px;">${stats.totalColleges}</td>
+                    <td style="padding:9px 8px; text-align:center; color:#0f172a; font-size:12px;">100%</td>
+                  </tr>
+                ` : ''}
               </tbody>
             </table>
           </div>
+        </div>
+      ` : ''}
 
-          <div style="margin:30px 0;">
-            <h3 style="font-size:18px; color:#1e293b; margin-bottom:12px; border-bottom:2px solid #e2e8f0; padding-bottom:8px;">
-              🏫 Top Participating Colleges
-            </h3>
-            <table style="width:100%; border-collapse:collapse; font-size:14px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
+      ${showCollegeTable ? `
+        <div style="margin:0 0 24px;">
+          <h3 style="margin:0 0 10px; font-size:15.5px; color:#0f172a; border-bottom:2px solid #e2e8f0; padding-bottom:6px;">
+            College-Wise Participation &amp; Student Count ${stats.allColleges.length > 25 ? `(Top 25 of ${stats.allColleges.length})` : ''}
+          </h3>
+          <div style="width:100%; overflow-x:auto;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e2e8f0; border-radius:8px;">
               <thead>
-                <tr style="background:#f1f5f9; text-align:left;">
-                  <th style="padding:10px 14px; color:#475569;">College Name</th>
-                  <th style="padding:10px 14px; text-align:center; color:#475569;">Teams</th>
+                <tr style="background:#0f766e; color:#ffffff; text-align:left;">
+                  <th style="padding:8px; font-size:11.5px; text-align:center;">#</th>
+                  <th style="padding:8px 10px; font-size:11.5px;">College / Institution</th>
+                  <th style="padding:8px; font-size:11.5px; text-align:center;">Teams</th>
+                  <th style="padding:8px; font-size:11.5px; text-align:center;">Students</th>
+                  <th style="padding:8px 10px; font-size:11.5px;">Events Participated</th>
                 </tr>
               </thead>
               <tbody>
-                ${collegeRowsHtml || '<tr><td colspan="2" style="padding:12px; text-align:center;">No college data</td></tr>'}
+                ${collegeRowsHtml || '<tr><td colspan="5" style="padding:14px; text-align:center; color:#64748b; font-size:13px;">No college data available.</td></tr>'}
               </tbody>
             </table>
           </div>
-
-          ${attachExcel ? `
-            <div style="margin:24px 0; padding:14px 18px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; font-size:14px; color:#166534; display:flex; align-items:center; gap:10px;">
-              <span>📎</span>
-              <span><strong>Attached Excel Sheet:</strong> Complete participant roster attached in Excel (.xlsx) format.</span>
-            </div>
-          ` : ''}
-
-          <hr style="border:none; border-top:1px solid #e2e8f0; margin:32px 0 20px;">
-          
-          <div style="font-size:13px; color:#64748b; text-align:center;">
-            <p style="margin:0;">CROSSROADS 2026 Admin Portal Automated Reporting System</p>
-            <p style="margin:4px 0 0;">Hi-Tech Institute of Engineering & Technology, Ghaziabad</p>
-          </div>
         </div>
-      </div>
+      ` : ''}
+
+      ${shouldRenderRoster ? `
+        <div style="margin:0 0 22px;">
+          <h3 style="margin:0 0 10px; font-size:15.5px; color:#0f172a; border-bottom:2px solid #e2e8f0; padding-bottom:6px;">
+            Registered Teams &amp; Participant Roster (${escapeHtml(scopeLabel)})
+          </h3>
+          <div style="width:100%; overflow-x:auto;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e2e8f0; border-radius:8px;">
+              <thead>
+                <tr style="background:#1e3a8a; color:#ffffff; text-align:left;">
+                  <th style="padding:8px; font-size:11.5px;">Team ID</th>
+                  <th style="padding:8px; font-size:11.5px;">Team &amp; Event</th>
+                  <th style="padding:8px; font-size:11.5px;">Team Leader</th>
+                  <th style="padding:8px; font-size:11.5px;">Institution</th>
+                  <th style="padding:8px; font-size:11.5px; text-align:center;">Size &amp; Members</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rosterRowsHtml}
+              </tbody>
+            </table>
+          </div>
+          ${rosterTruncated > 0 ? `
+            <p style="margin:8px 0 0; font-size:12px; color:#64748b; font-style:italic;">
+              Showing ${rosterSlice.length} of ${teams.length} teams in email body. See the attached Excel workbook for all ${teams.length} teams.
+            </p>
+          ` : ''}
+        </div>
+      ` : ''}
+
+      ${attachExcel && teams.length > 0 ? `
+        <div style="margin:0; padding:12px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; font-size:13px; color:#166534;">
+          <strong>Attached Master Excel Workbook (.xlsx):</strong> Includes Executive Summary, Overall All-Teams sheet, and Event-Wise tabs with merged headers &amp; row-spanned team blocks.
+        </div>
+      ` : ''}
     `;
 
-    const attachments = [];
+    const reportHtml = buildResponsiveEmailDocument({
+      badgeText: meta.badge,
+      title: BRAND_NAME,
+      subtitle: `${meta.subtitlePrefix} • ${scopeLabel}`,
+      headerGradient: meta.gradient,
+      accentColor: meta.accent,
+      bodyHtml
+    });
 
-    if (attachExcel && teams.length > 0) {
-      const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet(trackLabel.substring(0, 25));
+    const slug = (event && event !== 'all' ? event : track && track !== 'all' ? track : 'All')
+      .replace(/[^a-zA-Z0-9_-]/g, '_');
+    const attachmentFilename = `CROSSROADS_2027_${slug}_Dossier_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const resolvedSubject =
+      subject?.trim() ||
+      `${BRAND_NAME} – ${meta.badge} [${scopeLabel}]`;
 
-      sheet.addRow(['STUDENT/TEAM ID', 'TEAM NAME', 'EVENT', 'SIZE', 'LEADER NAME', 'LEADER EMAIL', 'MOBILE', 'COLLEGE', 'BRANCH', 'YEAR', 'MEMBERS', 'DATE']);
-      sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
-
-      teams.forEach(t => {
-        sheet.addRow([
-          sanitizeSpreadsheetCell(t.teamId),
-          sanitizeSpreadsheetCell(t.teamName),
-          sanitizeSpreadsheetCell(getEventDisplay(t.event)),
-          t.teamSize,
-          sanitizeSpreadsheetCell(t.leader?.name || ''),
-          sanitizeSpreadsheetCell(t.leader?.email || ''),
-          sanitizeSpreadsheetCell(t.leader?.mobile || ''),
-          sanitizeSpreadsheetCell(t.college),
-          sanitizeSpreadsheetCell(t.branch),
-          sanitizeSpreadsheetCell(t.year),
-          sanitizeSpreadsheetCell((t.members || []).map(m => m.name).join(', ') || 'Solo'),
-          t.appliedAt ? new Date(t.appliedAt).toLocaleDateString('en-IN') : ''
-        ]);
-      });
-
-      sheet.columns.forEach(col => { col.width = 20; });
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      attachments.push({
-        filename: `CROSSROADS_2026_${track}_Report_${new Date().toISOString().split('T')[0]}.xlsx`,
-        content: buffer,
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    if (previewHtmlOnly) {
+      return res.json({
+        success: true,
+        html: reportHtml,
+        subject: resolvedSubject,
+        attachmentFilename,
+        stats: {
+          totalTeams: stats.totalTeams,
+          totalStudents: stats.totalStudents,
+          totalColleges: stats.totalColleges,
+          today: stats.today
+        }
       });
     }
 
-    // Default HOD CC: ag902065@gmail.com
-    const defaultHods = ['ag902065@gmail.com'];
-    const validCc = Array.isArray(ccEmails) && ccEmails.length > 0
-      ? ccEmails.filter(e => e && e.includes('@'))
-      : defaultHods;
+    const settings = await SiteSetting.getSettings();
+    let finalToList = parseEmailList(toEmails);
+    let validCc = parseEmailList(ccEmails);
 
-    const result = await sendMailRoundRobin({
-      to: finalDirector,
-      cc: validCc,
-      subject: `CROSSROADS 2026 - Registration Status Report [${trackLabel.toUpperCase()}]`,
-      html: reportHtml,
-      attachments
-    });
+    if (dossierToHod) {
+      if (finalToList.length === 0) {
+        finalToList = parseEmailList(settings.authorityContacts?.hodCseEmail || 'ag902065@gmail.com');
+      }
+      const autoCc = parseEmailList([
+        settings.authorityContacts?.directorEmail || 'ag0567688@gmail.com',
+        IDENTITY.email
+      ]);
+      autoCc.forEach((em) => {
+        if (!finalToList.some((t) => t.toLowerCase() === em.toLowerCase()) &&
+            !validCc.some((c) => c.toLowerCase() === em.toLowerCase())) {
+          validCc.push(em);
+        }
+      });
+    } else {
+      if (finalToList.length === 0 && directorEmail) {
+        finalToList = parseEmailList(directorEmail);
+      }
+      if (finalToList.length === 0 && isLegacyOrStakeholder) {
+        finalToList = parseEmailList(settings.authorityContacts?.hodCseEmail || settings.authorityContacts?.directorEmail || 'ag902065@gmail.com');
+      }
+      if (isLegacyOrStakeholder && validCc.length === 0) {
+        validCc = parseEmailList(settings.authorityContacts?.directorEmail || 'ag0567688@gmail.com');
+      }
+    }
+
+    if (finalToList.length === 0) {
+      return res.status(400).json({ msg: 'Please enter at least one valid recipient (To) email address' });
+    }
+
+    const validBcc = parseEmailList(bccEmails);
+
+    const logResult = await enqueueEmail(
+      {
+        category: isLegacyOrStakeholder || dossierToHod ? 'stakeholder_report' : 'registration_report',
+        to: finalToList,
+        cc: validCc,
+        bcc: validBcc,
+        replyTo: replyTo && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo.trim()) ? replyTo.trim() : '',
+        subject: resolvedSubject,
+        html: reportHtml,
+        preferredSmtpUser: preferredSmtpUser && preferredSmtpUser !== 'auto' ? preferredSmtpUser : '',
+        hasAttachment: Boolean(attachExcel && teams.length > 0),
+        attachmentFilename,
+        reportParams: attachExcel
+          ? {
+              attachExcel: true,
+              filterInput,
+              istDayRange,
+              scopeLabel
+            }
+          : null
+      },
+      { sendImmediately: true }
+    );
+
+    if (!logResult.success) {
+      return res.status(502).json({
+        msg: `Dossier queued & failed (${logResult.error}). Logged in Email Queue & Logs for 1-click retry.`,
+        logId: logResult.log?._id
+      });
+    }
 
     res.json({
       success: true,
-      msg: `Official report successfully dispatched to Director (${finalDirector}) with HOD(s) in CC (${validCc.join(', ')}) via Round Robin (${result.sentVia}).`,
-      director: finalDirector,
+      msg: `Official report dispatched to ${finalToList.join(', ')}${validCc.length > 0 ? ` (CC: ${validCc.join(', ')})` : ''} via ${logResult.sentVia}.`,
+      to: finalToList,
       ccList: validCc,
-      sentVia: result.sentVia,
-      teamsCount: totalCount
+      bccList: validBcc,
+      sentVia: logResult.sentVia,
+      logId: logResult.log?._id,
+      teamsCount: stats.totalTeams,
+      studentsCount: stats.totalStudents,
+      collegesCount: stats.totalColleges
+    });
+  } catch (err) {
+    console.error('Registration report dispatch error:', err);
+    res.status(500).json({ msg: 'Failed to send registration report', error: err.message });
+  }
+};
+
+const sendRegistrationReport = (req, res) => handleRegistrationReportDispatch(req, res, false);
+const sendAuthorityReport = (req, res) => handleRegistrationReportDispatch(req, res, true);
+const sendStakeholderReport = (req, res) => handleRegistrationReportDispatch(req, res, true);
+
+// Email Queue & Audit Logs Endpoints
+const getEmailLogs = async (req, res) => {
+  try {
+    const { status = 'all', category = 'all', search = '', limit = 100 } = req.query;
+    const query = {};
+    if (status && status !== 'all') query.status = status;
+    if (category && category !== 'all') query.category = category;
+    if (search && String(search).trim()) {
+      const rx = new RegExp(String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      query.$or = [
+        { to: rx },
+        { cc: rx },
+        { subject: rx },
+        { teamId: rx },
+        { sentVia: rx },
+        { lastError: rx }
+      ];
+    }
+
+    const cappedLimit = Math.min(Math.max(parseInt(limit, 10) || 100, 1), 300);
+
+    const [logs, statsFacet] = await Promise.all([
+      EmailLog.find(query)
+        .sort({ createdAt: -1 })
+        .limit(cappedLimit)
+        .select('-reportParams')
+        .lean(),
+      EmailLog.aggregate([
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
+
+    const counts = { total: 0, queued: 0, sending: 0, sent: 0, failed: 0 };
+    statsFacet.forEach((s) => {
+      counts[s._id] = s.count;
+      counts.total += s.count;
     });
 
+    res.json({ logs, stats: counts });
   } catch (err) {
-    console.error('Authority report error:', err);
-    res.status(500).json({ msg: 'Failed to send authority report', error: err.message });
+    console.error('Email logs fetch error:', err);
+    res.status(500).json({ msg: 'Failed to load email logs', error: err.message });
+  }
+};
+
+const resendEmailLog = async (req, res) => {
+  try {
+    const result = await resendEmailLogById(req.params.id);
+    if (!result) {
+      return res.status(404).json({ msg: 'Email log record not found' });
+    }
+    if (!result.success) {
+      return res.status(502).json({
+        success: false,
+        msg: `Resend failed: ${result.error}`,
+        log: result.log
+      });
+    }
+    res.json({
+      success: true,
+      msg: `Email resent successfully to ${(result.log?.to || []).join(', ')} via ${result.sentVia}`,
+      log: result.log,
+      sentVia: result.sentVia
+    });
+  } catch (err) {
+    console.error('Resend email log error:', err);
+    res.status(500).json({ msg: 'Failed to resend email', error: err.message });
+  }
+};
+
+const processEmailQueueNow = async (req, res) => {
+  try {
+    const batchSize = Math.min(Math.max(parseInt(req.body?.batchSize || req.query?.batchSize, 10) || 15, 1), 50);
+    const result = await processPendingEmailQueue(batchSize);
+    res.json({
+      success: true,
+      msg: `Processed ${result.processed} queued email(s): ${result.sent} sent, ${result.failed} failed (${result.remainingQueued ?? 0} remaining).`,
+      ...result
+    });
+  } catch (err) {
+    console.error('Queue drain error:', err);
+    res.status(500).json({ msg: 'Failed to process pending email queue', error: err.message });
   }
 };
 
@@ -1195,9 +1699,13 @@ module.exports = {
   login,
   getSmtpStatus,
   getAnalytics,
+  getDashboardStats,
+  getAdvancedInsights,
   getTeams,
+  getAllRegistrations,
   getTeamById,
   updateTeam,
+  updateRegistrationStatus,
   deleteTeam,
   resendConfirmationEmail,
   sendBulkConfirmations,
@@ -1209,5 +1717,10 @@ module.exports = {
   deleteBroadcast,
   getSettings,
   updateSettings,
-  sendAuthorityReport
+  sendAuthorityReport,
+  sendRegistrationReport,
+  sendStakeholderReport,
+  getEmailLogs,
+  resendEmailLog,
+  processEmailQueueNow
 };

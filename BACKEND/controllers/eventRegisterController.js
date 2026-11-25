@@ -1,7 +1,8 @@
 const EventTeam = require('../models/EventTeam');
 const Counter = require('../models/Counter');
 const SiteSetting = require('../models/SiteSetting');
-const { EVENT_DISPLAY_NAMES, getEventDisplay, sendTeamConfirmationWithMembersCc } = require('../utils/mailer');
+const { EVENT_DISPLAY_NAMES, getEventDisplay, buildTeamConfirmationEmailPayload } = require('../utils/mailer');
+const { enqueueEmail } = require('../utils/emailWorker');
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -35,7 +36,7 @@ const registerEventTeam = async (req, res) => {
     const settings = await SiteSetting.getSettings();
     if (!settings.registrationOpen) {
       return res.status(403).json({
-        message: settings.closedMessage || 'Online registrations for CROSSROADS 2026 are currently closed.'
+        message: settings.closedMessage || 'Online registrations for CROSSROADS 2027 are currently closed.'
       });
     }
 
@@ -161,14 +162,19 @@ const registerEventTeam = async (req, res) => {
       event,
       teamSize: teamSizeNum,
       members: sanitizedMembers,
+      status: 'pending',
       appliedAt: new Date()
     });
 
-    // Send confirmation email via Round Robin (TO: leader, CC: members)
+    // Queue & dispatch confirmation email via Round Robin (TO: leader, CC: members) + EmailLog audit
     try {
-      await sendTeamConfirmationWithMembersCc(newTeam);
+      const payload = buildTeamConfirmationEmailPayload(newTeam, false);
+      const emailResult = await enqueueEmail(payload, { sendImmediately: true });
+      if (!emailResult.success) {
+        console.warn('Confirmation email queued/failed (logged for resend):', emailResult.error);
+      }
     } catch (mailErr) {
-      console.warn('Confirmation email sending failed (team registered):', mailErr.message);
+      console.warn('Confirmation email enqueue error (team registered):', mailErr.message);
     }
 
     res.status(201).json({

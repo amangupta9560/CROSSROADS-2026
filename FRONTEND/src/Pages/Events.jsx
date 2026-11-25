@@ -461,7 +461,7 @@ const Events = () => {
           >
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-300 font-mono text-[11px] uppercase tracking-[0.18em] mb-5">
               <Terminal size={13} />
-              <span>CROSSROADS 2026 • OFFICIAL ARENAS</span>
+              <span>CROSSROADS 2027 • OFFICIAL ARENAS</span>
             </div>
 
             <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white">

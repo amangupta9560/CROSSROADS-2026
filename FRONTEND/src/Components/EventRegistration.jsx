@@ -230,7 +230,7 @@ const ALL_EVENTS = [
   },
 ];
 
-const LS_KEY = 'cr2026_reg_draft';
+const LS_KEY = 'cr2027_reg_draft';
 
 const ProgressBar = React.memo(({ progress }) => (
   <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-white/5 via-white/10 to-white/5 overflow-hidden z-20">
@@ -359,7 +359,7 @@ const RulesModal = ({ isOpen, onClose }) => {
                   <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-xl font-black text-white uppercase tracking-wider font-mono">CROSSROADS 2026 Guidelines</h3>
+                  <h3 className="text-base sm:text-xl font-black text-white uppercase tracking-wider font-mono">CROSSROADS 2027 Guidelines</h3>
                   <span className="text-[10px] text-blue-400 font-mono tracking-widest block mt-0.5">FESTIVAL PROTOCOLS</span>
                 </div>
               </div>
@@ -820,7 +820,7 @@ const EventRegistration = () => {
             >
               <Rocket className="w-4 h-4 text-blue-400" />
               <span className="text-[10px] sm:text-xs font-bold text-blue-300 uppercase tracking-widest font-mono">
-                CROSSROADS 2026 • Official Registration
+                CROSSROADS 2027 • Official Registration
               </span>
             </Motion.div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight">
@@ -868,7 +868,7 @@ const EventRegistration = () => {
           <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm flex items-center gap-3">
             <AlertCircle size={20} className="text-red-400 shrink-0" />
             <p className="font-semibold">
-              {siteSettings.closedMessage || 'Online registrations for CROSSROADS 2026 are currently closed.'}
+              {siteSettings.closedMessage || 'Online registrations for CROSSROADS 2027 are currently closed.'}
             </p>
           </div>
         )}
@@ -1463,7 +1463,7 @@ const EventRegistration = () => {
                       <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex items-start gap-3.5">
                         <CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5" />
                         <div className="text-left text-xs leading-relaxed text-gray-300">
-                          <strong className="text-white block mb-0.5">Ready for CROSSROADS 2026</strong>
+                          <strong className="text-white block mb-0.5">Ready for CROSSROADS 2027</strong>
                           By completing this registration, you confirm that all entered credentials are correct. An official confirmation email with your unique Team ID will be dispatched to <span className="text-emerald-300 font-semibold">{formData.leaderEmail}</span>.
                         </div>
                       </div>
@@ -1570,7 +1570,7 @@ const EventRegistration = () => {
                 Registration Confirmed!
               </h2>
               <p className="text-xs sm:text-sm text-gray-400 mb-6 max-w-sm mx-auto leading-relaxed">
-                Your team is registered for CROSSROADS 2026. Save your official credentials below.
+                Your team is registered for CROSSROADS 2027. Save your official credentials below.
               </p>
 
               {/* Unique Team ID Display */}

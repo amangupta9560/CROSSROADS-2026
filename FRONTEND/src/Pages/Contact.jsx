@@ -188,7 +188,7 @@ const Contact = () => {
                 letterSpacing: "2px",
               }}
             >
-              CROSSROADS 2026 • 05 FEB &amp; 06 FEB 2027
+              CROSSROADS 2027 • 05 FEB &amp; 06 FEB 2027
             </span>
           </div>
 

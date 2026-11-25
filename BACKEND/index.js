@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const eventRoutes = require('./routes/event');  // ← your only route right now
 const adminRoutes = require('./routes/adminRoutes');
+const { startEmailWorker, processPendingEmailQueue } = require('./utils/emailWorker');
 
 // Cached DB connection (important for Vercel/serverless — avoids reconnecting every request)
 let cachedDb = null;
@@ -27,6 +28,10 @@ async function connectToDatabase() {
 
     cachedDb = db;
     console.log('MongoDB connected (cached)');
+    // Ensure $text and analytics indexes exist cleanly without blocking requests
+    require('./models/EventTeam').createIndexes().catch(() => {});
+    require('./utils/seedAdmin').ensureInitialAdminExists().catch(() => {});
+    startEmailWorker();
     return db;
   } catch (err) {
     cachedDb = null;
@@ -67,11 +72,24 @@ app.use(async (req, res, next) => {
 app.use('/api', eventRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Cron / webhook endpoint to drain queued emails in serverless (Vercel Cron compatible)
+app.get('/api/cron/process-email-queue', async (req, res) => {
+  try {
+    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+      return res.status(401).json({ message: 'Unauthorized cron trigger' });
+    }
+    const result = await processPendingEmailQueue(15);
+    res.status(200).json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
 // Simple root / health check
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'ok',
-    message: 'Event Registration API is running',
+    message: 'CROSSROADS 2027 Registration API is running',
     timestamp: new Date().toISOString()
   });
 });
@@ -84,9 +102,10 @@ app.use((req, res) => {
 // For local development (Vercel ignores listen)
 const PORT = process.env.PORT || 5000;
 
-if (process.env.NODE_ENV !== 'production') {
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
+    startEmailWorker();
   });
 }
 

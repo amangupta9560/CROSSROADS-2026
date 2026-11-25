@@ -29,7 +29,7 @@ const schedule = {
     {
       time: "10:00 AM onwards",
       title: "Inauguration",
-      description: "Official opening of Crossroads 2026 with dignitaries and lamp lighting.",
+      description: "Official opening of Crossroads 2027 with dignitaries and lamp lighting.",
       category: "ceremony",
       icon: Trophy,
       duration: "1–2 hrs",

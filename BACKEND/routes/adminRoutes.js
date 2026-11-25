@@ -6,9 +6,13 @@ const {
   login,
   getSmtpStatus,
   getAnalytics,
+  getDashboardStats,
+  getAdvancedInsights,
   getTeams,
+  getAllRegistrations,
   getTeamById,
   updateTeam,
+  updateRegistrationStatus,
   deleteTeam,
   resendConfirmationEmail,
   sendBulkConfirmations,
@@ -20,7 +24,12 @@ const {
   deleteBroadcast,
   getSettings,
   updateSettings,
-  sendAuthorityReport
+  sendAuthorityReport,
+  sendRegistrationReport,
+  sendStakeholderReport,
+  getEmailLogs,
+  resendEmailLog,
+  processEmailQueueNow
 } = require('../controllers/adminController');
 
 // Multer in-memory storage for Excel uploads
@@ -29,38 +38,49 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit
 });
 
-// Authentication & SMTP Status
+// Authentication & SMTP Pool Status
 router.post('/login', login);
 router.get('/smtp-status', protect, getSmtpStatus);
 
-// Analytics & Team Management
+// Analytics ($facet single-query pipeline), Advanced Insights & Registrations Management ($text full-text)
 router.get('/analytics', protect, getAnalytics);
+router.get('/stats', protect, getDashboardStats);
+router.get('/insights', protect, getAdvancedInsights);
 router.get('/teams', protect, getTeams);
+router.get('/registrations', protect, getAllRegistrations);
 router.get('/teams/:id', protect, getTeamById);
 router.put('/teams/:id', protect, updateTeam);
+router.patch('/teams/:id/status', protect, updateRegistrationStatus);
+router.patch('/registrations/:id/status', protect, updateRegistrationStatus);
 router.delete('/teams/:id', protect, deleteTeam);
 
-// Candidate Registration Confirmation Emails (TO: Leader, CC: Members) via Round Robin
+// Candidate Registration Confirmation Emails (TO: Leader, CC: Members) via EmailLog + Round Robin
 router.post('/teams/:id/resend-confirmation', protect, resendConfirmationEmail);
 router.post('/teams/bulk-confirmations', protect, sendBulkConfirmations);
 
-// Excel Operations (Filter-wise Upload & Export)
+// Email Queue & Resilient Delivery Logs
+router.get('/email-logs', protect, getEmailLogs);
+router.post('/email-logs/process-queue', protect, processEmailQueueNow);
+router.post('/email-logs/:id/resend', protect, resendEmailLog);
+
+// Excel Operations (Filter-wise Upload & In-Memory Formatted RowSpan/ColSpan Export)
 router.get('/export', protect, exportExcel);
 router.post('/upload-excel', protect, upload.single('file'), uploadExcel);
 
-// Conditional Email Sending
+// Conditional Email & Broadcast Messaging (Queued + Round Robin Logged)
 router.post('/send-conditional-email', protect, sendConditionalEmail);
-
-// Centralized Broadcast System
 router.post('/broadcast', protect, sendBroadcast);
+router.post('/send-broadcast', protect, sendBroadcast);
 router.get('/broadcasts', protect, getBroadcasts);
 router.delete('/broadcasts/:id', protect, deleteBroadcast);
 
-// Site Controls & Settings (Registration ON/OFF, event toggles, banner, authority contacts)
+// Site Controls & Settings
 router.get('/settings', protect, getSettings);
 router.put('/settings', protect, updateSettings);
 
-// Send Authority Report (Director + HODs in CC)
+// Share Registration Reports & Official Stakeholder Dossiers (HOD / Director + any custom recipients)
+router.post('/send-registration-report', protect, sendRegistrationReport);
 router.post('/send-authority-report', protect, sendAuthorityReport);
+router.post('/send-stakeholder-report', protect, sendStakeholderReport);
 
 module.exports = router;
