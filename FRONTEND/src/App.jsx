@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import { MotionConfig } from 'framer-motion';
+import SoundProvider from './context/SoundProvider.jsx';
 import Navbar from './Pages/Navbar.jsx';
 import Footer from './Pages/Footer.jsx';
 import BroadcastBanner from './Components/BroadcastBanner.jsx';
@@ -57,24 +58,26 @@ const App = () => {
   return (
     <MotionConfig reducedMotion="user">
       <Router>
-        <Routes>
-          {/* Public Pages */}
-          <Route path="/" element={<MainLayout><Home /></MainLayout>} />
-          <Route path="/about" element={<MainLayout><About /></MainLayout>} />
-          <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} />
-          <Route path="/events" element={<MainLayout><Events /></MainLayout>} />
-          <Route path="/schedule" element={<MainLayout><Schedule /></MainLayout>} />
-          <Route path="/team" element={<MainLayout><Team /></MainLayout>} />
-          <Route path="/event-registration" element={<MainLayout><EventRegistration /></MainLayout>} />
-          <Route path="/attendence" element={<Attendance />} />
+        <SoundProvider>
+          <Routes>
+            {/* Public Pages */}
+            <Route path="/" element={<MainLayout><Home /></MainLayout>} />
+            <Route path="/about" element={<MainLayout><About /></MainLayout>} />
+            <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} />
+            <Route path="/events" element={<MainLayout><Events /></MainLayout>} />
+            <Route path="/schedule" element={<MainLayout><Schedule /></MainLayout>} />
+            <Route path="/team" element={<MainLayout><Team /></MainLayout>} />
+            <Route path="/event-registration" element={<MainLayout><EventRegistration /></MainLayout>} />
+            <Route path="/attendence" element={<Attendance />} />
 
-          {/* Admin Pages */}
-          <Route path="/admin/login" element={<MainLayout><AdminLogin /></MainLayout>} />
-          <Route path="/admin/dashboard" element={<MainLayout><AdminDashboard /></MainLayout>} />
+            {/* Admin Pages */}
+            <Route path="/admin/login" element={<MainLayout><AdminLogin /></MainLayout>} />
+            <Route path="/admin/dashboard" element={<MainLayout><AdminDashboard /></MainLayout>} />
 
-          {/* Fallback */}
-          <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
-        </Routes>
+            {/* Fallback */}
+            <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+          </Routes>
+        </SoundProvider>
       </Router>
     </MotionConfig>
   );

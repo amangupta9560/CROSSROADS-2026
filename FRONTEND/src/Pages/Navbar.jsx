@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { ArrowUpRight, Compass, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Compass, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import {
   AnimatePresence,
   motion as Motion,
@@ -10,6 +10,7 @@ import {
   useSpring,
 } from 'framer-motion';
 import '../Components/home/lostCivilization.css';
+import { useHorrorSound } from '../context/soundStore.js';
 
 const navItems = [
   { name: 'Home', path: '/' },
@@ -151,6 +152,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const prefersReduced = useReducedMotion();
+  const { enabled: soundEnabled, unlocked: soundUnlocked, toggleSound } = useHorrorSound();
 
   const { scrollYProgress } = useScroll();
   const scrollScaleX = useSpring(scrollYProgress, {
@@ -235,6 +237,34 @@ export default function Navbar() {
                 ))}
               </ul>
 
+              <button
+                type="button"
+                onClick={toggleSound}
+                aria-label={soundEnabled ? 'Mute horror audio' : 'Enable horror audio'}
+                title={
+                  !soundEnabled
+                    ? 'Enable Horror Audio'
+                    : soundUnlocked
+                    ? 'Mute Horror Audio'
+                    : 'Awaken Horror Audio'
+                }
+                className={`relative w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer ${
+                  soundEnabled && soundUnlocked
+                    ? 'bg-[#182B20]/90 border-[#E8C574]/60 text-[#E8C574] shadow-[0_0_14px_rgba(232,197,116,0.28)]'
+                    : 'bg-[#101D16]/85 border-[#C69B43]/35 text-[#E8DFC8]/70 hover:text-[#E8C574] hover:border-[#E8C574]/55'
+                }`}
+              >
+                {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                {soundEnabled && (
+                  <span
+                    aria-hidden="true"
+                    className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${
+                      soundUnlocked ? 'bg-emerald-400 animate-pulse' : 'bg-[#E8C574] animate-ping'
+                    }`}
+                  />
+                )}
+              </button>
+
               <NavLink
                 to="/event-registration"
                 className={`lc-gold-btn lc-font-heading group relative inline-flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 rounded-full font-extrabold text-xs uppercase tracking-[0.14em] transition-all duration-300 ${
@@ -251,25 +281,40 @@ export default function Navbar() {
               </NavLink>
             </div>
 
-            {/* Morphing Mobile Hamburger Button */}
-            <button
-              type="button"
-              onClick={() => setOpen((prev) => !prev)}
-              aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={open}
-              className="md:hidden relative w-11 h-11 rounded-lg bg-[#101D16]/90 hover:bg-[#182B20] border border-[#C69B43]/40 hover:border-[#E8C574] flex flex-col items-center justify-center gap-1.5 transition-colors duration-300 cursor-pointer"
-            >
-              <span
-                className={`block w-5 h-0.5 bg-[#E8C574] rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                  open ? 'rotate-45 translate-y-[4px]' : ''
+            {/* Mobile Sound + Hamburger Controls */}
+            <div className="md:hidden flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleSound}
+                aria-label={soundEnabled ? 'Mute horror audio' : 'Enable horror audio'}
+                className={`relative w-10 h-10 rounded-lg border flex items-center justify-center transition-colors cursor-pointer ${
+                  soundEnabled && soundUnlocked
+                    ? 'bg-[#182B20]/90 border-[#E8C574]/55 text-[#E8C574]'
+                    : 'bg-[#101D16]/90 border-[#C69B43]/35 text-[#E8DFC8]/75'
                 }`}
-              />
-              <span
-                className={`block w-5 h-0.5 bg-[#E8C574] rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                  open ? '-rotate-45 -translate-y-[4px]' : ''
-                }`}
-              />
-            </button>
+              >
+                {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOpen((prev) => !prev)}
+                aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={open}
+                className="relative w-11 h-11 rounded-lg bg-[#101D16]/90 hover:bg-[#182B20] border border-[#C69B43]/40 hover:border-[#E8C574] flex flex-col items-center justify-center gap-1.5 transition-colors duration-300 cursor-pointer"
+              >
+                <span
+                  className={`block w-5 h-0.5 bg-[#E8C574] rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    open ? 'rotate-45 translate-y-[4px]' : ''
+                  }`}
+                />
+                <span
+                  className={`block w-5 h-0.5 bg-[#E8C574] rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    open ? '-rotate-45 -translate-y-[4px]' : ''
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
           {/* Bottom Scroll Progress Golden Hairline */}
