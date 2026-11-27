@@ -1,0 +1,107 @@
+export function JungleFoliageLeft({ className = '' }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 380 540"
+      fill="none"
+      className={`pointer-events-none select-none ${className}`}
+    >
+      <defs>
+        <linearGradient id="lcLeafLeft" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#182B20" />
+          <stop offset="60%" stopColor="#0E1A13" />
+          <stop offset="100%" stopColor="#060A08" />
+        </linearGradient>
+      </defs>
+      {/* Hanging Temple Vines */}
+      <path
+        d="M36 0C38 110 18 220 46 340M78 0C68 95 94 175 62 280M128 0C122 65 140 120 118 195"
+        stroke="#1C3124"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+      {/* Layered Jungle Palm & Fern Silhouettes */}
+      <path
+        d="M-20 420C45 360 140 335 235 352C165 375 110 400 72 440C145 415 215 415 280 442C195 458 135 480 95 520L-20 540Z"
+        fill="url(#lcLeafLeft)"
+      />
+      <path
+        d="M-20 140C40 125 115 150 175 202C115 190 65 205 24 235C90 228 145 255 186 298C120 288 60 300 0 340L-20 340Z"
+        fill="#0D1912"
+        opacity="0.92"
+      />
+      <path
+        d="M15 0C55 58 110 92 190 105C120 112 75 130 35 162C65 95 30 48 -10 25Z"
+        fill="#14261B"
+        opacity="0.88"
+      />
+    </svg>
+  );
+}
+
+export function JungleFoliageRight({ className = '' }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 380 540"
+      fill="none"
+      className={`pointer-events-none select-none ${className}`}
+    >
+      <defs>
+        <linearGradient id="lcLeafRight" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#182B20" />
+          <stop offset="60%" stopColor="#0E1A13" />
+          <stop offset="100%" stopColor="#060A08" />
+        </linearGradient>
+      </defs>
+      {/* Hanging Temple Vines */}
+      <path
+        d="M342 0C336 125 355 230 326 355M294 0C305 100 282 175 312 270M246 0C250 75 234 125 258 190"
+        stroke="#1C3124"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+      {/* Layered Jungle Palm & Fern Silhouettes */}
+      <path
+        d="M400 410C335 352 242 328 148 345C218 370 272 396 310 436C236 412 166 414 102 444C185 458 245 482 288 525L400 540Z"
+        fill="url(#lcLeafRight)"
+      />
+      <path
+        d="M400 135C340 120 262 148 204 198C264 186 314 202 356 232C288 225 235 252 194 295C260 286 320 298 380 338L400 338Z"
+        fill="#0D1912"
+        opacity="0.92"
+      />
+      <path
+        d="M365 0C325 58 270 92 190 105C260 112 305 130 345 162C315 95 350 48 390 25Z"
+        fill="#14261B"
+        opacity="0.88"
+      />
+    </svg>
+  );
+}
+
+export function AncientSunDisc({ className = '' }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 220 220"
+      fill="none"
+      className={`pointer-events-none text-[#C69B43] ${className}`}
+    >
+      <circle cx="110" cy="110" r="102" stroke="currentColor" strokeWidth="1" strokeDasharray="6 6" />
+      <circle cx="110" cy="110" r="82" stroke="currentColor" strokeWidth="1.2" strokeOpacity="0.6" />
+      <circle cx="110" cy="110" r="56" stroke="currentColor" strokeWidth="0.9" strokeDasharray="3 4" />
+      <path
+        d="M110 8L116 28H104L110 8ZM110 212L116 192H104L110 212ZM8 110L28 104V116L8 110ZM212 110L192 104V116L212 110Z"
+        fill="currentColor"
+        fillOpacity="0.7"
+      />
+      <polygon
+        points="110,72 136,110 110,148 84,110"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        fill="rgba(198,155,67,0.1)"
+      />
+    </svg>
+  );
+}

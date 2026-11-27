@@ -1,0 +1,251 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+.lc-root {
+  --lc-jungle-black: #101D16;
+  --lc-deep-forest: #182B20;
+  --lc-forest-green: #243D2C;
+  --lc-ancient-gold: #C69B43;
+  --lc-gold-bright: #E8C574;
+  --lc-temple-amber: #B86B35;
+  --lc-stone-grey: #777568;
+  --lc-parchment: #E8DFC8;
+  --lc-night-black: #080D0B;
+  --lc-font-display: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  --lc-font-heading: 'Cinzel', Georgia, serif;
+  --lc-font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  background-color: var(--lc-night-black);
+  color: var(--lc-parchment);
+  font-family: var(--lc-font-body);
+}
+
+.lc-font-display {
+  font-family: var(--lc-font-display);
+}
+
+.lc-font-heading {
+  font-family: var(--lc-font-heading);
+}
+
+.lc-font-body {
+  font-family: var(--lc-font-body);
+}
+
+.lc-gold-text {
+  background: linear-gradient(
+    135deg,
+    #F3DDA0 0%,
+    #C69B43 32%,
+    #FFF0BF 52%,
+    #B86B35 78%,
+    #E6BE6A 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.lc-stone-surface {
+  background-color: #101D16;
+  background-image:
+    linear-gradient(180deg, rgba(24, 43, 32, 0.72) 0%, rgba(8, 13, 11, 0.94) 100%),
+    url('/assets/lost-civilization/stone-texture.webp');
+  background-size: auto, 420px 420px;
+  background-repeat: repeat;
+}
+
+.lc-moss-surface {
+  background-color: #0D1711;
+  background-image:
+    linear-gradient(180deg, rgba(8, 13, 11, 0.85) 0%, rgba(16, 29, 22, 0.82) 50%, rgba(8, 13, 11, 0.94) 100%),
+    url('/assets/lost-civilization/moss-stone-texture.webp');
+  background-size: auto, 440px 440px;
+  background-repeat: repeat;
+}
+
+.lc-parchment-surface {
+  background-color: #121712;
+  background-image:
+    linear-gradient(180deg, rgba(8, 13, 11, 0.84) 0%, rgba(16, 23, 18, 0.78) 50%, rgba(8, 13, 11, 0.92) 100%),
+    url('/assets/lost-civilization/parchment-map.webp');
+  background-size: cover;
+  background-position: center;
+}
+
+.lc-carved-border {
+  border: 1px solid rgba(198, 155, 67, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(232, 223, 200, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+    0 24px 60px -20px rgba(0, 0, 0, 0.75);
+}
+
+/* Primary Molten Gold CTA with diagonal kinetic sheen sweep */
+.lc-gold-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #DFB961 0%, #C69B43 48%, #9E6327 100%);
+  color: #080D0B;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 210, 0.55),
+    0 12px 32px -8px rgba(198, 155, 67, 0.45);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1), filter 0.35s ease;
+}
+
+.lc-gold-btn::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 45%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 252, 235, 0.45), transparent);
+  transform: skewX(-22deg) translateX(0);
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.lc-gold-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 224, 0.75),
+    0 18px 42px -6px rgba(198, 155, 67, 0.65);
+}
+
+.lc-gold-btn:hover::after {
+  transform: skewX(-22deg) translateX(360%);
+}
+
+.lc-gold-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Secondary Carved Obsidian Stone CTA */
+.lc-stone-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(24, 43, 32, 0.88) 0%, rgba(10, 17, 13, 0.94) 100%);
+  border: 1px solid rgba(198, 155, 67, 0.4);
+  color: #E8DFC8;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 223, 200, 0.12),
+    0 12px 28px -10px rgba(0, 0, 0, 0.7);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.lc-stone-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(198, 155, 67, 0.18), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.lc-stone-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(232, 197, 116, 0.85);
+  color: #FFF4D6;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 223, 200, 0.2),
+    0 14px 34px -8px rgba(198, 155, 67, 0.28);
+}
+
+.lc-stone-btn:hover::after {
+  opacity: 1;
+}
+
+.lc-stone-btn:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.lc-watermark-text {
+  font-family: var(--lc-font-display);
+  color: rgba(198, 155, 67, 0.055);
+  -webkit-text-stroke: 1px rgba(198, 155, 67, 0.14);
+  letter-spacing: 0.08em;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Hide horizontal scrollbar cleanly on mobile swipe tracks */
+.lc-no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.lc-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes lc-pulse-amber {
+  0%, 100% {
+    opacity: 0.42;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes lc-sunbeam-sway {
+  0%, 100% {
+    opacity: 0.32;
+    transform: rotate(-14deg) translate3d(0, 0, 0);
+  }
+  50% {
+    opacity: 0.56;
+    transform: rotate(-11deg) translate3d(18px, 0, 0);
+  }
+}
+
+@keyframes lc-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lc-float-slow {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+.lc-animate-glow {
+  animation: lc-pulse-amber 5s ease-in-out infinite;
+}
+
+.lc-animate-sunbeam {
+  animation: lc-sunbeam-sway 9s ease-in-out infinite;
+}
+
+.lc-animate-spin-slow {
+  animation: lc-spin-slow 38s linear infinite;
+}
+
+.lc-animate-float {
+  animation: lc-float-slow 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-animate-glow,
+  .lc-animate-sunbeam,
+  .lc-animate-spin-slow,
+  .lc-animate-float {
+    animation: none !important;
+  }
+  .lc-gold-btn,
+  .lc-gold-btn::after,
+  .lc-stone-btn,
+  .lc-stone-btn::after {
+    transition: none !important;
+  }
+}
