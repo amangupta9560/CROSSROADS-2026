@@ -4,7 +4,8 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-mongoose.set('sanitizeFilter', true);
+// User inputs are sanitized at the boundary (stripNoSqlOperators + strict primitive coercion);
+// global Mongoose sanitizeFilter rewrites internal $in/$lte/$gt operators into $eq and breaks queries.
 
 const eventRoutes = require('./routes/event');
 const adminRoutes = require('./routes/adminRoutes');
