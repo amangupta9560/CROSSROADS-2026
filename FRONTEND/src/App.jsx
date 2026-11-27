@@ -70,9 +70,9 @@ const App = () => {
             <Route path="/event-registration" element={<MainLayout><EventRegistration /></MainLayout>} />
             <Route path="/attendence" element={<Attendance />} />
 
-            {/* Admin Pages */}
-            <Route path="/admin/login" element={<MainLayout><AdminLogin /></MainLayout>} />
-            <Route path="/admin/dashboard" element={<MainLayout><AdminDashboard /></MainLayout>} />
+            {/* Admin Pages — Dedicated workspace without public Navbar or Footer */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
             {/* Fallback */}
             <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />

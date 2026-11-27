@@ -84,9 +84,9 @@ const transporters = smtpConfigs.map((cfg) => ({
       user: cfg.user,
       pass: cfg.pass
     },
-    connectionTimeout: 6000,
-    greetingTimeout: 6000,
-    socketTimeout: 12000
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 25000
   })
 }));
 
@@ -148,8 +148,15 @@ const sendMailRoundRobin = async (mailOptions, optionsMeta = {}) => {
         attempt: i + 1
       };
     } catch (err) {
-      console.warn(`[Round Robin ${smtp.name}] Error: ${err.message}. Failing over...`);
       lastError = err;
+      // Only fail over when failure happened BEFORE SMTP accepted DATA; otherwise risk sending duplicate copy!
+      const alreadySentData =
+        err.command === 'DATA' ||
+        (err.code === 'ETIMEDOUT' && err.command !== 'CONN' && err.command !== 'AUTH');
+      if (alreadySentData) {
+        throw new Error(`SMTP acknowledgement uncertain after DATA (${err.message})`);
+      }
+      console.warn(`[Round Robin ${smtp.name}] Pre-send error: ${err.message}. Failing over...`);
     }
   }
 

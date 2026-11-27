@@ -2,10 +2,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import toast, { Toaster } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { Link, useNavigate } from 'react-router-dom';
+import FailedRegistrationsPanel from './admin/FailedRegistrationsPanel.jsx';
 import {
-  Users, User, Mail, Phone, Trophy, Download, Upload, LogOut, Search,
+  Users, User, Mail, Phone, Trophy, Download, Upload, LogOut, Search, Home,
   Calendar, ChevronRight, Check, X, AlertTriangle, Info, Bell, Filter,
   RefreshCw, Eye, Trash2, Copy, ExternalLink, Shield, Sliders,
   FileSpreadsheet, SendHorizontal, Building, Briefcase, Sparkles,
@@ -77,6 +78,11 @@ const AdminDashboard = () => {
   const [emailLogFilterStatus, setEmailLogFilterStatus] = useState('all');
   const [emailLogFilterCategory, setEmailLogFilterCategory] = useState('all');
   const [emailLogSearch, setEmailLogSearch] = useState('');
+  const [failedLogs, setFailedLogs] = useState([]);
+  const [failedStats, setFailedStats] = useState({ total: 0, pending: 0, contacted: 0, resolved: 0, serverErrors: 0, conflicts: 0 });
+  const [failedFilterStatus, setFailedFilterStatus] = useState('all');
+  const [failedFilterType, setFailedFilterType] = useState('all');
+  const [failedSearch, setFailedSearch] = useState('');
 
   // Search & Advanced Filter States for Teams Tab
   const [searchTerm, setSearchTerm] = useState('');
@@ -197,7 +203,7 @@ const AdminDashboard = () => {
       setLoading(true);
       const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/+$/, '');
 
-      const [analyticsRes, teamsRes, settingsRes, broadcastsRes, smtpRes, emailLogsRes] = await Promise.all([
+      const [analyticsRes, teamsRes, settingsRes, broadcastsRes, smtpRes, emailLogsRes, failedRegsRes] = await Promise.all([
         axios.get(`${backendUrl}/api/admin/stats`, getAuthHeaders()).catch((err) => {
           if (err.response?.status === 404) {
             return axios.get(`${backendUrl}/api/admin/analytics`, getAuthHeaders());
@@ -208,7 +214,8 @@ const AdminDashboard = () => {
         axios.get(`${backendUrl}/api/admin/settings`, getAuthHeaders()),
         axios.get(`${backendUrl}/api/admin/broadcasts`, getAuthHeaders()),
         axios.get(`${backendUrl}/api/admin/smtp-status`, getAuthHeaders()).catch(() => ({ data: { pool: [] } })),
-        axios.get(`${backendUrl}/api/admin/email-logs`, getAuthHeaders()).catch(() => ({ data: { logs: [], stats: { total: 0, queued: 0, sending: 0, sent: 0, failed: 0 } } }))
+        axios.get(`${backendUrl}/api/admin/email-logs`, getAuthHeaders()).catch(() => ({ data: { logs: [], stats: { total: 0, queued: 0, sending: 0, sent: 0, failed: 0 } } })),
+        axios.get(`${backendUrl}/api/admin/failed-registrations`, getAuthHeaders()).catch(() => ({ data: { logs: [], stats: { total: 0, pending: 0, contacted: 0, resolved: 0, serverErrors: 0, conflicts: 0 } } }))
       ]);
 
       setAnalytics(analyticsRes.data);
@@ -219,6 +226,10 @@ const AdminDashboard = () => {
       if (emailLogsRes.data) {
         setEmailLogs(emailLogsRes.data.logs || []);
         setEmailLogStats(emailLogsRes.data.stats || { total: 0, queued: 0, sending: 0, sent: 0, failed: 0 });
+      }
+      if (failedRegsRes.data) {
+        setFailedLogs(failedRegsRes.data.logs || []);
+        setFailedStats(failedRegsRes.data.stats || { total: 0, pending: 0, contacted: 0, resolved: 0, serverErrors: 0, conflicts: 0 });
       }
     } catch (err) {
       if (err.response?.status === 401) {
@@ -249,6 +260,52 @@ const AdminDashboard = () => {
       toast.error('Failed to refresh email delivery logs');
     }
   }, [emailLogFilterStatus, emailLogFilterCategory, emailLogSearch]);
+
+  const fetchFailedRegistrations = useCallback(async (override = {}) => {
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      const params = new URLSearchParams({
+        status: override.status ?? failedFilterStatus,
+        errorType: override.errorType ?? failedFilterType,
+        search: override.search ?? failedSearch,
+        limit: 120
+      });
+      const res = await axios.get(`${backendUrl}/api/admin/failed-registrations?${params.toString()}`, getAuthHeaders());
+      setFailedLogs(res.data.logs || []);
+      if (res.data.stats) setFailedStats(res.data.stats);
+    } catch {
+      toast.error('Failed to load failed registration logs');
+    }
+  }, [failedFilterStatus, failedFilterType, failedSearch]);
+
+  const handleUpdateFailedIssue = async (id, payload) => {
+    try {
+      setActionLoading(true);
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      const res = await axios.patch(`${backendUrl}/api/admin/failed-registrations/${id}`, payload, getAuthHeaders());
+      toast.success(res.data.msg || 'Issue updated');
+      await fetchFailedRegistrations();
+    } catch (err) {
+      toast.error(err.response?.data?.msg || 'Failed to update issue');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteFailedIssue = async (id) => {
+    if (!window.confirm('Delete this failed registration record permanently?')) return;
+    try {
+      setActionLoading(true);
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      await axios.delete(`${backendUrl}/api/admin/failed-registrations/${id}`, getAuthHeaders());
+      toast.success('Issue log deleted');
+      await fetchFailedRegistrations();
+    } catch {
+      toast.error('Failed to delete issue log');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchAllData();
@@ -1066,6 +1123,12 @@ const AdminDashboard = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <Trophy size={18} /> },
     { id: 'teams', label: 'Teams & Data', icon: <Users size={18} />, badge: teams.length },
+    {
+      id: 'failedIssues',
+      label: 'Failed / Issues',
+      icon: <AlertTriangle size={18} />,
+      badge: failedStats.pending > 0 ? `${failedStats.pending} new` : failedStats.total
+    },
     { id: 'excel', label: 'Excel Studio', icon: <FileSpreadsheet size={18} /> },
     {
       id: 'emailLogs',
@@ -1080,8 +1143,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 text-gray-100 pt-24 pb-20 px-3 sm:px-6 lg:px-8">
-      <Toaster position="top-center" reverseOrder={false} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 text-gray-100 pt-6 sm:pt-8 pb-20 px-3 sm:px-6 lg:px-8">
 
       <div className="max-w-7xl mx-auto">
         {/* Top Header */}
@@ -1110,6 +1172,15 @@ const AdminDashboard = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <Link
+              to="/"
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/35 hover:border-amber-400 rounded-xl font-semibold text-xs sm:text-sm transition shadow-sm"
+              title="Go to Public Home Page"
+            >
+              <Home size={15} />
+              <span>Home Page</span>
+            </Link>
+
             <button
               onClick={handleSendQuickHodDossier}
               disabled={actionLoading}
@@ -1155,6 +1226,7 @@ const AdminDashboard = () => {
               onClick={() => {
                 setActiveTab(tab.id);
                 if (tab.id === 'emailLogs') fetchEmailLogs();
+                if (tab.id === 'failedIssues') fetchFailedRegistrations();
               }}
               className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-200 cursor-pointer ${
                 activeTab === tab.id
@@ -3579,6 +3651,25 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* FAILED / INTERRUPTED REGISTRATIONS RECOVERY TAB */}
+        {activeTab === 'failedIssues' && (
+          <FailedRegistrationsPanel
+            logs={failedLogs}
+            stats={failedStats}
+            filterStatus={failedFilterStatus}
+            setFilterStatus={setFailedFilterStatus}
+            filterType={failedFilterType}
+            setFilterType={setFailedFilterType}
+            search={failedSearch}
+            setSearch={setFailedSearch}
+            onRefresh={fetchFailedRegistrations}
+            onUpdateIssue={handleUpdateFailedIssue}
+            onDeleteIssue={handleDeleteFailedIssue}
+            actionLoading={actionLoading}
+            getEventDisplay={getEventDisplay}
+          />
         )}
 
         {/* TEAM DETAILS MODAL (VIEW TEAM DATA & SEND CONFIRMATION) */}

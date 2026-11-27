@@ -55,9 +55,13 @@ export default function Contact() {
         timeoutRef.current = setTimeout(() => setFormSuccess(false), 5000);
       } else {
         setFormError('Something went wrong submitting your message. Please try again.');
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => setFormError(''), 5000);
       }
     } catch {
       setFormError('Network error while submitting form. Please try again.');
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setFormError(''), 5000);
     } finally {
       setIsSubmitting(false);
     }

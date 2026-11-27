@@ -29,7 +29,10 @@ const {
   sendStakeholderReport,
   getEmailLogs,
   resendEmailLog,
-  processEmailQueueNow
+  processEmailQueueNow,
+  getFailedRegistrations,
+  updateFailedRegistration,
+  deleteFailedRegistration
 } = require('../controllers/adminController');
 
 // Multer in-memory storage for Excel uploads
@@ -62,6 +65,11 @@ router.post('/teams/bulk-confirmations', protect, sendBulkConfirmations);
 router.get('/email-logs', protect, getEmailLogs);
 router.post('/email-logs/process-queue', protect, processEmailQueueNow);
 router.post('/email-logs/:id/resend', protect, resendEmailLog);
+
+// Failed / Interrupted Registration Recovery Logs
+router.get('/failed-registrations', protect, getFailedRegistrations);
+router.patch('/failed-registrations/:id', protect, updateFailedRegistration);
+router.delete('/failed-registrations/:id', protect, deleteFailedRegistration);
 
 // Excel Operations (Filter-wise Upload & In-Memory Formatted RowSpan/ColSpan Export)
 router.get('/export', protect, exportExcel);

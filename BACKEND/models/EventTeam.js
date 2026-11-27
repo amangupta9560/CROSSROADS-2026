@@ -24,7 +24,8 @@ const eventTeamSchema = new mongoose.Schema({
   teamSize: { type: Number, required: true, min: 1, max: 8 },
   members: [{
     name: { type: String, required: true },
-    email: { type: String, required: true }
+    email: { type: String, required: true },
+    mobile: { type: String, default: '' }
   }],
   appliedAt: { type: Date, default: Date.now },
   status: {
@@ -43,10 +44,14 @@ const eventTeamSchema = new mongoose.Schema({
   exported: {
     type: Boolean,
     default: false
+  },
+  confirmationEmailQueued: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 
-// Full-text search index for sub-millisecond queries across thousands of registrations
+// Full-text search index
 eventTeamSchema.index(
   {
     teamId: 'text',
@@ -63,6 +68,11 @@ eventTeamSchema.index(
 eventTeamSchema.index({ appliedAt: -1 });
 eventTeamSchema.index({ event: 1, appliedAt: -1 });
 eventTeamSchema.index({ status: 1, appliedAt: -1 });
+eventTeamSchema.index({ teamName: 1 }, { name: 'team_name_lookup_idx' });
 eventTeamSchema.index({ 'leader.email': 1, event: 1 }, { name: 'leader_event_lookup_idx' });
+eventTeamSchema.index({ 'leader.mobile': 1 }, { name: 'leader_mobile_lookup_idx' });
+eventTeamSchema.index({ 'leader.whatsapp': 1 }, { name: 'leader_whatsapp_lookup_idx' });
+eventTeamSchema.index({ 'members.email': 1 }, { name: 'member_email_lookup_idx' });
+eventTeamSchema.index({ 'members.mobile': 1 }, { name: 'member_mobile_lookup_idx' });
 
 module.exports = mongoose.model('EventTeam', eventTeamSchema);

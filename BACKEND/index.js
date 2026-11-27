@@ -163,17 +163,35 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Not found' });
 });
 
-// Global Express 5 crash-barrier error middleware
+// Global Express 5 crash-barrier error middleware (logs unhandled registration crashes cleanly)
 app.use((err, req, res, _next) => {
   void _next;
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({ message: 'Invalid JSON request payload' });
+  const statusCode =
+    err instanceof SyntaxError && err.status === 400 && 'body' in err
+      ? 400
+      : err.status || err.statusCode || 500;
+  const clientMsg =
+    statusCode === 400
+      ? 'Invalid JSON request payload'
+      : statusCode >= 500
+      ? 'Internal server error — please try again shortly'
+      : err.message;
+
+  if (
+    mongoose.connection.readyState === 1 &&
+    (req.originalUrl?.includes('event-register') || req.originalUrl?.includes('check-availability'))
+  ) {
+    const { recordFailedRegistration } = require('./controllers/eventRegisterController');
+    recordFailedRegistration(req, {
+      errorType: 'server_error',
+      httpStatus: statusCode,
+      errorMessage: err.message || clientMsg,
+      source: 'express_error_guard'
+    }).catch(() => {});
   }
-  const statusCode = err.status || err.statusCode || 500;
+
   console.error('[Express Error Guard]', statusCode, err.message);
-  return res.status(statusCode).json({
-    message: statusCode >= 500 ? 'Internal server error — please try again shortly' : err.message
-  });
+  return res.status(statusCode).json({ message: clientMsg });
 });
 
 // Process-level resilience prevents unhandled promise rejections from killing live bursts

@@ -53,10 +53,11 @@ const processSingleEmailLog = async (logOrId) => {
       : logOrId._id;
 
   const now = new Date();
+  // Strict atomic lock ONLY claims queued rows (or explicit resend on failed), never re-claiming already sending/sent!
   const claimed = await EmailLog.findOneAndUpdate(
     {
       _id: logId,
-      status: { $in: ['queued', 'failed'] },
+      status: 'queued',
       $or: [{ nextRetryAt: null }, { nextRetryAt: { $lte: now } }]
     },
     { $set: { status: 'sending', lastError: '' }, $inc: { attempts: 1 } },
@@ -95,10 +96,12 @@ const processSingleEmailLog = async (logOrId) => {
     return { success: true, log: claimed, sentVia: result.sentVia };
   } catch (err) {
     const errMsg = String(err.message || 'SMTP delivery failed').slice(0, 600);
+    // Do NOT auto-requeue uncertain DATA timeouts — mark failed so admin can inspect/resend without double-emailing user!
+    const isUncertainAfterSend = errMsg.includes('after DATA');
     const maxAttempts = claimed.maxAttempts || 4;
-    if (claimed.attempts < maxAttempts) {
+    if (!isUncertainAfterSend && claimed.attempts < maxAttempts) {
       claimed.status = 'queued';
-      claimed.nextRetryAt = new Date(Date.now() + claimed.attempts * 15000);
+      claimed.nextRetryAt = new Date(Date.now() + claimed.attempts * 20000);
     } else {
       claimed.status = 'failed';
       claimed.nextRetryAt = null;
@@ -112,10 +115,20 @@ const processSingleEmailLog = async (logOrId) => {
 
 /**
  * Create an EmailLog entry (`queued`) cleanly in MongoDB.
- * When `sendImmediately` is false (default for fast high-concurrency bursts),
- * delivery is dispatched non-blockingly in the background via `triggerBackgroundQueueDrain()`.
+ * Uses idempotency check for automatic `registration_confirmation` so a single team never
+ * queues more than one automatic confirmation email.
  */
-const enqueueEmail = async (payload, { sendImmediately = true } = {}) => {
+const enqueueEmail = async (payload, { sendImmediately = true, isManual = false } = {}) => {
+  if (!isManual && payload.category === 'registration_confirmation' && payload.teamId) {
+    const alreadyExists = await EmailLog.exists({
+      teamId: payload.teamId,
+      category: 'registration_confirmation'
+    });
+    if (alreadyExists) {
+      return { success: true, deduplicated: true };
+    }
+  }
+
   const doc = await EmailLog.create({
     category: payload.category || 'registration_confirmation',
     status: 'queued',
@@ -228,7 +241,7 @@ const processPendingEmailQueue = async (batchSize = 25, { maxDurationMs = 9000 }
 
   try {
     const now = new Date();
-    const staleCutoff = new Date(Date.now() - 2 * 60 * 1000);
+    const staleCutoff = new Date(Date.now() - 15 * 60 * 1000);
     await EmailLog.updateMany(
       { status: 'sending', updatedAt: { $lt: staleCutoff }, attempts: { $lt: 4 } },
       { $set: { status: 'queued', nextRetryAt: null } }

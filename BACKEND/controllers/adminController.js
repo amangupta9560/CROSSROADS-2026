@@ -1,6 +1,7 @@
 // controllers/adminController.js
 const EventTeam = require('../models/EventTeam');
 const EmailLog = require('../models/EmailLog');
+const FailedRegistration = require('../models/FailedRegistration');
 const Admin = require('../models/Admin');
 const Counter = require('../models/Counter');
 const SiteSetting = require('../models/SiteSetting');
@@ -604,7 +605,7 @@ const resendConfirmationEmail = async (req, res) => {
     if (!team) return res.status(404).json({ msg: 'Team not found' });
 
     const payload = buildTeamConfirmationEmailPayload(team, true);
-    const result = await enqueueEmail(payload, { sendImmediately: true });
+    const result = await enqueueEmail(payload, { sendImmediately: true, isManual: true });
 
     if (!result.success) {
       return res.status(502).json({
@@ -770,7 +771,7 @@ const uploadExcel = async (req, res) => {
       return '';
     };
 
-    const currentYear = new Date().getFullYear();
+    const currentYear = 2027;
     const rowsToProcess = [];
 
     worksheet.eachRow((row, rowNumber) => {
@@ -1700,6 +1701,113 @@ const processEmailQueueNow = async (req, res) => {
   }
 };
 
+// Failed / Interrupted Registrations Recovery Endpoints
+const getFailedRegistrations = async (req, res) => {
+  try {
+    const { status = 'all', errorType = 'all', search = '', limit = 120 } = req.query;
+    const query = {};
+    if (status && status !== 'all') query.followUpStatus = status;
+    if (errorType && errorType !== 'all') query.errorType = errorType;
+
+    if (search && String(search).trim()) {
+      const rx = new RegExp(
+        String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+        'i'
+      );
+      query.$or = [
+        { teamName: rx },
+        { 'leader.name': rx },
+        { 'leader.email': rx },
+        { 'leader.mobile': rx },
+        { errorMessage: rx },
+        { event: rx },
+        { college: rx }
+      ];
+    }
+
+    const cappedLimit = Math.min(Math.max(parseInt(limit, 10) || 120, 1), 300);
+
+    const [logs, statusFacet, typeFacet] = await Promise.all([
+      FailedRegistration.find(query)
+        .sort({ occurredAt: -1 })
+        .limit(cappedLimit)
+        .select('-rawPayload')
+        .lean(),
+      FailedRegistration.aggregate([
+        { $group: { _id: '$followUpStatus', count: { $sum: 1 } } }
+      ]),
+      FailedRegistration.aggregate([
+        { $group: { _id: '$errorType', count: { $sum: 1 } } }
+      ])
+    ]);
+
+    const stats = {
+      total: 0,
+      pending: 0,
+      contacted: 0,
+      resolved: 0,
+      serverErrors: 0,
+      conflicts: 0
+    };
+    statusFacet.forEach((s) => {
+      if (Object.prototype.hasOwnProperty.call(stats, s._id)) {
+        stats[s._id] = s.count;
+      }
+      stats.total += s.count;
+    });
+    typeFacet.forEach((t) => {
+      if (t._id === 'server_error' || t._id === 'network_timeout') {
+        stats.serverErrors += t.count;
+      } else {
+        stats.conflicts += t.count;
+      }
+    });
+
+    res.json({ logs, stats });
+  } catch (err) {
+    console.error('Failed registrations fetch error:', err);
+    res.status(500).json({ msg: 'Failed to load registration issue logs', error: err.message });
+  }
+};
+
+const updateFailedRegistration = async (req, res) => {
+  try {
+    const { followUpStatus, adminNote } = req.body || {};
+    const updates = {};
+    if (followUpStatus && ['pending', 'contacted', 'resolved'].includes(followUpStatus)) {
+      updates.followUpStatus = followUpStatus;
+    }
+    if (adminNote !== undefined) {
+      updates.adminNote = String(adminNote).trim();
+    }
+
+    const updated = await FailedRegistration.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ msg: 'Failed registration record not found' });
+
+    res.json({
+      success: true,
+      msg: `Updated issue status to "${updated.followUpStatus}"`,
+      log: updated
+    });
+  } catch (err) {
+    res.status(500).json({ msg: 'Failed to update registration issue', error: err.message });
+  }
+};
+
+const deleteFailedRegistration = async (req, res) => {
+  try {
+    const deleted = await FailedRegistration.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ msg: 'Failed registration record not found' });
+    res.json({ success: true, msg: 'Issue log removed' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Failed to delete issue log', error: err.message });
+  }
+};
+
 module.exports = {
   login,
   getSmtpStatus,
@@ -1727,5 +1835,8 @@ module.exports = {
   sendStakeholderReport,
   getEmailLogs,
   resendEmailLog,
-  processEmailQueueNow
+  processEmailQueueNow,
+  getFailedRegistrations,
+  updateFailedRegistration,
+  deleteFailedRegistration
 };

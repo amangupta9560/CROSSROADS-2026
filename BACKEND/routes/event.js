@@ -1,10 +1,14 @@
 const express = require('express');
-const { registerEventTeam, getPublicSettings } = require('../controllers/eventRegisterController');
+const {
+  registerEventTeam,
+  checkRegistrationAvailability,
+  reportClientRegistrationIssue,
+  getPublicSettings
+} = require('../controllers/eventRegisterController');
 const { createRateLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
-// Campus-friendly burst limits: up to 180 registrations/min per shared IP
 const registerLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 180,
@@ -12,6 +16,8 @@ const registerLimiter = createRateLimiter({
 });
 
 router.get('/settings', getPublicSettings);
+router.post('/check-availability', registerLimiter, checkRegistrationAvailability);
 router.post('/event-register', registerLimiter, registerEventTeam);
+router.post('/log-registration-issue', registerLimiter, reportClientRegistrationIssue);
 
 module.exports = router;

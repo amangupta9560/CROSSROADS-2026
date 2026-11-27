@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { motion as Motion } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Loader2, Lock, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AlertCircle, ArrowLeft, Loader2, Lock, User } from 'lucide-react';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -55,14 +55,23 @@ const AdminLogin = () => {
   const inputClasses = "w-full bg-white/5 border-2 border-orange-500/20 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300 backdrop-blur-sm hover:border-orange-500/40";
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-950 via-blue-950 to-slate-900 overflow-hidden pt-24 pb-20 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+    <div className="min-h-screen bg-linear-to-br from-slate-950 via-blue-950 to-slate-900 overflow-hidden pt-8 pb-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
       <Motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
         className="w-full max-w-md"
       >
-        <div className="text-center mb-12">
+        <div className="mb-6 flex justify-center">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-semibold text-gray-300 hover:text-white transition"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Home Page</span>
+          </Link>
+        </div>
+        <div className="text-center mb-10">
           <h1 className="text-4xl font-bold bg-linear-to-r from-orange-400 to-purple-400 bg-clip-text text-transparent">Admin Login</h1>
           <p className="text-gray-400 mt-2">Access CROSSROADS 2027 Dashboard</p>
         </div>
