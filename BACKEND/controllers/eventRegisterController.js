@@ -1,7 +1,11 @@
 const EventTeam = require('../models/EventTeam');
 const Counter = require('../models/Counter');
 const SiteSetting = require('../models/SiteSetting');
-const { EVENT_DISPLAY_NAMES, getEventDisplay, buildTeamConfirmationEmailPayload } = require('../utils/mailer');
+const {
+  EVENT_DISPLAY_NAMES,
+  getEventDisplay,
+  buildTeamConfirmationEmailPayload
+} = require('../utils/mailer');
 const { enqueueEmail } = require('../utils/emailWorker');
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

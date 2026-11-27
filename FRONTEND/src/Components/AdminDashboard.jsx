@@ -2687,8 +2687,8 @@ const AdminDashboard = () => {
 
                 {previewMatchedCount !== null && (
                   <div className="p-3 bg-indigo-950/40 border border-indigo-500/30 rounded-xl text-center">
-                    <span className="text-xs text-gray-400">Audience Size:</span>
-                    <div className="text-xl font-extrabold text-indigo-300">{previewMatchedCount} Team Leaders</div>
+                    <span className="text-xs text-gray-400">Audience Size (Leaders + CC Members):</span>
+                    <div className="text-xl font-extrabold text-indigo-300">{previewMatchedCount} Participants</div>
                   </div>
                 )}
               </div>
@@ -2800,7 +2800,7 @@ const AdminDashboard = () => {
                     <label className="block text-xs font-semibold text-gray-300 uppercase mb-2">Optional Button Link</label>
                     <input
                       type="url"
-                      placeholder="https://chat.whatsapp.com/..."
+                      placeholder="https://chat.whatsapp.com/DaK4uonBMwd4k7s8Pv7RNu"
                       value={emailForm.ctaLink}
                       onChange={(e) => setEmailForm({ ...emailForm, ctaLink: e.target.value })}
                       className="w-full px-4 py-3 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"

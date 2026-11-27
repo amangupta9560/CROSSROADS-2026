@@ -10,14 +10,17 @@ const ExcelJS = require('exceljs');
 const { ensureInitialAdminExists } = require('../utils/seedAdmin');
 const {
   BRAND_NAME,
+  THEME_TAGLINE,
   FRONTEND_URL,
   IDENTITY,
   transporters,
   EVENT_DISPLAY_NAMES,
   getEventDisplay,
+  getUniqueMemberEmails,
   escapeHtml,
   buildResponsiveEmailDocument,
-  buildTeamConfirmationEmailPayload
+  buildTeamConfirmationEmailPayload,
+  buildUnifiedAdminDispatchHtml
 } = require('../utils/mailer');
 const { buildFormattedRegistrationWorkbook } = require('../utils/excelReport');
 const {
@@ -903,7 +906,7 @@ const uploadExcel = async (req, res) => {
   }
 };
 
-// Conditional Email Sender via EmailLog + Round Robin (per-recipient audit + resend)
+// Conditional Email Sender via EmailLog + Round Robin (TO: leader, CC: all team members in unified format)
 const sendConditionalEmail = async (req, res) => {
   try {
     const {
@@ -920,32 +923,35 @@ const sendConditionalEmail = async (req, res) => {
     const query = buildRegistrationFilterQuery(filter);
     const matchedTeams = await EventTeam.find(query).lean();
 
-    const emailMap = new Map();
-    matchedTeams.forEach((t) => {
-      if (t.leader?.email && !emailMap.has(t.leader.email.toLowerCase())) {
-        emailMap.set(t.leader.email.toLowerCase(), {
-          name: t.leader.name,
-          email: t.leader.email.trim(),
-          teamName: t.teamName,
-          teamId: t.teamId,
-          teamRef: t._id,
-          event: t.event,
-          eventDisplay: getEventDisplay(t.event)
-        });
-      }
-    });
+    const uniqueRecipientSet = new Set();
+    const validTeams = [];
 
-    const recipients = Array.from(emailMap.values());
+    matchedTeams.forEach((t) => {
+      const leaderEmail = t.leader?.email?.trim();
+      if (!leaderEmail) return;
+      validTeams.push(t);
+      uniqueRecipientSet.add(leaderEmail.toLowerCase());
+      getUniqueMemberEmails(t).forEach((mEmail) => {
+        uniqueRecipientSet.add(mEmail.toLowerCase());
+      });
+    });
 
     if (previewOnly) {
       return res.json({
-        totalMatchedTeams: matchedTeams.length,
-        totalRecipients: recipients.length,
-        sampleRecipients: recipients.slice(0, 6)
+        totalMatchedTeams: validTeams.length,
+        totalRecipients: uniqueRecipientSet.size,
+        sampleRecipients: validTeams.slice(0, 6).map((t) => ({
+          name: t.leader.name,
+          email: t.leader.email.trim(),
+          ccCount: getUniqueMemberEmails(t).length,
+          teamName: t.teamName,
+          teamId: t.teamId,
+          eventDisplay: getEventDisplay(t.event)
+        }))
       });
     }
 
-    if (recipients.length === 0) {
+    if (validTeams.length === 0) {
       return res.status(400).json({ msg: 'No recipients match the specified conditions' });
     }
 
@@ -953,59 +959,50 @@ const sendConditionalEmail = async (req, res) => {
       return res.status(400).json({ msg: 'Subject and message are required' });
     }
 
-    let headerGradient = 'linear-gradient(135deg,#0f172a,#1e3a8a,#0284c7)';
-    let accentColor = '#0284c7';
+    let accentColor = '#C69B43';
     let badgeText = 'OFFICIAL COMMUNICATION';
     if (urgency === 'urgent') {
-      headerGradient = 'linear-gradient(135deg,#7f1d1d,#dc2626,#ea580c)';
-      accentColor = '#dc2626';
+      accentColor = '#DC2626';
       badgeText = 'URGENT NOTIFICATION';
     } else if (urgency === 'important') {
-      headerGradient = 'linear-gradient(135deg,#78350f,#d97706,#f59e0b)';
-      accentColor = '#d97706';
+      accentColor = '#D97706';
       badgeText = 'IMPORTANT UPDATE';
     }
 
-    const safeCtaLink = ctaLink && /^https?:\/\//i.test(ctaLink.trim()) ? ctaLink.trim() : '';
-    const bodyHtml = `
-      <div style="font-size:15.5px; line-height:1.8; color:#334155; white-space:pre-wrap;">${escapeHtml(message)}</div>
-      ${ctaText && safeCtaLink ? `
-        <div style="text-align:center; margin:26px 0 8px;">
-          <a href="${escapeHtml(safeCtaLink)}" style="display:inline-block; padding:13px 32px; background:linear-gradient(135deg,#0284c7,#1e3a8a); color:#ffffff; font-weight:700; font-size:15px; text-decoration:none; border-radius:999px;">
-            ${escapeHtml(ctaText)} &rarr;
-          </a>
-        </div>
-      ` : ''}
-    `;
+    const payloads = validTeams.map((team) => {
+      const leaderEmail = team.leader.email.trim();
+      const ccMembers = getUniqueMemberEmails(team);
+      const formattedHtml = buildUnifiedAdminDispatchHtml(team, {
+        headline: headline || `${BRAND_NAME} — Important Update`,
+        message,
+        badgeText,
+        accentColor,
+        ctaText,
+        ctaLink
+      });
 
-    const formattedHtml = buildResponsiveEmailDocument({
-      badgeText,
-      title: headline || BRAND_NAME,
-      subtitle: `${BRAND_NAME} • ${IDENTITY.institute}`,
-      headerGradient,
-      accentColor,
-      bodyHtml
+      return {
+        category: 'conditional_email',
+        to: [leaderEmail],
+        cc: ccMembers,
+        subject,
+        html: formattedHtml,
+        teamId: team.teamId,
+        teamRef: team._id,
+        event: team.event
+      };
     });
-
-    const payloads = recipients.map((r) => ({
-      category: 'conditional_email',
-      to: [r.email],
-      subject,
-      html: formattedHtml,
-      teamId: r.teamId,
-      teamRef: r.teamRef,
-      event: r.event
-    }));
 
     const batchResult = await enqueueBatchEmails(payloads);
 
     res.json({
       success: true,
-      msg: `Conditional email logged! Sent: ${batchResult.sent}, Queued: ${batchResult.remainingQueued}, Failed: ${batchResult.failed}. Inspect or retry anytime in Email Queue & Logs.`,
+      msg: `Conditional emails logged for ${validTeams.length} team(s) (${uniqueRecipientSet.size} total participants incl. CC)! Sent: ${batchResult.sent}, Queued: ${batchResult.remainingQueued}, Failed: ${batchResult.failed}.`,
       sentCount: batchResult.sent,
       failedCount: batchResult.failed,
       remainingQueued: batchResult.remainingQueued,
-      totalMatchedTeams: matchedTeams.length
+      totalMatchedTeams: validTeams.length,
+      totalRecipients: uniqueRecipientSet.size
     });
   } catch (err) {
     console.error('Conditional email error:', err);
@@ -1013,7 +1010,7 @@ const sendConditionalEmail = async (req, res) => {
   }
 };
 
-// Centralized Broadcast System via EmailLog Queue & Round Robin (supports All, Event, Track, or Specific College)
+// Centralized Broadcast System via EmailLog Queue & Round Robin (TO: leader, CC: all members in unified format)
 const sendBroadcast = async (req, res) => {
   try {
     const {
@@ -1046,48 +1043,48 @@ const sendBroadcast = async (req, res) => {
       const query = buildRegistrationFilterQuery(filterInput);
       const teams = await EventTeam.find(query).lean();
 
-      const recipientMap = new Map();
-      teams.forEach((t) => {
-        const email = t.leader?.email?.trim();
-        if (email && !recipientMap.has(email.toLowerCase())) {
-          recipientMap.set(email.toLowerCase(), {
-            email,
-            teamId: t.teamId,
-            teamRef: t._id,
-            event: t.event
-          });
-        }
+      const validTeams = teams.filter((t) => Boolean(t.leader?.email?.trim()));
+      const uniqueEmails = new Set();
+      validTeams.forEach((t) => {
+        uniqueEmails.add(t.leader.email.trim().toLowerCase());
+        getUniqueMemberEmails(t).forEach((em) => uniqueEmails.add(em.toLowerCase()));
       });
+      recipientsCount = uniqueEmails.size;
 
-      const recipients = Array.from(recipientMap.values());
-      recipientsCount = recipients.length;
+      if (validTeams.length > 0) {
+        let accentColor = '#C69B43';
+        let badgeText = 'OFFICIAL FEST BROADCAST';
+        if (urgency === 'urgent') {
+          accentColor = '#DC2626';
+          badgeText = 'URGENT FEST BROADCAST';
+        } else if (urgency === 'important') {
+          accentColor = '#D97706';
+          badgeText = 'IMPORTANT FEST BROADCAST';
+        }
 
-      if (recipients.length > 0) {
-        const htmlDoc = buildResponsiveEmailDocument({
-          badgeText: 'OFFICIAL FEST BROADCAST',
-          title,
-          subtitle: `${BRAND_NAME} • ${IDENTITY.institute}`,
-          headerGradient: 'linear-gradient(135deg,#0f172a,#312e81,#0284c7)',
-          accentColor: '#4f46e5',
-          bodyHtml: `
-            <div style="font-size:15.5px; line-height:1.8; color:#334155; white-space:pre-wrap;">${escapeHtml(message)}</div>
-            <div style="text-align:center; margin:24px 0 6px;">
-              <a href="${FRONTEND_URL}/events" style="display:inline-block; padding:12px 28px; background:linear-gradient(135deg,#0284c7,#4f46e5); color:#ffffff; text-decoration:none; border-radius:999px; font-weight:700; font-size:14px;">
-                Open ${BRAND_NAME} Portal &rarr;
-              </a>
-            </div>
-          `
+        const payloads = validTeams.map((team) => {
+          const leaderEmail = team.leader.email.trim();
+          const ccMembers = getUniqueMemberEmails(team);
+          const htmlDoc = buildUnifiedAdminDispatchHtml(team, {
+            headline: title,
+            message,
+            badgeText,
+            accentColor,
+            ctaText: `Open ${BRAND_NAME} Portal`,
+            ctaLink: `${FRONTEND_URL}/events`
+          });
+
+          return {
+            category: 'broadcast',
+            to: [leaderEmail],
+            cc: ccMembers,
+            subject: `[BROADCAST] ${title}`,
+            html: htmlDoc,
+            teamId: team.teamId,
+            teamRef: team._id,
+            event: team.event
+          };
         });
-
-        const payloads = recipients.map((r) => ({
-          category: 'broadcast',
-          to: [r.email],
-          subject: `📢 [BROADCAST] ${title}`,
-          html: htmlDoc,
-          teamId: r.teamId,
-          teamRef: r.teamRef,
-          event: r.event
-        }));
 
         queueStats = await enqueueBatchEmails(payloads);
       }
@@ -1118,7 +1115,7 @@ const sendBroadcast = async (req, res) => {
 
     res.json({
       success: true,
-      msg: `Broadcast logged for ${recipientsCount} recipient(s)! Sent immediately: ${queueStats.sent}, Queued: ${queueStats.remainingQueued}, Failed: ${queueStats.failed}.`,
+      msg: `Broadcast logged for ${recipientsCount} participant(s) (Leader TO + Members CC)! Sent immediately: ${queueStats.sent}, Queued: ${queueStats.remainingQueued}, Failed: ${queueStats.failed}.`,
       broadcast: broadcastRecord,
       queueStats
     });
@@ -1345,60 +1342,68 @@ const handleRegistrationReportDispatch = async (req, res, isLegacyOrStakeholder 
     const showCollegeTable = reportType === 'college_digest' || reportType === 'executive_summary' || reportType === 'authority_digest';
 
     const bodyHtml = `
-      <p style="font-size:15.5px; margin:0 0 8px; color:#0f172a; font-weight:600;">
+      <p style="font-size:15px; margin:0 0 8px; color:#E8DFC8; font-weight:700;">
         ${escapeHtml(salutation || meta.defaultSalutation)}
       </p>
-      <p style="font-size:14.5px; line-height:1.65; color:#334155; margin:0 0 18px;">
-        Here is the official registration dossier for <strong>${BRAND_NAME}</strong> covering
-        <strong style="color:#0284c7;">${escapeHtml(scopeLabel)}</strong> as of
+      <div style="margin:0 0 14px; padding:10px 12px; background-color:#0B140F; border-left:3px solid #C69B43;">
+        <div style="font-size:11px; font-weight:800; letter-spacing:1.4px; color:#E8C574; text-transform:uppercase;">
+          ${BRAND_NAME} &bull; THE LOST CIVILIZATION
+        </div>
+        <div style="font-size:12px; font-weight:700; color:#C7BFA9; margin-top:2px;">
+          "${THEME_TAGLINE}"
+        </div>
+      </div>
+      <p style="font-size:14px; line-height:1.65; color:#C7BFA9; margin:0 0 16px;">
+        Here is the official registration dossier for <strong style="color:#E8C574;">${BRAND_NAME}</strong> covering
+        <strong style="color:#6EE7B7;">${escapeHtml(scopeLabel)}</strong> as of
         <strong>${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} IST</strong>.
       </p>
 
       ${remarks ? `
-        <div style="margin:0 0 20px; padding:14px 16px; background:#f8fafc; border-left:4px solid ${meta.accent}; border-radius:6px;">
-          <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#1e3a8a;">Coordinator Note</div>
-          <p style="margin:5px 0 0; font-size:14px; color:#334155; line-height:1.6; white-space:pre-wrap;">${escapeHtml(remarks)}</p>
+        <div style="margin:0 0 18px; padding:12px 14px; background:#0B140F; border-left:3px solid #C69B43; border-radius:4px;">
+          <div style="font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:#E8C574;">Coordinator Note</div>
+          <p style="margin:5px 0 0; font-size:13.5px; color:#E8DFC8; line-height:1.6; white-space:pre-wrap;">${escapeHtml(remarks)}</p>
         </div>
       ` : ''}
 
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin:0 0 22px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin:0 0 18px;">
         <tr>
-          <td class="kpi-col" width="25%" style="padding:0 5px 0 0; vertical-align:top;">
-            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 8px; text-align:center;">
-              <div style="font-size:10.5px; color:#1e40af; font-weight:700; text-transform:uppercase;">Total Teams</div>
-              <div style="font-size:24px; font-weight:800; color:#1d4ed8; margin-top:3px;">${stats.totalTeams}</div>
+          <td class="kpi-col" width="25%" style="padding:0 4px 0 0; vertical-align:top;">
+            <div style="background:#0B140F; border:1px solid #3A4D3E; border-radius:6px; padding:10px 6px; text-align:center;">
+              <div style="font-size:10px; color:#E8C574; font-weight:700; text-transform:uppercase;">Total Teams</div>
+              <div style="font-size:22px; font-weight:800; color:#E8DFC8; margin-top:3px;">${stats.totalTeams}</div>
             </div>
           </td>
-          <td class="kpi-col" width="25%" style="padding:0 5px; vertical-align:top;">
-            <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:12px 8px; text-align:center;">
-              <div style="font-size:10.5px; color:#065f46; font-weight:700; text-transform:uppercase;">Total Students</div>
-              <div style="font-size:24px; font-weight:800; color:#047857; margin-top:3px;">${stats.totalStudents}</div>
+          <td class="kpi-col" width="25%" style="padding:0 4px; vertical-align:top;">
+            <div style="background:#0B140F; border:1px solid #2E6F4E; border-radius:6px; padding:10px 6px; text-align:center;">
+              <div style="font-size:10px; color:#6EE7B7; font-weight:700; text-transform:uppercase;">Total Students</div>
+              <div style="font-size:22px; font-weight:800; color:#6EE7B7; margin-top:3px;">${stats.totalStudents}</div>
             </div>
           </td>
-          <td class="kpi-col" width="25%" style="padding:0 5px; vertical-align:top;">
-            <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; padding:12px 8px; text-align:center;">
-              <div style="font-size:10.5px; color:#5b21b6; font-weight:700; text-transform:uppercase;">Total Colleges</div>
-              <div style="font-size:24px; font-weight:800; color:#6d28d9; margin-top:3px;">${stats.totalColleges}</div>
+          <td class="kpi-col" width="25%" style="padding:0 4px; vertical-align:top;">
+            <div style="background:#0B140F; border:1px solid #594622; border-radius:6px; padding:10px 6px; text-align:center;">
+              <div style="font-size:10px; color:#E8C574; font-weight:700; text-transform:uppercase;">Total Colleges</div>
+              <div style="font-size:22px; font-weight:800; color:#E8C574; margin-top:3px;">${stats.totalColleges}</div>
             </div>
           </td>
-          <td class="kpi-col" width="25%" style="padding:0 0 0 5px; vertical-align:top;">
-            <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:12px 8px; text-align:center;">
-              <div style="font-size:10.5px; color:#9a3412; font-weight:700; text-transform:uppercase;">Today (IST)</div>
-              <div style="font-size:24px; font-weight:800; color:#c2410c; margin-top:3px;">${stats.today}</div>
+          <td class="kpi-col" width="25%" style="padding:0 0 0 4px; vertical-align:top;">
+            <div style="background:#0B140F; border:1px solid #6E3613; border-radius:6px; padding:10px 6px; text-align:center;">
+              <div style="font-size:10px; color:#F2B57E; font-weight:700; text-transform:uppercase;">Today (IST)</div>
+              <div style="font-size:22px; font-weight:800; color:#F2B57E; margin-top:3px;">${stats.today}</div>
             </div>
           </td>
         </tr>
       </table>
 
       ${showEventWiseTable ? `
-        <div style="margin:0 0 24px;">
-          <h3 style="margin:0 0 10px; font-size:15.5px; color:#0f172a; border-bottom:2px solid #e2e8f0; padding-bottom:6px;">
+        <div style="margin:0 0 20px;">
+          <h3 style="margin:0 0 8px; font-size:14px; color:#E8C574; border-bottom:1px solid #3A4D3E; padding-bottom:5px; text-transform:uppercase;">
             Event-Wise Registration Breakdown
           </h3>
           <div style="width:100%; overflow-x:auto;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e2e8f0; border-radius:8px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #2D3F32; background:#ffffff;">
               <thead>
-                <tr style="background:#0f172a; color:#ffffff; text-align:left;">
+                <tr style="background:#0B140F; color:#E8C574; text-align:left;">
                   <th style="padding:9px 10px; font-size:11.5px;">Event Arena</th>
                   <th style="padding:9px 8px; font-size:11.5px; text-align:center;">Track</th>
                   <th style="padding:9px 8px; font-size:11.5px; text-align:center;">Teams</th>
@@ -1410,7 +1415,7 @@ const handleRegistrationReportDispatch = async (req, res, isLegacyOrStakeholder 
               <tbody>
                 ${eventRowsHtml || '<tr><td colspan="6" style="padding:14px; text-align:center; color:#64748b; font-size:13px;">No registrations match this scope.</td></tr>'}
                 ${stats.eventWise.length > 0 ? `
-                  <tr style="background:#eff6ff; font-weight:700;">
+                  <tr style="background:#f8fafc; font-weight:700;">
                     <td style="padding:9px 10px; color:#0f172a; font-size:12.5px;">GRAND TOTAL</td>
                     <td style="padding:9px 8px; text-align:center; color:#475569; font-size:12px;">All</td>
                     <td style="padding:9px 8px; text-align:center; color:#1d4ed8; font-size:13px;">${stats.totalTeams}</td>
@@ -1426,14 +1431,14 @@ const handleRegistrationReportDispatch = async (req, res, isLegacyOrStakeholder 
       ` : ''}
 
       ${showCollegeTable ? `
-        <div style="margin:0 0 24px;">
-          <h3 style="margin:0 0 10px; font-size:15.5px; color:#0f172a; border-bottom:2px solid #e2e8f0; padding-bottom:6px;">
+        <div style="margin:0 0 20px;">
+          <h3 style="margin:0 0 8px; font-size:14px; color:#E8C574; border-bottom:1px solid #3A4D3E; padding-bottom:5px; text-transform:uppercase;">
             College-Wise Participation &amp; Student Count ${stats.allColleges.length > 25 ? `(Top 25 of ${stats.allColleges.length})` : ''}
           </h3>
           <div style="width:100%; overflow-x:auto;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e2e8f0; border-radius:8px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #2D3F32; background:#ffffff;">
               <thead>
-                <tr style="background:#0f766e; color:#ffffff; text-align:left;">
+                <tr style="background:#182B20; color:#E8C574; text-align:left;">
                   <th style="padding:8px; font-size:11.5px; text-align:center;">#</th>
                   <th style="padding:8px 10px; font-size:11.5px;">College / Institution</th>
                   <th style="padding:8px; font-size:11.5px; text-align:center;">Teams</th>
@@ -1450,14 +1455,14 @@ const handleRegistrationReportDispatch = async (req, res, isLegacyOrStakeholder 
       ` : ''}
 
       ${shouldRenderRoster ? `
-        <div style="margin:0 0 22px;">
-          <h3 style="margin:0 0 10px; font-size:15.5px; color:#0f172a; border-bottom:2px solid #e2e8f0; padding-bottom:6px;">
+        <div style="margin:0 0 18px;">
+          <h3 style="margin:0 0 8px; font-size:14px; color:#E8C574; border-bottom:1px solid #3A4D3E; padding-bottom:5px; text-transform:uppercase;">
             Registered Teams &amp; Participant Roster (${escapeHtml(scopeLabel)})
           </h3>
           <div style="width:100%; overflow-x:auto;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e2e8f0; border-radius:8px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #2D3F32; background:#ffffff;">
               <thead>
-                <tr style="background:#1e3a8a; color:#ffffff; text-align:left;">
+                <tr style="background:#0B140F; color:#E8C574; text-align:left;">
                   <th style="padding:8px; font-size:11.5px;">Team ID</th>
                   <th style="padding:8px; font-size:11.5px;">Team &amp; Event</th>
                   <th style="padding:8px; font-size:11.5px;">Team Leader</th>
@@ -1471,7 +1476,7 @@ const handleRegistrationReportDispatch = async (req, res, isLegacyOrStakeholder 
             </table>
           </div>
           ${rosterTruncated > 0 ? `
-            <p style="margin:8px 0 0; font-size:12px; color:#64748b; font-style:italic;">
+            <p style="margin:8px 0 0; font-size:12px; color:#C7BFA9; font-style:italic;">
               Showing ${rosterSlice.length} of ${teams.length} teams in email body. See the attached Excel workbook for all ${teams.length} teams.
             </p>
           ` : ''}
@@ -1479,8 +1484,8 @@ const handleRegistrationReportDispatch = async (req, res, isLegacyOrStakeholder 
       ` : ''}
 
       ${attachExcel && teams.length > 0 ? `
-        <div style="margin:0; padding:12px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; font-size:13px; color:#166534;">
-          <strong>Attached Master Excel Workbook (.xlsx):</strong> Includes Executive Summary, Overall All-Teams sheet, and Event-Wise tabs with merged headers &amp; row-spanned team blocks.
+        <div style="margin:0; padding:12px 14px; background:#0B140F; border:1px solid #2E6F4E; border-radius:6px; font-size:12.5px; color:#A7F3D0;">
+          <strong>Attached Master Excel Workbook (.xlsx):</strong> Includes Executive Summary, Overall All-Teams sheet, and Event-Wise tabs.
         </div>
       ` : ''}
     `;
@@ -1488,9 +1493,7 @@ const handleRegistrationReportDispatch = async (req, res, isLegacyOrStakeholder 
     const reportHtml = buildResponsiveEmailDocument({
       badgeText: meta.badge,
       title: BRAND_NAME,
-      subtitle: `${meta.subtitlePrefix} • ${scopeLabel}`,
-      headerGradient: meta.gradient,
-      accentColor: meta.accent,
+      accentColor: '#C69B43',
       bodyHtml
     });
 

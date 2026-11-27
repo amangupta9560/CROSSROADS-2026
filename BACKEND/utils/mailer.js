@@ -3,13 +3,18 @@ const mongoose = require('mongoose');
 const Counter = require('../models/Counter');
 
 const BRAND_NAME = 'CROSSROADS 2027';
-const FRONTEND_URL = 'https://crossroads-hiet.netlify.app';
+const THEME_TAGLINE = 'BEYOND THE KNOWN. INTO THE UNKNOWN.';
+const FRONTEND_URL = (process.env.FRONTEND_PUBLIC_URL || 'https://crossroads-hiet.netlify.app').replace(/\/+$/, '');
+const EMAIL_BANNER_URL = process.env.EMAIL_BANNER_URL || `${FRONTEND_URL}/email%20banner.png`;
+const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/DaK4uonBMwd4k7s8Pv7RNu';
+
 const IDENTITY = {
   club: 'Team Tech Fusion',
   institute: 'Hi-Tech Institute of Engineering & Technology (HIET), Ghaziabad',
   email: 'techfusion@hietgroup.org',
   whatsappDisplay: '+91 8802323375',
   whatsappUrl: 'https://wa.me/918802323375',
+  whatsappGroupUrl: WHATSAPP_GROUP_URL,
   instagramHandle: '@hiet.techfusion',
   instagramUrl: 'https://www.instagram.com/hiet.techfusion',
   linkedinLabel: 'linkedin.com/company/hiet-techfusion',
@@ -34,7 +39,6 @@ const buildSmtpConfigs = () => {
     configs.push({ name, user: cleanUser, pass: cleanPass });
   };
 
-  // Primary pool entries (ENV overrides defaults)
   addConfig(
     'SMTP 1 (hackathonhiet)',
     process.env.SMTP_1_USER || 'hackathonhiet@gmail.com',
@@ -51,7 +55,6 @@ const buildSmtpConfigs = () => {
     process.env.SMTP_3_PASS || 'lmrldubacijhcuqa'
   );
 
-  // Dynamically pick up SMTP_4_USER .. SMTP_20_USER if configured in Vercel env vars
   for (let i = 4; i <= 20; i++) {
     const envUser = process.env[`SMTP_${i}_USER`];
     const envPass = process.env[`SMTP_${i}_PASS`];
@@ -60,7 +63,6 @@ const buildSmtpConfigs = () => {
     }
   }
 
-  // Fallback single EMAIL_USER / EMAIL_PASS
   if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     addConfig('SMTP Primary (EMAIL_USER)', process.env.EMAIL_USER, process.env.EMAIL_PASS);
   }
@@ -70,7 +72,6 @@ const buildSmtpConfigs = () => {
 
 const smtpConfigs = buildSmtpConfigs();
 
-// Build transporter instances tuned for Vercel serverless timeouts
 const transporters = smtpConfigs.map((cfg) => ({
   name: cfg.name,
   user: cfg.user,
@@ -86,13 +87,8 @@ const transporters = smtpConfigs.map((cfg) => ({
   })
 }));
 
-// In-memory fallback index when DB counter is unavailable
 let currentSmtpIndex = 0;
 
-/**
- * Get the starting transporter index using atomic MongoDB Counter so Round Robin
- * stays balanced across stateless Vercel serverless invocations.
- */
 const getRoundRobinStartIndex = async () => {
   if (transporters.length === 0) {
     throw new Error('No SMTP transporters configured');
@@ -116,10 +112,6 @@ const getRoundRobinStartIndex = async () => {
   return idx;
 };
 
-/**
- * Send email using Round Robin across all configured Nodemailer transporters
- * with automatic failover. Optional preferredSmtpUser lets admin pick a specific pool account.
- */
 const sendMailRoundRobin = async (mailOptions, optionsMeta = {}) => {
   if (transporters.length === 0) {
     throw new Error('No SMTP transporters configured');
@@ -127,7 +119,6 @@ const sendMailRoundRobin = async (mailOptions, optionsMeta = {}) => {
 
   const { preferredSmtpUser = null, fromLabel = BRAND_NAME } = optionsMeta;
 
-  // Build ordered transporter queue starting at the chosen/round-robin index
   let orderedQueue = [];
   if (preferredSmtpUser) {
     const preferred = transporters.find(
@@ -175,7 +166,6 @@ const sendMailRoundRobin = async (mailOptions, optionsMeta = {}) => {
   throw lastError || new Error('All SMTP servers in Round Robin pool failed');
 };
 
-// Event display mapping
 const EVENT_DISPLAY_NAMES = {
   'code-puzzle': 'Code Puzzle',
   'project-exhibition': 'Project Exhibition / Project Evolution',
@@ -195,7 +185,6 @@ const getEventDisplay = (eventKey) => {
   return EVENT_DISPLAY_NAMES[eventKey] || eventKey.toUpperCase().replace(/-/g, ' ');
 };
 
-// Escape user-provided strings before embedding in HTML emails
 const escapeHtml = (str) => {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -207,19 +196,18 @@ const escapeHtml = (str) => {
 };
 
 /**
- * Full-bleed responsive HTML email document wrapper (0 outer margin & 0 outer padding)
- * so it adapts seamlessly on desktop, mobile Gmail, iOS Mail, and Outlook.
+ * Full-bleed edge-to-edge Lost Civilization email document (0 outer margin & 0 outer padding)
+ * displaying top global `email banner.png`, salutation/tagline zone, modular body, activated WhatsApp
+ * community block, social links, and support contact (`techfusion@hietgroup.org`).
  */
 const buildResponsiveEmailDocument = ({
-  badgeText = 'OFFICIAL COMMUNICATION',
+  badgeText = 'THE LOST CIVILIZATION',
   title = BRAND_NAME,
-  subtitle = `${IDENTITY.institute}`,
-  headerGradient = 'linear-gradient(135deg,#0f172a 0%,#1e3a8a 52%,#0284c7 100%)',
-  accentColor = '#0284c7',
+  accentColor = '#C69B43',
   bodyHtml = ''
 }) => {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="margin:0; padding:0;">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -230,33 +218,33 @@ const buildResponsiveEmailDocument = ({
       margin: 0 !important;
       padding: 0 !important;
       width: 100% !important;
-      background-color: #0b1120 !important;
+      min-width: 100% !important;
+      background-color: #080D0B !important;
       font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
       -webkit-text-size-adjust: 100%;
       -ms-text-size-adjust: 100%;
     }
-    table {
+    table, td {
       border-collapse: collapse;
+    }
+    img {
+      border: 0;
+      outline: none;
+      text-decoration: none;
+      display: block;
     }
     @media only screen and (max-width: 600px) {
       .email-container {
         width: 100% !important;
         max-width: 100% !important;
-        border-radius: 0 !important;
       }
-      .mobile-pad {
-        padding: 18px 14px !important;
-      }
-      .mobile-header-pad {
-        padding: 26px 14px !important;
+      .inner-pad {
+        padding: 16px 14px !important;
       }
       .kpi-col {
         display: block !important;
         width: 100% !important;
-        padding: 0 0 10px 0 !important;
-      }
-      .hero-title {
-        font-size: 26px !important;
+        padding: 0 0 8px 0 !important;
       }
       .social-pill {
         display: block !important;
@@ -265,65 +253,92 @@ const buildResponsiveEmailDocument = ({
     }
   </style>
 </head>
-<body style="margin:0; padding:0; width:100%; background-color:#0b1120;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; margin:0; padding:0; background-color:#0b1120;">
+<body style="margin:0; padding:0; width:100%; background-color:#080D0B; color:#E8DFC8;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; margin:0; padding:0; background-color:#080D0B;">
     <tr>
       <td align="center" style="margin:0; padding:0;">
-        <table role="presentation" class="email-container" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; max-width:740px; margin:0 auto; background-color:#ffffff; color:#1e293b;">
-          <!-- Header -->
+        <table role="presentation" class="email-container" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; max-width:680px; margin:0; padding:0; background-color:#101D16; color:#E8DFC8;">
+          <!-- 1. Global Edge-to-Edge Banner -->
           <tr>
-            <td class="mobile-header-pad" style="background:${headerGradient}; padding:34px 24px; text-align:center; color:#ffffff;">
-              <div style="display:inline-block; background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.28); border-radius:999px; padding:5px 14px; font-size:11px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:#e0f2fe;">
-                ${escapeHtml(badgeText)}
-              </div>
-              <h1 class="hero-title" style="margin:12px 0 4px; font-size:32px; line-height:1.15; font-weight:800; letter-spacing:0.5px; color:#ffffff;">
-                ${escapeHtml(title)}
-              </h1>
-              <p style="margin:0; font-size:14px; line-height:1.5; color:#cbd5e1;">
-                ${escapeHtml(subtitle)}
-              </p>
-              <div style="margin-top:14px; font-size:12px; color:#bae6fd; font-weight:600;">
-                Event Dates: ${IDENTITY.festDates} &nbsp;|&nbsp; Registrations: ${IDENTITY.registrationWindow}
-              </div>
+            <td style="margin:0; padding:0; background-color:#080D0B;">
+              <img
+                src="${EMAIL_BANNER_URL}"
+                alt="${BRAND_NAME} — ${THEME_TAGLINE}"
+                width="680"
+                style="display:block; width:100%; max-width:100%; height:auto; margin:0; padding:0; border:0;"
+              />
             </td>
           </tr>
 
-          <!-- Main Body -->
+          <!-- Subtle Gold Seal Strip -->
           <tr>
-            <td class="mobile-pad" style="padding:28px 24px; background-color:#ffffff; color:#1e293b;">
+            <td style="margin:0; padding:8px 14px; background-color:#0B1510; border-top:2px solid ${accentColor}; border-bottom:1px solid #3E331A; text-align:center;">
+              <span style="font-size:10px; font-weight:800; letter-spacing:1.8px; text-transform:uppercase; color:#E8C574;">
+                ${escapeHtml(badgeText)} &bull; ${IDENTITY.festDates}
+              </span>
+            </td>
+          </tr>
+
+          <!-- Main Content Area -->
+          <tr>
+            <td class="inner-pad" style="margin:0; padding:20px 18px; background-color:#101D16; color:#E8DFC8;">
               ${bodyHtml}
+
+              <!-- Activated Official WhatsApp Group CTA -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; margin:18px 0 0; background-color:#14281E; border:1px solid #2E6F4E; border-radius:8px;">
+                <tr>
+                  <td style="padding:16px 14px; text-align:center;">
+                    <div style="font-size:13px; font-weight:800; letter-spacing:0.8px; text-transform:uppercase; color:#A7F3D0; margin-bottom:6px;">
+                      Official CROSSROADS 2027 WhatsApp Community
+                    </div>
+                    <p style="margin:0 0 12px; font-size:12.5px; line-height:1.5; color:#D1FAE5;">
+                      Join immediately for event briefings, reporting counters, and live arena updates.
+                    </p>
+                    <a
+                      href="${WHATSAPP_GROUP_URL}"
+                      target="_blank"
+                      style="display:inline-block; padding:10px 24px; background-color:#10B981; color:#052E16; text-decoration:none; border-radius:4px; font-weight:800; font-size:13px; letter-spacing:0.5px;"
+                    >
+                      Join WhatsApp Group &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- Official Identity & Social Footer -->
+          <!-- Social Links & Support Footer -->
           <tr>
-            <td class="mobile-pad" style="background-color:#0f172a; color:#cbd5e1; padding:26px 24px; text-align:center; border-top:3px solid ${accentColor};">
-              <div style="font-size:15px; font-weight:800; color:#ffffff; letter-spacing:0.5px;">
+            <td class="inner-pad" style="margin:0; padding:20px 16px; background-color:#080D0B; color:#E8DFC8; text-align:center; border-top:2px solid ${accentColor};">
+              <div style="font-size:14px; font-weight:800; color:#E8C574; letter-spacing:0.8px;">
                 ${BRAND_NAME} &bull; ${IDENTITY.club}
               </div>
-              <div style="font-size:12px; color:#94a3b8; margin-top:4px;">
+              <div style="font-size:11.5px; color:#A89F88; margin-top:4px;">
                 ${IDENTITY.institute}
               </div>
 
-              <div style="margin:16px 0 14px;">
-                <a class="social-pill" href="${IDENTITY.websiteUrl}/" style="display:inline-block; margin:4px 5px; padding:7px 14px; background:#1e293b; border:1px solid #334155; border-radius:999px; color:#38bdf8; text-decoration:none; font-size:12px; font-weight:600;">
+              <div style="margin:14px 0 12px;">
+                <a class="social-pill" href="${IDENTITY.websiteUrl}/" style="display:inline-block; margin:4px 4px; padding:6px 12px; background:#101D16; border:1px solid #594622; border-radius:4px; color:#E8C574; text-decoration:none; font-size:11.5px; font-weight:700;">
                   Website Portal
                 </a>
-                <a class="social-pill" href="${IDENTITY.instagramUrl}" style="display:inline-block; margin:4px 5px; padding:7px 14px; background:#1e293b; border:1px solid #334155; border-radius:999px; color:#f472b6; text-decoration:none; font-size:12px; font-weight:600;">
+                <a class="social-pill" href="${IDENTITY.instagramUrl}" style="display:inline-block; margin:4px 4px; padding:6px 12px; background:#101D16; border:1px solid #594622; border-radius:4px; color:#E8DFC8; text-decoration:none; font-size:11.5px; font-weight:700;">
                   Instagram: ${IDENTITY.instagramHandle}
                 </a>
-                <a class="social-pill" href="${IDENTITY.linkedinUrl}" style="display:inline-block; margin:4px 5px; padding:7px 14px; background:#1e293b; border:1px solid #334155; border-radius:999px; color:#60a5fa; text-decoration:none; font-size:12px; font-weight:600;">
-                  LinkedIn: Team Tech Fusion
+                <a class="social-pill" href="${IDENTITY.linkedinUrl}" style="display:inline-block; margin:4px 4px; padding:6px 12px; background:#101D16; border:1px solid #594622; border-radius:4px; color:#E8DFC8; text-decoration:none; font-size:11.5px; font-weight:700;">
+                  LinkedIn
+                </a>
+                <a class="social-pill" href="${WHATSAPP_GROUP_URL}" style="display:inline-block; margin:4px 4px; padding:6px 12px; background:#101D16; border:1px solid #2E6F4E; border-radius:4px; color:#6EE7B7; text-decoration:none; font-size:11.5px; font-weight:700;">
+                  WhatsApp Group
                 </a>
               </div>
 
-              <div style="font-size:12px; color:#94a3b8; line-height:1.7;">
-                Email: <a href="mailto:${IDENTITY.email}" style="color:#38bdf8; text-decoration:none;">${IDENTITY.email}</a>
+              <div style="font-size:12px; color:#C2B8A1; line-height:1.7;">
+                Support Email: <a href="mailto:${IDENTITY.email}" style="color:#E8C574; font-weight:700; text-decoration:none;">${IDENTITY.email}</a>
                 &nbsp;|&nbsp;
-                WhatsApp: <a href="${IDENTITY.whatsappUrl}" style="color:#34d399; text-decoration:none;">${IDENTITY.whatsappDisplay}</a>
+                Helpline: <a href="${IDENTITY.whatsappUrl}" style="color:#6EE7B7; text-decoration:none;">${IDENTITY.whatsappDisplay}</a>
               </div>
-              <div style="font-size:11px; color:#64748b; margin-top:8px;">
-                Portal: <a href="${IDENTITY.websiteUrl}/" style="color:#94a3b8; text-decoration:none;">${IDENTITY.websiteUrl}/</a>
+              <div style="font-size:10.5px; color:#777568; margin-top:6px;">
+                ${BRAND_NAME} • ${THEME_TAGLINE}
               </div>
             </td>
           </tr>
@@ -335,105 +350,208 @@ const buildResponsiveEmailDocument = ({
 </html>`;
 };
 
-// Generates registration confirmation HTML (0 outer margin/padding, responsive)
-const generateRegistrationConfirmationHtml = (team) => {
-  const memberListHtml = team.members && team.members.length > 0
-    ? team.members.map((m, i) => `
-      <tr>
-        <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; color:#475569; font-size:13px;">Member ${i + 2}</td>
-        <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; color:#0f172a; font-weight:600; font-size:13px;">${escapeHtml(m.name)}</td>
-        <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; color:#475569; font-size:13px;">${escapeHtml(m.email)}</td>
-      </tr>
-    `).join('')
-    : '<tr><td colspan="3" style="padding:12px; text-align:center; color:#64748b; font-size:13px;">Solo Participant (Individual Registration)</td></tr>';
+/**
+ * Extract unique valid additional teammate emails excluding team leader email.
+ */
+const getUniqueMemberEmails = (team) => {
+  const leaderEmail = (team.leader?.email || '').trim().toLowerCase();
+  const seen = new Set(leaderEmail ? [leaderEmail] : []);
+  const uniqueMembers = [];
 
+  for (const m of team.members || []) {
+    const email = m?.email?.trim();
+    if (email && email.includes('@') && !seen.has(email.toLowerCase())) {
+      seen.add(email.toLowerCase());
+      uniqueMembers.push(email);
+    }
+  }
+  return uniqueMembers;
+};
+
+/**
+ * Shared tabular team & member summary block used identically across registration confirmations
+ * and all admin-dispatched conditional / broadcast emails.
+ */
+const buildUnifiedTeamTablesHtml = (team) => {
+  const eventName = escapeHtml(getEventDisplay(team.event));
+
+  const memberRowsHtml =
+    team.members && team.members.length > 0
+      ? team.members
+          .map(
+            (m) => `
+          <tr>
+            <td style="padding:9px 10px; border:1px solid #2D3F32; color:#E8DFC8; font-size:12.5px; font-weight:600;">${escapeHtml(m.name)}</td>
+            <td style="padding:9px 10px; border:1px solid #2D3F32; color:#C7BFA9; font-size:12px; word-break:break-all;">${escapeHtml(m.email)}</td>
+          </tr>
+        `
+          )
+          .join('')
+      : `
+          <tr>
+            <td colspan="2" style="padding:10px; border:1px solid #2D3F32; text-align:center; color:#A89F88; font-size:12px;">
+              Solo Participant (Leader Only — No Additional Members)
+            </td>
+          </tr>
+        `;
+
+  return `
+    <!-- Team Details Table -->
+    <div style="margin:0 0 16px;">
+      <div style="font-size:11px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; color:#E8C574; margin-bottom:6px;">
+        Expedition Registration Details
+      </div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; background-color:#0B140F;">
+        <tr>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#A89F88; font-size:12px; font-weight:700; width:42%;">Team ID</td>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#E8C574; font-size:13px; font-weight:800; font-family:monospace;">${escapeHtml(team.teamId)}</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#A89F88; font-size:12px; font-weight:700;">Team Name</td>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#E8DFC8; font-size:12.5px; font-weight:700;">${escapeHtml(team.teamName)}</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#A89F88; font-size:12px; font-weight:700;">Leader Name</td>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#E8DFC8; font-size:12.5px;">${escapeHtml(team.leader?.name)}</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#A89F88; font-size:12px; font-weight:700;">Leader Email</td>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#E8C574; font-size:12px; word-break:break-all;">${escapeHtml(team.leader?.email)}</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#A89F88; font-size:12px; font-weight:700;">Team Size (Including Leader)</td>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#E8DFC8; font-size:12.5px; font-weight:700;">${escapeHtml(team.teamSize)} Member(s)</td>
+        </tr>
+        <tr>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#A89F88; font-size:12px; font-weight:700;">Event Name</td>
+          <td style="padding:9px 10px; border:1px solid #2D3F32; color:#6EE7B7; font-size:12.5px; font-weight:700;">${eventName}</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Additional Members Roster Table -->
+    <div style="margin:0;">
+      <div style="font-size:11px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; color:#E8C574; margin-bottom:6px;">
+        Team Members Roster (Kept in CC)
+      </div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; background-color:#0B140F;">
+        <thead>
+          <tr style="background-color:#182B20;">
+            <th style="padding:9px 10px; border:1px solid #3A4D3E; text-align:left; color:#E8C574; font-size:11.5px; text-transform:uppercase;">Member Name</th>
+            <th style="padding:9px 10px; border:1px solid #3A4D3E; text-align:left; color:#E8C574; font-size:11.5px; text-transform:uppercase;">Email</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${memberRowsHtml}
+        </tbody>
+      </table>
+    </div>
+  `;
+};
+
+/**
+ * Build Lost Civilization registration confirmation HTML following exact section order:
+ * Banner -> Salutation -> Tagline -> Congratulations + 2-line description -> Details Table ->
+ * Members Table -> Activated WhatsApp Link -> Important Social & Support Contact Footer.
+ */
+const generateRegistrationConfirmationHtml = (team) => {
   const eventName = escapeHtml(getEventDisplay(team.event));
 
   const bodyHtml = `
-    <p style="font-size:16px; line-height:1.6; margin:0 0 8px; color:#0f172a;">
-      Hello <strong>${escapeHtml(team.leader?.name)}</strong> &amp; Team,
-    </p>
-    <p style="font-size:15px; line-height:1.7; color:#334155; margin:0 0 18px;">
-      Your team <strong style="color:#0284c7;">${escapeHtml(team.teamName)}</strong> is officially registered for
-      <strong style="color:#1e3a8a;">${eventName}</strong> at <strong>${BRAND_NAME}</strong>.
+    <!-- 2. Salutation -->
+    <p style="margin:0 0 10px; font-size:15px; line-height:1.5; color:#E8DFC8;">
+      Dear <strong style="color:#E8C574;">${escapeHtml(team.leader?.name)}</strong> &amp; Team <strong style="color:#E8C574;">${escapeHtml(team.teamName)}</strong>,
     </p>
 
-    <div style="margin:0 0 22px; text-align:center; background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:14px;">
-      <div style="font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:#0369a1; font-weight:700;">Official Team Pass ID</div>
-      <div style="font-size:22px; font-weight:800; color:#0f172a; font-family:monospace; margin-top:4px;">${escapeHtml(team.teamId)}</div>
+    <!-- 3. Event Tagline -->
+    <div style="margin:0 0 14px; padding:10px 12px; background-color:#0B140F; border-left:3px solid #C69B43;">
+      <div style="font-size:11px; font-weight:800; letter-spacing:1.4px; color:#E8C574; text-transform:uppercase;">
+        ${BRAND_NAME} &bull; THE LOST CIVILIZATION
+      </div>
+      <div style="font-size:12.5px; font-weight:700; letter-spacing:0.6px; color:#C7BFA9; margin-top:2px;">
+        "${THEME_TAGLINE}"
+      </div>
     </div>
 
-    <div style="margin:0 0 22px; padding:16px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
-      <h3 style="margin:0 0 12px; font-size:16px; color:#0f172a;">Registration Overview</h3>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%; font-size:13.5px;">
-        <tr><td style="padding:7px 0; color:#64748b; font-weight:600; width:40%;">Team Name</td><td style="color:#0f172a; font-weight:700;">${escapeHtml(team.teamName)}</td></tr>
-        <tr><td style="padding:7px 0; color:#64748b; font-weight:600;">Event Arena</td><td style="color:#0284c7; font-weight:700;">${eventName}</td></tr>
-        <tr><td style="padding:7px 0; color:#64748b; font-weight:600;">Fest Dates</td><td style="color:#0f172a; font-weight:600;">${IDENTITY.festDates}</td></tr>
-        <tr><td style="padding:7px 0; color:#64748b; font-weight:600;">Registration Window</td><td style="color:#334155;">${IDENTITY.registrationWindow}</td></tr>
-        <tr><td style="padding:7px 0; color:#64748b; font-weight:600;">Team Size</td><td style="color:#0f172a; font-weight:600;">${escapeHtml(team.teamSize)} member(s)</td></tr>
-        <tr><td style="padding:7px 0; color:#64748b; font-weight:600;">Team Leader (TO)</td><td style="color:#0f172a;">${escapeHtml(team.leader?.name)} (${escapeHtml(team.leader?.email)})</td></tr>
-        <tr><td style="padding:7px 0; color:#64748b; font-weight:600;">Mobile / WhatsApp</td><td style="color:#0f172a;">${escapeHtml(team.leader?.mobile)} / ${escapeHtml(team.leader?.whatsapp || team.leader?.mobile)}</td></tr>
-        <tr><td style="padding:7px 0; color:#64748b; font-weight:600;">College</td><td style="color:#0f172a;">${escapeHtml(team.college)}</td></tr>
-        <tr><td style="padding:7px 0; color:#64748b; font-weight:600;">Branch &amp; Year</td><td style="color:#0f172a;">${escapeHtml(team.branch)} &bull; ${escapeHtml(team.year)}</td></tr>
-      </table>
-    </div>
-
-    <div style="margin:0 0 22px; overflow-x:auto;">
-      <h3 style="margin:0 0 10px; font-size:16px; color:#0f172a;">Team Roster (CC&apos;d on this Email)</h3>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
-        <tr style="background:#0f172a; text-align:left;">
-          <th style="padding:10px 12px; color:#cbd5e1; font-size:12px;">Role</th>
-          <th style="padding:10px 12px; color:#cbd5e1; font-size:12px;">Name</th>
-          <th style="padding:10px 12px; color:#cbd5e1; font-size:12px;">Email</th>
-        </tr>
-        <tr>
-          <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; color:#0284c7; font-weight:700; font-size:13px;">Leader (Primary)</td>
-          <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; color:#0f172a; font-weight:600; font-size:13px;">${escapeHtml(team.leader?.name)}</td>
-          <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; color:#475569; font-size:13px;">${escapeHtml(team.leader?.email)}</td>
-        </tr>
-        ${memberListHtml}
-      </table>
-    </div>
-
-    <div style="margin:0; padding:20px; background:linear-gradient(135deg,#064e3b,#047857); border-radius:12px; text-align:center; color:#ffffff;">
-      <h3 style="margin:0 0 8px; font-size:17px; color:#ffffff;">Official WhatsApp Community</h3>
-      <p style="margin:0 0 14px; font-size:13.5px; color:#d1fae5;">
-        Join for live schedule announcements, reporting desks, and event briefings.
+    <!-- 4. Congratulations + Team Name + 2-Line Description -->
+    <div style="margin:0 0 16px; padding:12px 14px; background-color:#15251C; border:1px solid #3A4D3E; border-radius:6px;">
+      <h2 style="margin:0 0 6px; font-size:16px; color:#E8C574; font-weight:800;">
+        Congratulations, Team ${escapeHtml(team.teamName)}!
+      </h2>
+      <p style="margin:0; font-size:13px; line-height:1.6; color:#E8DFC8;">
+        Your squad is officially registered for <strong>${eventName}</strong> at ${BRAND_NAME}, HIET Ghaziabad (${IDENTITY.festDates}).<br/>
+        Save your Team Registration ID below and ensure your full squad reports together with valid college ID cards.
       </p>
-      <a href="https://chat.whatsapp.com/KTyS5UeLX1q3wVX7omGqcg" style="display:inline-block; padding:11px 26px; background:#ffffff; color:#065f46; text-decoration:none; border-radius:999px; font-weight:700; font-size:14px;">
-        Join WhatsApp Group &rarr;
-      </a>
     </div>
+
+    ${buildUnifiedTeamTablesHtml(team)}
   `;
 
   return buildResponsiveEmailDocument({
     badgeText: 'REGISTRATION CONFIRMED',
-    title: BRAND_NAME,
-    subtitle: `${eventName} • ${IDENTITY.institute}`,
-    headerGradient: 'linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0284c7 100%)',
-    accentColor: '#0284c7',
+    title: `${BRAND_NAME} — ${team.teamName}`,
+    accentColor: '#C69B43',
     bodyHtml
   });
 };
 
-// Build clean email payload for confirmation (TO: leader, CC: deduplicated valid members)
+/**
+ * Build unified HTML for Admin Conditional / Broadcast emails so every email sent from
+ * the Admin Panel strictly follows the exact same Lost Civilization banner, salutation, tagline,
+ * team details table, members table, activated WhatsApp group, and social/support footer.
+ */
+const buildUnifiedAdminDispatchHtml = (team, { headline, message, badgeText = 'OFFICIAL UPDATE', accentColor = '#C69B43', ctaText = '', ctaLink = '' }) => {
+  const safeCtaLink = ctaLink && /^https?:\/\//i.test(ctaLink.trim()) ? ctaLink.trim() : '';
+
+  const bodyHtml = `
+    <!-- Salutation -->
+    <p style="margin:0 0 10px; font-size:15px; line-height:1.5; color:#E8DFC8;">
+      Dear <strong style="color:#E8C574;">${escapeHtml(team.leader?.name)}</strong> &amp; Team <strong style="color:#E8C574;">${escapeHtml(team.teamName)}</strong>,
+    </p>
+
+    <!-- Event Tagline -->
+    <div style="margin:0 0 14px; padding:10px 12px; background-color:#0B140F; border-left:3px solid ${accentColor};">
+      <div style="font-size:11px; font-weight:800; letter-spacing:1.4px; color:#E8C574; text-transform:uppercase;">
+        ${BRAND_NAME} &bull; THE LOST CIVILIZATION
+      </div>
+      <div style="font-size:12.5px; font-weight:700; letter-spacing:0.6px; color:#C7BFA9; margin-top:2px;">
+        "${THEME_TAGLINE}"
+      </div>
+    </div>
+
+    <!-- Congratulations / Notice & Description -->
+    <div style="margin:0 0 16px; padding:14px; background-color:#15251C; border:1px solid #3A4D3E; border-radius:6px;">
+      <h2 style="margin:0 0 8px; font-size:16px; color:#E8C574; font-weight:800;">
+        ${escapeHtml(headline || `Congratulations & Official Notice for ${team.teamName}`)}
+      </h2>
+      <div style="font-size:13.5px; line-height:1.7; color:#E8DFC8; white-space:pre-wrap;">${escapeHtml(message)}</div>
+      ${ctaText && safeCtaLink ? `
+        <div style="margin-top:14px;">
+          <a href="${escapeHtml(safeCtaLink)}" target="_blank" style="display:inline-block; padding:10px 22px; background-color:#C69B43; color:#080D0B; font-weight:800; font-size:12.5px; text-transform:uppercase; letter-spacing:0.8px; text-decoration:none; border-radius:4px;">
+            ${escapeHtml(ctaText)} &rarr;
+          </a>
+        </div>
+      ` : ''}
+    </div>
+
+    ${buildUnifiedTeamTablesHtml(team)}
+  `;
+
+  return buildResponsiveEmailDocument({
+    badgeText,
+    title: headline || BRAND_NAME,
+    accentColor,
+    bodyHtml
+  });
+};
+
 const buildTeamConfirmationEmailPayload = (team, isManual = false) => {
   if (!team.leader?.email) {
     throw new Error('Team leader email is missing');
   }
 
   const leaderEmail = team.leader.email.trim();
-  const seen = new Set([leaderEmail.toLowerCase()]);
-  const uniqueMemberEmails = [];
-
-  for (const m of team.members || []) {
-    const email = m.email?.trim();
-    if (email && email.includes('@') && !seen.has(email.toLowerCase())) {
-      seen.add(email.toLowerCase());
-      uniqueMemberEmails.push(email);
-    }
-  }
-
+  const uniqueMemberEmails = getUniqueMemberEmails(team);
   const emailHtml = generateRegistrationConfirmationHtml(team);
   const subjectPrefix = isManual ? '[Official Update] ' : '';
   const subject = `${subjectPrefix}${BRAND_NAME} Registration Confirmed – ${team.teamName} (${team.teamId})`;
@@ -453,7 +571,6 @@ const buildTeamConfirmationEmailPayload = (team, isManual = false) => {
   };
 };
 
-// Dispatch confirmation email to leader (TO) and all team members (CC) via Round Robin
 const sendTeamConfirmationWithMembersCc = async (team, isManual = false) => {
   const payload = buildTeamConfirmationEmailPayload(team, isManual);
   const mailOptions = {
@@ -474,12 +591,17 @@ const sendTeamConfirmationWithMembersCc = async (team, isManual = false) => {
 
 module.exports = {
   BRAND_NAME,
+  THEME_TAGLINE,
   FRONTEND_URL,
+  EMAIL_BANNER_URL,
+  WHATSAPP_GROUP_URL,
   IDENTITY,
   transporters,
   sendMailRoundRobin,
+  getUniqueMemberEmails,
   buildTeamConfirmationEmailPayload,
   sendTeamConfirmationWithMembersCc,
+  buildUnifiedAdminDispatchHtml,
   EVENT_DISPLAY_NAMES,
   getEventDisplay,
   escapeHtml,
