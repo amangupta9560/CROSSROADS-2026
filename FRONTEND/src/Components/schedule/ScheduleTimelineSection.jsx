@@ -66,7 +66,7 @@ export default function ScheduleTimelineSection({
       >
         <img
           src="/assets/lost-civilization/stone-texture.webp"
-          alt=""
+          alt="Weathered temple stone tablet wall backdrop"
           loading="lazy"
           className="w-full h-full object-cover opacity-24"
         />

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import '../Components/home/lostCivilization.css';
+import SeoHead from '../Components/common/SeoHead.jsx';
 import PreloaderCurtain from '../Components/home/PreloaderCurtain.jsx';
 import ScrollHudRail from '../Components/home/ScrollHudRail.jsx';
 import HeroSection from '../Components/home/HeroSection.jsx';
@@ -11,6 +12,13 @@ import PrizeShowcase from '../Components/home/PrizeShowcase.jsx';
 import LeadershipSection from '../Components/home/LeadershipSection.jsx';
 import FAQSection from '../Components/home/FAQSection.jsx';
 import FinalGateway from '../Components/home/FinalGateway.jsx';
+import { faqs } from '../Components/home/homeData.js';
+import {
+  ROUTE_PATHS,
+  buildFestivalJsonLd,
+  buildOrganizationJsonLd,
+  buildWebsiteJsonLd,
+} from '../config/siteConfig.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -26,6 +34,27 @@ const Home = () => {
   const [openFAQ, setOpenFAQ] = useState(null);
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [teamCategory, setTeamCategory] = useState('All');
+
+  const jsonLd = useMemo(
+    () => [
+      buildOrganizationJsonLd(),
+      buildWebsiteJsonLd(),
+      buildFestivalJsonLd(),
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.answer,
+          },
+        })),
+      },
+    ],
+    []
+  );
 
   // Live countdown to February 5, 2027, 09:00 AM IST & backend registration status fetch
   useEffect(() => {
@@ -96,6 +125,12 @@ const Home = () => {
 
   return (
     <main className="lc-root min-h-screen overflow-x-clip relative selection:bg-[#C69B43] selection:text-[#080D0B]">
+      <SeoHead
+        title="CROSSROADS 2027 — THE LOST CIVILIZATION | HIET Ghaziabad Tech Fest"
+        description="BEYOND THE KNOWN. INTO THE UNKNOWN. Join CROSSROADS 2027, the annual inter-college technical and cultural festival at HIET Ghaziabad on February 5–6, 2027. Free registrations open Jan 10 – Jan 31, 2027."
+        path={ROUTE_PATHS.home}
+        jsonLd={jsonLd}
+      />
       <PreloaderCurtain />
       <ScrollHudRail />
       <HeroSection timeLeft={timeLeft} registrationOpen={registrationOpen} />

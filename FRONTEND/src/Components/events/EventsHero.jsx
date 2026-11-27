@@ -3,6 +3,7 @@ import { AnimatePresence, motion as Motion, useReducedMotion, useScroll, useTran
 import { Calendar, Clock, Compass, Sparkles } from 'lucide-react';
 import FloatingParticles from '../home/FloatingParticles.jsx';
 import { CornerFiligree, TempleDivider } from '../home/OrnamentDivider.jsx';
+import Breadcrumbs from '../common/Breadcrumbs.jsx';
 import { AncientSunDisc, JungleFoliageLeft, JungleFoliageRight } from '../about/JungleCanopyVectors.jsx';
 import GhostTypeText from '../about/GhostTypeText.jsx';
 
@@ -34,7 +35,7 @@ function checkWebGL() {
   }
 }
 
-export default function EventsHero({ timeLeft }) {
+export default function EventsHero({ timeLeft, selectedEvent = null }) {
   const prefersReducedMotion = useReducedMotion();
   const heroRef = useRef(null);
   const [webGLOk, setWebGLOk] = useState(() => checkWebGL());
@@ -140,6 +141,22 @@ export default function EventsHero({ timeLeft }) {
         style={!prefersReducedMotion ? { y: contentY } : undefined}
         className="relative z-10 max-w-5xl mx-auto w-full text-center"
       >
+        <div className="mb-4 flex justify-center">
+          <Breadcrumbs
+            items={
+              selectedEvent
+                ? [
+                    { name: 'Home', path: '/' },
+                    { name: 'Events', path: '/events' },
+                    { name: selectedEvent.name },
+                  ]
+                : [
+                    { name: 'Home', path: '/' },
+                    { name: 'Events' },
+                  ]
+            }
+          />
+        </div>
         <Motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}

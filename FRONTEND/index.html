@@ -4,19 +4,31 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CROSSROADS 2027 — THE LOST CIVILIZATION | HIET Tech Fest</title>
+    <title>CROSSROADS 2027 — THE LOST CIVILIZATION | HIET Ghaziabad Tech Fest</title>
     <meta
       name="description"
-      content="BEYOND THE KNOWN. INTO THE UNKNOWN. Join CROSSROADS 2027, the annual technical and cultural festival of HIET Ghaziabad on February 5–6, 2027. Registrations open Jan 10 – Jan 31, 2027."
+      content="BEYOND THE KNOWN. INTO THE UNKNOWN. Join CROSSROADS 2027, the annual technical and cultural festival of HIET Ghaziabad on February 5–6, 2027. Free online squad registrations open Jan 10 – Jan 31, 2027."
     />
     <meta
       name="keywords"
       content="CROSSROADS 2027, THE LOST CIVILIZATION, CROSSROADS HIET, HIET Tech Fest, HIET Technical Fest 2027, Team Tech Fusion, college tech fest, engineering college fest, technical fest in Ghaziabad, coding competition, robotics competition, project exhibition, treasure hunt, HIET Ghaziabad"
     />
     <meta name="author" content="Team Tech Fusion | HIET Ghaziabad" />
+    <meta name="application-name" content="CROSSROADS 2027" />
+    <meta name="theme-color" content="#080D0B" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Canonical & Discovery -->
     <link rel="canonical" href="https://crossroads-hiet.netlify.app/" />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -26,19 +38,21 @@
       rel="stylesheet"
     />
 
-    <!-- Open Graph / Social Banner (Using email banner.png) -->
+    <!-- Open Graph / Social Share Banner (1200x630 optimized) -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_IN" />
     <meta property="og:site_name" content="CROSSROADS 2027" />
     <meta property="og:title" content="CROSSROADS 2027 — THE LOST CIVILIZATION | HIET Ghaziabad" />
     <meta
       property="og:description"
-      content="BEYOND THE KNOWN. INTO THE UNKNOWN. 11+ technical & cultural arenas at HIET Ghaziabad on Feb 05–06, 2027. Registrations open Jan 10 – Jan 31, 2027."
+      content="BEYOND THE KNOWN. INTO THE UNKNOWN. 11 technical & cultural arenas at HIET Ghaziabad on Feb 05–06, 2027. Free registrations open Jan 10 – Jan 31, 2027."
     />
     <meta property="og:url" content="https://crossroads-hiet.netlify.app/" />
-    <meta property="og:image" content="https://crossroads-hiet.netlify.app/email%20banner.png" />
-    <meta property="og:image:secure_url" content="https://crossroads-hiet.netlify.app/email%20banner.png" />
-    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image" content="https://crossroads-hiet.netlify.app/og-banner.jpg" />
+    <meta property="og:image:secure_url" content="https://crossroads-hiet.netlify.app/og-banner.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="CROSSROADS 2027 — THE LOST CIVILIZATION Official Fest Banner" />
 
     <!-- Twitter / X Large Summary Banner Card -->
@@ -48,15 +62,104 @@
       name="twitter:description"
       content="BEYOND THE KNOWN. INTO THE UNKNOWN. Enter the Lost Civilization at HIET Ghaziabad on Feb 05–06, 2027."
     />
-    <meta name="twitter:image" content="https://crossroads-hiet.netlify.app/email%20banner.png" />
+    <meta name="twitter:image" content="https://crossroads-hiet.netlify.app/og-banner.jpg" />
     <meta name="twitter:image:alt" content="CROSSROADS 2027 — THE LOST CIVILIZATION Official Fest Banner" />
 
-    <meta name="theme-color" content="#080D0B" />
-    <meta name="robots" content="index, follow" />
-    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
-
-    <!-- Google tag (gtag.js) -->
-    
+    <!-- Base Local Business / Educational Organization & Festival Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["EducationalOrganization", "LocalBusiness"],
+            "@id": "https://crossroads-hiet.netlify.app/#organization",
+            "name": "Hi-Tech Institute of Engineering and Technology (HIET Ghaziabad)",
+            "alternateName": ["HIET Ghaziabad", "CROSSROADS HIET", "Team Tech Fusion"],
+            "description": "Hi-Tech Institute of Engineering and Technology (HIET), Ghaziabad — host institution of CROSSROADS 2027, an annual inter-college technical and cultural festival organized by Team Tech Fusion.",
+            "url": "https://crossroads-hiet.netlify.app/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://crossroads-hiet.netlify.app/icon-512.png",
+              "width": 512,
+              "height": 512
+            },
+            "image": "https://crossroads-hiet.netlify.app/og-banner.jpg",
+            "telephone": "+91-8802323375",
+            "email": "techfusion@hietgroup.org",
+            "priceRange": "Free",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Plot No. 766, 26th KM Milestone, NH-9",
+              "addressLocality": "Ghaziabad",
+              "addressRegion": "Uttar Pradesh",
+              "postalCode": "201015",
+              "addressCountry": "IN"
+            },
+            "geo": {
+              "@type": "GeoCoordinates",
+              "latitude": 28.6863,
+              "longitude": 77.5037
+            },
+            "openingHoursSpecification": [
+              {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+                "opens": "09:00",
+                "closes": "17:00"
+              }
+            ],
+            "sameAs": [
+              "https://hiet.org/",
+              "https://linkedin.com/company/hiet-techfusion",
+              "https://www.instagram.com/hiet.techfusion",
+              "https://www.youtube.com/@hietgroup"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://crossroads-hiet.netlify.app/#website",
+            "name": "CROSSROADS 2027 — HIET Ghaziabad",
+            "alternateName": "CROSSROADS HIET Ghaziabad",
+            "url": "https://crossroads-hiet.netlify.app/",
+            "publisher": { "@id": "https://crossroads-hiet.netlify.app/#organization" }
+          },
+          {
+            "@type": "Festival",
+            "@id": "https://crossroads-hiet.netlify.app/#festival",
+            "name": "CROSSROADS 2027 — THE LOST CIVILIZATION",
+            "description": "Annual inter-college technical and cultural festival hosted by HIET Ghaziabad featuring 11 flagship arenas across coding, robotics, exhibitions, cultural acts, and treasure hunt.",
+            "startDate": "2027-02-05T08:50:00+05:30",
+            "endDate": "2027-02-06T20:00:00+05:30",
+            "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+            "isAccessibleForFree": true,
+            "image": ["https://crossroads-hiet.netlify.app/og-banner.jpg"],
+            "url": "https://crossroads-hiet.netlify.app/",
+            "location": {
+              "@type": "Place",
+              "name": "Hi-Tech Institute of Engineering and Technology Campus",
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "Plot No. 766, 26th KM Milestone, NH-9",
+                "addressLocality": "Ghaziabad",
+                "addressRegion": "Uttar Pradesh",
+                "postalCode": "201015",
+                "addressCountry": "IN"
+              }
+            },
+            "organizer": { "@id": "https://crossroads-hiet.netlify.app/#organization" },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "INR",
+              "availability": "https://schema.org/InStock",
+              "validFrom": "2027-01-10T00:00:00+05:30",
+              "url": "https://crossroads-hiet.netlify.app/register"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
 
   <body>

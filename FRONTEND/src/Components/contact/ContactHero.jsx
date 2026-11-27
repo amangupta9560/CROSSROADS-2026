@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { motion as Motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, Compass, Mail, Sparkles } from 'lucide-react';
-import { FaWhatsapp } from 'react-icons/fa';
+import WhatsAppIcon from '../common/WhatsAppIcon.jsx';
+import Breadcrumbs from '../common/Breadcrumbs.jsx';
 import { CornerFiligree, TempleDivider } from '../home/OrnamentDivider.jsx';
 import FloatingParticles from '../home/FloatingParticles.jsx';
 import GhostTypeText from '../about/GhostTypeText.jsx';
@@ -140,7 +141,7 @@ export default function ContactHero() {
         />
         <img
           src="/assets/lost-civilization/parchment-map.webp"
-          alt=""
+          alt="Expedition navigation parchment overlay"
           className="w-full h-full object-cover opacity-15 mix-blend-overlay"
         />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(198,155,67,0.14)_0%,rgba(16,29,22,0.72)_48%,rgba(8,13,11,0.97)_100%)]" />
@@ -190,6 +191,14 @@ export default function ContactHero() {
         style={!prefersReduced ? { y: contentY, opacity: contentOpacity } : undefined}
         className="relative z-10 max-w-5xl mx-auto w-full text-center will-change-transform"
       >
+        <div className="mb-4 flex justify-center">
+          <Breadcrumbs
+            items={[
+              { name: 'Home', path: '/' },
+              { name: 'Contact' },
+            ]}
+          />
+        </div>
         <Motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -238,7 +247,7 @@ export default function ContactHero() {
           <DispatchCard
             href="https://wa.me/918802323375"
             external
-            icon={FaWhatsapp}
+            icon={WhatsAppIcon}
             badge="INSTANT SIGNAL"
             title="WhatsApp"
             subtitle="Chat with us instantly"

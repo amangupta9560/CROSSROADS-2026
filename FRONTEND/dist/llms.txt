@@ -1,0 +1,38 @@
+# CROSSROADS 2027 — THE LOST CIVILIZATION
+
+> Official inter-college annual technical and cultural festival hosted by Hi-Tech Institute of Engineering and Technology (HIET Ghaziabad) and organized by Team Tech Fusion, taking place on February 05–06, 2027.
+
+- Canonical Site URL: https://crossroads-hiet.netlify.app/
+- Tagline: BEYOND THE KNOWN. INTO THE UNKNOWN.
+- Event Dates: February 05–06, 2027
+- Registration Window: January 10 – January 31, 2027 (Free Entry)
+- Participation Cap: Maximum 2 events per student (same student email or phone blocked after 2 arenas)
+- Prize Pool: ₹1,00,000+ across 11 flagship arenas
+- Campus Location: Hi-Tech Institute of Engineering and Technology (HIET), Plot No. 766, 26th KM Milestone, NH-9, Ghaziabad, Uttar Pradesh 201015, India
+- Contact Email: techfusion@hietgroup.org
+- Official Helpline / WhatsApp: +91 8802323375
+- Official Participant Group: https://chat.whatsapp.com/DaK4uonBMwd4k7s8Pv7RNu
+
+## Primary Navigation & Clean URLs
+
+- [Home](https://crossroads-hiet.netlify.app/): Event overview, live countdown to Feb 05, 2027, featured arenas, prizes, leadership council, and FAQs.
+- [About CROSSROADS 2027](https://crossroads-hiet.netlify.app/about): Origins, vision and mission, eligibility rules, milestones, and Team Tech Fusion story.
+- [Events & Arenas](https://crossroads-hiet.netlify.app/events): Full catalog of 11 technical, robotics, cultural, culinary, adventure, and ceremony arenas with rulebook PDFs.
+- [Event Schedule](https://crossroads-hiet.netlify.app/schedule): Complete Day 1 (Feb 05, 2027) and Day 2 (Feb 06, 2027) timetable with campus venues.
+- [Leadership & Team](https://crossroads-hiet.netlify.app/team): HIET Ghaziabad leadership council, advisory board, and faculty heads of department.
+- [Squad Registration](https://crossroads-hiet.netlify.app/register): Zero-fee online registration portal supporting team autosave, unique ID assignment (`HIET/CR/2027/xxx`), and instant email confirmation passes.
+- [Contact Us](https://crossroads-hiet.netlify.app/contact): Coordinator dispatch form, WhatsApp/email channels, and campus directions.
+
+## Competition Arenas (Clean Slugs)
+
+- [Code Puzzle](https://crossroads-hiet.netlify.app/events/code-puzzle): Solo coding sprint (20 minutes, Feb 05, 2027, Block 1 Computer Lab).
+- [Project Exhibition](https://crossroads-hiet.netlify.app/events/project-exhibition): Working engineering/software prototypes (1–4 members, Feb 05, 2027, Exhibition Ground).
+- [Robo Race](https://crossroads-hiet.netlify.app/events/robo-race): Obstacle-track robot racing, max 3 kg & 12V (1–4 members, Feb 05, 2027, Block 3 Ground).
+- [Dance Competition](https://crossroads-hiet.netlify.app/events/dance-competition): Solo stage choreography (1 member, Feb 05, 2027, Amphitheatre).
+- [Rangoli Competition](https://crossroads-hiet.netlify.app/events/rangoli-competition): 5x5 ft Nature-themed rangoli (1–3 members, Feb 05, 2027, Amphitheatre).
+- [Food Without Fire](https://crossroads-hiet.netlify.app/events/food-without-fire): No-cook culinary challenge (1–4 members, Feb 06, 2027, Block 3 Corridor Area).
+- [Technical Poster Competition](https://crossroads-hiet.netlify.app/events/technical-poster): Original handmade technical chart posters (1–4 members, Feb 05, 2027, Block 3 304 / Stage).
+- [Rock Band & Cultural Performances](https://crossroads-hiet.netlify.app/events/rock-band): Live music & amphitheatre showcase (1–4 members, Feb 05, 2027, Amphitheatre).
+- [Short Film Making](https://crossroads-hiet.netlify.app/events/short-film-making): 30–60 sec on-campus short film sprint (1–2 members, Feb 06, 2027, Block 1 Lab F).
+- [Treasure Hunt](https://crossroads-hiet.netlify.app/events/treasure-hunt): Campus-wide cryptic clue expedition (5–8 members, Feb 06, 2027, Block 3 Ground).
+- [Crossroads Award & Closing](https://crossroads-hiet.netlify.app/events/closing-ceremony): Grand closing & rolling trophy awards (Feb 06, 2027, Amphitheatre).

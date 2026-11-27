@@ -1,8 +1,9 @@
-import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Component, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { motion as Motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, Sparkles, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import '../Components/home/lostCivilization.css';
+import SeoHead from '../Components/common/SeoHead.jsx';
 import StackingChapter from '../Components/about/StackingChapter.jsx';
 import FloatingParticles from '../Components/home/FloatingParticles.jsx';
 import { TempleDivider } from '../Components/home/OrnamentDivider.jsx';
@@ -11,6 +12,7 @@ import { SCHEDULE_DATA } from '../Components/schedule/scheduleData.js';
 import ScheduleScrollProgress from '../Components/schedule/ScheduleScrollProgress.jsx';
 import ScheduleHero from '../Components/schedule/ScheduleHero.jsx';
 import ScheduleTimelineSection from '../Components/schedule/ScheduleTimelineSection.jsx';
+import { ROUTE_PATHS, SITE_URL, buildBreadcrumbJsonLd } from '../config/siteConfig.js';
 
 const ExplorerCharacter3D = lazy(() =>
   import('../Components/schedule/ExplorerCharacter3D.jsx')
@@ -165,8 +167,37 @@ export default function Schedule() {
 
   const showWebGLExplorer = webGLOk && !prefersReduced;
 
+  const jsonLd = useMemo(
+    () => [
+      buildBreadcrumbJsonLd([
+        { name: 'Home', path: ROUTE_PATHS.home },
+        { name: 'Schedule', path: ROUTE_PATHS.schedule },
+      ]),
+      {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: 'CROSSROADS 2027 Two-Day Event Schedule',
+        url: `${SITE_URL}/schedule`,
+        itemListElement: [...(SCHEDULE_DATA['Day 1'] || []), ...(SCHEDULE_DATA['Day 2'] || [])].map(
+          (slot, idx) => ({
+            '@type': 'ListItem',
+            position: idx + 1,
+            name: `${slot.title} (${slot.time} — ${slot.venue})`,
+          })
+        ),
+      },
+    ],
+    []
+  );
+
   return (
     <main className="lc-root min-h-[100dvh] overflow-x-clip relative selection:bg-[#C69B43] selection:text-[#080D0B]">
+      <SeoHead
+        title="Event Schedule (Feb 05–06, 2027) | CROSSROADS 2027 — HIET Ghaziabad"
+        description="View the complete Day 1 (Feb 05) and Day 2 (Feb 06) event schedule, competition slots, and campus venues for CROSSROADS 2027 at HIET Ghaziabad."
+        path={ROUTE_PATHS.schedule}
+        jsonLd={jsonLd}
+      />
       <ScheduleScrollProgress />
 
       {/* 3D Temple Explorer Character traversing card-to-card across scroll & cursor */}
@@ -270,7 +301,7 @@ export default function Schedule() {
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5 max-w-md mx-auto">
               <Link
-                to="/event-registration"
+                to={ROUTE_PATHS.register}
                 className="lc-gold-btn lc-font-heading flex-1 px-7 py-4 rounded-sm font-extrabold text-xs sm:text-sm uppercase tracking-[0.16em] inline-flex items-center justify-center gap-2 group"
               >
                 <span>Register Your Squad</span>

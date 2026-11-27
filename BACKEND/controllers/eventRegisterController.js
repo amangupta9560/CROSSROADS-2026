@@ -57,29 +57,43 @@ const recordFailedRegistration = async (req, meta = {}) => {
       req?.socket?.remoteAddress ||
       '';
 
+    const clampedSize = Math.min(
+      Math.max(parseInt(body.teamSize, 10) || parsedMembers.length + 1, 1),
+      8
+    );
+
+    const sanitizedSummary = {
+      teamName: String(body.teamName || '').trim().slice(0, 120),
+      event: String(body.event || '').trim().slice(0, 60),
+      teamSize: clampedSize,
+      college: String(body.college || '').trim().slice(0, 180),
+      branch: String(body.branch || '').trim().slice(0, 120),
+      year: String(body.year || '').trim().slice(0, 40)
+    };
+
     await FailedRegistration.create({
       errorType: meta.errorType || 'server_error',
       httpStatus: meta.httpStatus || 500,
       errorMessage: String(meta.errorMessage || 'Unknown registration issue').slice(0, 1000),
-      errorField: String(meta.errorField || ''),
+      errorField: String(meta.errorField || '').slice(0, 80),
       errorStep: Number.isFinite(meta.errorStep) ? meta.errorStep : 0,
       source: meta.source || 'backend_register',
-      teamName: String(body.teamName || '').trim(),
+      teamName: sanitizedSummary.teamName,
       leader: {
         name: leaderName,
         email: leaderEmail,
         mobile: leaderMobile,
         whatsapp: leaderWhatsapp
       },
-      college: String(body.college || '').trim(),
-      customCollege: String(body.customCollege || '').trim(),
-      course: String(body.course || '').trim(),
-      branch: String(body.branch || '').trim(),
-      year: String(body.year || '').trim(),
-      event: String(body.event || '').trim(),
-      teamSize: Number(body.teamSize) || Math.max(1, parsedMembers.length + 1),
+      college: sanitizedSummary.college,
+      customCollege: String(body.customCollege || '').trim().slice(0, 180),
+      course: String(body.course || '').trim().slice(0, 80),
+      branch: sanitizedSummary.branch,
+      year: sanitizedSummary.year,
+      event: sanitizedSummary.event,
+      teamSize: clampedSize,
       members: parsedMembers,
-      rawPayload: body,
+      rawPayload: sanitizedSummary,
       userAgent: String(req?.headers?.['user-agent'] || '').slice(0, 300),
       clientIp: String(ip).slice(0, 120),
       followUpStatus: 'pending',
@@ -173,7 +187,7 @@ const validateSquadUniquenessAndCaps = async ({
         ok: false,
         field: 'teamName',
         step: 0,
-        message: `Team name "${existingTeamName.teamName}" is already registered (${existingTeamName.teamId}). Please edit and pick another team name.`
+        message: `Team name "${existingTeamName.teamName}" is already registered. Please edit and pick another team name.`
       };
     }
   }
@@ -248,12 +262,11 @@ const validateSquadUniquenessAndCaps = async ({
           };
         }
         if (evs.size >= MAX_EVENTS_PER_PERSON) {
-          const joinedList = Array.from(evs).map(getEventDisplay).join(' & ');
           return {
             ok: false,
             field: emailField,
             step: stepIndex,
-            message: `${personLabel} ("${email}") has already joined ${MAX_EVENTS_PER_PERSON} events (${joinedList}). Maximum ${MAX_EVENTS_PER_PERSON} events allowed per participant.`
+            message: `${personLabel} ("${email}") has already reached the maximum limit of ${MAX_EVENTS_PER_PERSON} events per participant.`
           };
         }
       }
@@ -271,12 +284,11 @@ const validateSquadUniquenessAndCaps = async ({
           };
         }
         if (evs.size >= MAX_EVENTS_PER_PERSON) {
-          const joinedList = Array.from(evs).map(getEventDisplay).join(' & ');
           return {
             ok: false,
             field: mobileField,
             step: stepIndex,
-            message: `${personLabel} mobile "${mobile}" has already reached the maximum limit of ${MAX_EVENTS_PER_PERSON} events (${joinedList}).`
+            message: `${personLabel} mobile "${mobile}" has already reached the maximum limit of ${MAX_EVENTS_PER_PERSON} events.`
           };
         }
       }
@@ -339,6 +351,17 @@ const checkRegistrationAvailability = async (req, res) => {
       members = []
     } = req.body || {};
 
+    if (
+      (teamName !== undefined && typeof teamName !== 'string') ||
+      (leaderEmail !== undefined && typeof leaderEmail !== 'string') ||
+      (leaderMobile !== undefined && typeof leaderMobile !== 'string') ||
+      (leaderWhatsapp !== undefined && typeof leaderWhatsapp !== 'string') ||
+      (event !== undefined && typeof event !== 'string') ||
+      !Array.isArray(members)
+    ) {
+      return res.status(400).json({ message: 'Invalid field format in availability check' });
+    }
+
     const result = await validateSquadUniquenessAndCaps({
       teamName,
       leaderEmail,
@@ -394,16 +417,21 @@ const reportClientRegistrationIssue = async (req, res) => {
       errorStep = 0
     } = req.body || {};
 
-    if (!errorMessage) {
+    const ALLOWED_ISSUE_TYPES = new Set(['client_submit_error', 'network_timeout']);
+    const safeErrorType = ALLOWED_ISSUE_TYPES.has(errorType) ? errorType : 'client_submit_error';
+    const rawStatus = Number(httpStatus);
+    const safeHttpStatus = Number.isInteger(rawStatus) ? Math.min(Math.max(rawStatus, 0), 599) : 0;
+
+    if (!errorMessage || typeof errorMessage !== 'string') {
       return res.status(400).json({ message: 'errorMessage is required' });
     }
 
     await recordFailedRegistration(req, {
-      errorType,
-      httpStatus,
-      errorMessage,
-      errorField,
-      errorStep,
+      errorType: safeErrorType,
+      httpStatus: safeHttpStatus,
+      errorMessage: errorMessage.slice(0, 500),
+      errorField: typeof errorField === 'string' ? errorField.slice(0, 60) : '',
+      errorStep: Number.isInteger(Number(errorStep)) ? Number(errorStep) : 0,
       source: 'frontend_fallback'
     });
 
@@ -482,16 +510,26 @@ const registerEventTeam = async (req, res) => {
     }
 
     if (
-      !teamName?.trim() ||
-      !leaderName?.trim() ||
-      !leaderEmail ||
+      typeof teamName !== 'string' ||
+      typeof leaderName !== 'string' ||
+      typeof leaderEmail !== 'string' ||
+      !teamName.trim() ||
+      !leaderName.trim() ||
+      !leaderEmail.trim() ||
       !leaderMobile ||
       !leaderWhatsapp
     ) {
       return failAndLog(400, { step: 0, message: 'Leader details are required' });
     }
 
-    if (!college?.trim() || !branch?.trim() || !year?.trim()) {
+    if (
+      typeof college !== 'string' ||
+      typeof branch !== 'string' ||
+      typeof year !== 'string' ||
+      !college.trim() ||
+      !branch.trim() ||
+      !year.trim()
+    ) {
       return failAndLog(400, {
         step: 0,
         message: 'College, branch, and academic year are required'
@@ -532,11 +570,12 @@ const registerEventTeam = async (req, res) => {
       });
     }
 
-    const teamSizeNum = parseInt(teamSize, 10);
+    const teamSizeStr = String(teamSize ?? '').trim();
+    const teamSizeNum = /^\d+$/.test(teamSizeStr) ? Number(teamSizeStr) : NaN;
     const [minSize, maxSize] = EVENT_SIZE_LIMITS[event] || [1, 4];
     const eventDisplay = getEventDisplay(event);
 
-    if (Number.isNaN(teamSizeNum) || teamSizeNum < minSize || teamSizeNum > maxSize) {
+    if (!Number.isInteger(teamSizeNum) || teamSizeNum < minSize || teamSizeNum > maxSize) {
       return failAndLog(400, {
         field: 'teamSize',
         step: 0,

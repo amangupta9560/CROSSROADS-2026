@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion as Motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, Compass } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import '../Components/home/lostCivilization.css';
+import SeoHead from '../Components/common/SeoHead.jsx';
 import StackingChapter from '../Components/about/StackingChapter.jsx';
 import FloatingParticles from '../Components/home/FloatingParticles.jsx';
 import { TempleDivider } from '../Components/home/OrnamentDivider.jsx';
@@ -13,9 +14,20 @@ import EventsGridSection from '../Components/events/EventsGridSection.jsx';
 import HallOfFameSection from '../Components/events/HallOfFameSection.jsx';
 import EventDetailModal from '../Components/events/EventDetailModal.jsx';
 import EventsScrollProgress from '../Components/events/EventsScrollProgress.jsx';
+import NotFound from './NotFound.jsx';
+import {
+  INSTITUTE_INFO,
+  OG_IMAGE_URL,
+  ROUTE_PATHS,
+  SITE_URL,
+  buildBreadcrumbJsonLd,
+  normalizeEventUrlSlug,
+} from '../config/siteConfig.js';
 
 const Events = () => {
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  const { eventSlug } = useParams();
+  const navigate = useNavigate();
+
   const [filter, setFilter] = useState('All');
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -28,6 +40,18 @@ const Events = () => {
     registrationOpen: true,
     eventStatus: {},
   });
+
+  const normalizedSlug = eventSlug ? normalizeEventUrlSlug(eventSlug) : '';
+  const selectedEvent = useMemo(() => {
+    if (!normalizedSlug) return null;
+    return (
+      eventsList.find(
+        (ev) => ev.urlSlug === normalizedSlug || ev.eventSlug === normalizedSlug
+      ) || null
+    );
+  }, [normalizedSlug]);
+
+  const isInvalidSlug = Boolean(eventSlug && !selectedEvent);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -66,11 +90,11 @@ const Events = () => {
   useEffect(() => {
     if (!selectedEvent) return undefined;
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') setSelectedEvent(null);
+      if (e.key === 'Escape') navigate(ROUTE_PATHS.events);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedEvent]);
+  }, [selectedEvent, navigate]);
 
   const prefersReducedMotion = useReducedMotion();
   const gatewayRef = useRef(null);
@@ -83,17 +107,110 @@ const Events = () => {
   const leftGateX = useTransform(gatewayScroll, [0, 0.7], ['0%', '-18%']);
   const rightGateX = useTransform(gatewayScroll, [0, 0.7], ['0%', '18%']);
 
+  const jsonLd = useMemo(() => {
+    if (selectedEvent) {
+      return [
+        buildBreadcrumbJsonLd([
+          { name: 'Home', path: ROUTE_PATHS.home },
+          { name: 'Events', path: ROUTE_PATHS.events },
+          { name: selectedEvent.name, path: `/events/${selectedEvent.urlSlug}` },
+        ]),
+        {
+          '@context': 'https://schema.org',
+          '@type': 'Event',
+          name: `${selectedEvent.name} — CROSSROADS 2027`,
+          description: selectedEvent.details.description,
+          startDate: selectedEvent.startDateIso || '2027-02-05T10:00:00+05:30',
+          endDate: selectedEvent.endDateIso || '2027-02-05T14:00:00+05:30',
+          eventStatus: 'https://schema.org/EventScheduled',
+          eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+          isAccessibleForFree: true,
+          image: [OG_IMAGE_URL],
+          url: `${SITE_URL}/events/${selectedEvent.urlSlug}`,
+          location: {
+            '@type': 'Place',
+            name: `${selectedEvent.details.location}, ${INSTITUTE_INFO.name}`,
+            address: {
+              '@type': 'PostalAddress',
+              streetAddress: INSTITUTE_INFO.streetAddress,
+              addressLocality: INSTITUTE_INFO.city,
+              addressRegion: INSTITUTE_INFO.region,
+              postalCode: INSTITUTE_INFO.postalCode,
+              addressCountry: INSTITUTE_INFO.country,
+            },
+          },
+          organizer: { '@id': `${SITE_URL}/#organization` },
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'INR',
+            availability: 'https://schema.org/InStock',
+            url: selectedEvent.eventSlug
+              ? `${SITE_URL}/register?event=${selectedEvent.eventSlug}`
+              : `${SITE_URL}/schedule`,
+          },
+        },
+      ];
+    }
+
+    return [
+      buildBreadcrumbJsonLd([
+        { name: 'Home', path: ROUTE_PATHS.home },
+        { name: 'Events', path: ROUTE_PATHS.events },
+      ]),
+      {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: 'CROSSROADS 2027 Official Competition Arenas',
+        numberOfItems: eventsList.length,
+        itemListElement: eventsList.map((ev, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: ev.name,
+          url: `${SITE_URL}/events/${ev.urlSlug}`,
+        })),
+      },
+    ];
+  }, [selectedEvent]);
+
+  if (isInvalidSlug) {
+    return <NotFound />;
+  }
+
   const categories = ['All', 'Technical', 'Cultural', 'Adventure', 'Ceremony'];
   const filteredEvents =
     filter === 'All' ? eventsList : eventsList.filter((e) => e.category === filter);
 
+  const handleSelectEvent = (ev) => {
+    navigate(`/events/${ev.urlSlug}`);
+  };
+
+  const handleCloseModal = () => {
+    navigate(ROUTE_PATHS.events);
+  };
+
   return (
     <main className="lc-root min-h-[100dvh] overflow-x-clip relative selection:bg-[#C69B43] selection:text-[#080D0B]">
+      <SeoHead
+        title={
+          selectedEvent
+            ? `${selectedEvent.name} (${selectedEvent.dayBadge}) | CROSSROADS 2027 — HIET Ghaziabad`
+            : 'Events & 11 Competition Arenas | CROSSROADS 2027 — HIET Ghaziabad'
+        }
+        description={
+          selectedEvent
+            ? `${selectedEvent.details.description} Venue: ${selectedEvent.details.location}. Free registration for students at HIET Ghaziabad.`
+            : 'Explore all 11 technical, robotics, coding, cultural, culinary, and adventure arenas at CROSSROADS 2027 on Feb 05–06, 2027 at HIET Ghaziabad.'
+        }
+        path={selectedEvent ? `/events/${selectedEvent.urlSlug}` : ROUTE_PATHS.events}
+        jsonLd={jsonLd}
+      />
+
       <EventsScrollProgress />
 
       {/* Stacked Chapter 01: Events Hero & Countdown */}
       <StackingChapter anchorId="events-hero" zIndex={10} isFirst>
-        <EventsHero timeLeft={timeLeft} />
+        <EventsHero timeLeft={timeLeft} selectedEvent={selectedEvent} />
       </StackingChapter>
 
       {/* Stacked Chapter 02: 11 Flagship Arenas & Filter Grid */}
@@ -103,7 +220,7 @@ const Events = () => {
           filter={filter}
           setFilter={setFilter}
           filteredEvents={filteredEvents}
-          onSelectEvent={setSelectedEvent}
+          onSelectEvent={handleSelectEvent}
         />
       </StackingChapter>
 
@@ -183,7 +300,7 @@ const Events = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5 max-w-md mx-auto">
               {siteSettings.registrationOpen ? (
                 <Link
-                  to="/event-registration"
+                  to={ROUTE_PATHS.register}
                   className="lc-gold-btn lc-font-heading flex-1 px-7 py-4 rounded-sm font-extrabold text-xs sm:text-sm uppercase tracking-[0.16em] inline-flex items-center justify-center gap-2 group"
                 >
                   <span>Register Your Squad</span>
@@ -203,7 +320,7 @@ const Events = () => {
               )}
 
               <Link
-                to="/schedule"
+                to={ROUTE_PATHS.schedule}
                 className="lc-stone-btn lc-font-heading px-6 py-4 rounded-sm font-bold text-xs sm:text-sm uppercase tracking-[0.16em] inline-flex items-center justify-center gap-2"
               >
                 <span>View Schedule</span>
@@ -214,10 +331,10 @@ const Events = () => {
         </section>
       </StackingChapter>
 
-      {/* Event Detail Modal */}
+      {/* Event Detail Modal synced with clean /events/:eventSlug URL */}
       <EventDetailModal
         selectedEvent={selectedEvent}
-        onClose={() => setSelectedEvent(null)}
+        onClose={handleCloseModal}
         siteSettings={siteSettings}
       />
     </main>

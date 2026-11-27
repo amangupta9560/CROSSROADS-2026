@@ -18,17 +18,17 @@ import { CornerFiligree, TempleDivider } from '../Components/home/OrnamentDivide
 
 const Footer = () => {
   const events = [
-    'Code Puzzle',
-    'Project Exhibition',
-    'Robo Race',
-    'Technical Poster',
-    'Cultural Events',
-    'Dance Competition',
-    'Rock Band',
-    'Rangoli Competition',
-    'Food Without Fire',
-    'Short Film Making',
-    'Treasure Hunt',
+    { label: 'Code Puzzle', slug: 'code-puzzle' },
+    { label: 'Project Exhibition', slug: 'project-exhibition' },
+    { label: 'Robo Race', slug: 'robo-race' },
+    { label: 'Technical Poster', slug: 'technical-poster' },
+    { label: 'Dance Competition', slug: 'dance-competition' },
+    { label: 'Rock Band', slug: 'rock-band' },
+    { label: 'Rangoli Competition', slug: 'rangoli-competition' },
+    { label: 'Food Without Fire', slug: 'food-without-fire' },
+    { label: 'Short Film Making', slug: 'short-film-making' },
+    { label: 'Treasure Hunt', slug: 'treasure-hunt' },
+    { label: 'Closing Ceremony', slug: 'closing-ceremony' },
   ];
 
   const quickLinks = [
@@ -36,7 +36,8 @@ const Footer = () => {
     { label: 'About', path: '/about' },
     { label: 'Events', path: '/events' },
     { label: 'Schedule', path: '/schedule' },
-    { label: 'Register', path: '/event-registration' },
+    { label: 'Team', path: '/team' },
+    { label: 'Register', path: '/register' },
     { label: 'Contact', path: '/contact' },
   ];
 
@@ -190,13 +191,13 @@ const Footer = () => {
               <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                 {events.map((event) => (
                   <Link
-                    key={event}
-                    to="/events"
+                    key={event.slug}
+                    to={`/events/${event.slug}`}
                     className="group flex items-center gap-2 text-xs text-[#E8DFC8]/80 hover:text-[#F3DDA0] transition-colors duration-200 py-1"
                   >
                     <span className="w-1.5 h-1.5 rotate-45 bg-[#C69B43]/70 group-hover:bg-[#E8C574] group-hover:scale-125 transition-all duration-200 shrink-0" />
                     <span className="group-hover:translate-x-0.5 transition-transform duration-200 truncate">
-                      {event}
+                      {event.label}
                     </span>
                   </Link>
                 ))}

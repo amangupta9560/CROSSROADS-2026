@@ -78,7 +78,7 @@ export default function HallOfFameSection() {
       >
         <img
           src="/assets/lost-civilization/parchment-map.webp"
-          alt=""
+          alt="Aged expedition parchment scroll texture behind Hall of Fame"
           className="w-full h-full object-cover"
           loading="lazy"
         />

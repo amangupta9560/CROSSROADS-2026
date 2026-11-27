@@ -77,7 +77,7 @@ export default function ExpeditionTimeline() {
       >
         <img
           src="/assets/lost-civilization/parchment-map.webp"
-          alt=""
+          alt="CROSSROADS 2027 expedition timeline parchment map backdrop"
           className="w-full h-full object-cover"
           loading="lazy"
         />

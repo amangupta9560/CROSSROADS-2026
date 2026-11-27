@@ -147,7 +147,7 @@ export default function EventDetailModal({ selectedEvent, onClose, siteSettings 
                 {selectedEvent.eventSlug ? (
                   isEventOpen ? (
                     <Link
-                      to={`/event-registration?event=${selectedEvent.eventSlug}`}
+                      to={`/register?event=${selectedEvent.eventSlug}`}
                       className="lc-gold-btn lc-font-heading flex-1 group inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-sm font-extrabold text-xs uppercase tracking-[0.16em]"
                     >
                       <span>Register Now</span>

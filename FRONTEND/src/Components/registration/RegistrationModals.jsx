@@ -13,8 +13,8 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import { FaWhatsapp } from 'react-icons/fa';
 import { CornerFiligree, TempleDivider } from '../home/OrnamentDivider.jsx';
+import WhatsAppIcon from '../common/WhatsAppIcon.jsx';
 
 export const WHATSAPP_COMMUNITY_URL =
   'https://chat.whatsapp.com/DaK4uonBMwd4k7s8Pv7RNu';
@@ -502,7 +502,7 @@ export function RegistrationSuccessModal({
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-sm bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-600 hover:to-green-600 border border-emerald-400/70 text-white font-bold text-xs sm:text-sm uppercase tracking-wider shadow-lg transition-all font-mono mb-2.5 cursor-pointer"
               >
-                <FaWhatsapp size={17} />
+                <WhatsAppIcon className="w-[17px] h-[17px]" />
                 <span>Join Official WhatsApp Community</span>
               </a>
 

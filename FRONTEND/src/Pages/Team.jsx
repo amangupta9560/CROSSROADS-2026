@@ -1,278 +1,230 @@
-import React from 'react';
 import { motion as Motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
-import chairman from "../Teams/chairman.jpg";
-import segalsir from "../Teams/segalsir.webp";
-import laveen from "../Teams/laveen.webp";
-import director from "../Teams/director.jpeg";
-import hodcs from "../Teams/hodcs.png";
-import hodmca from "../Teams/hodmca.png";
-import hodee from "../Teams/hodee.png";
-
-const teamMembers = [
-  {
-    name: "Mr. Anand Prakash",
-    role: "Chairman",
-    dept: "HIET Group of Institutions",
-    image: chairman,
-    featured: true,
-  },
-  {
-    name: "Mr. Sunil Saigal",
-    role: "Advisor",
-    dept: "Advisory Board",
-    image: segalsir,
-    featured: true,
-  },
-  {
-    name: "Mr. Laveen Gidwani",
-    role: "Executive Director",
-    dept: "Administration & Leadership",
-    image: laveen,
-    featured: true,
-  },
-  {
-    name: "Dr. Pankaj Kumar Mishra",
-    role: "Director",
-    dept: "HIET Ghaziabad",
-    image: director,
-    featured: true,
-  },
-  {
-    name: "Dr. Tripti Choudhary",
-    role: "HOD - CSE",
-    dept: "Computer Science & Engineering",
-    image: hodcs,
-    featured: false,
-  },
-  {
-    name: "Mr. Bhaskar Sharma",
-    role: "HOD - BCA / MCA",
-    dept: "Computer Applications",
-    image: hodmca,
-    featured: false,
-  },
-  {
-    name: "Mr. Aman Srivastava",
-    role: "HOD - EE",
-    dept: "Electrical Engineering",
-    image: hodee,
-    featured: false,
-  },
-];
+import { ArrowRight, Compass, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import '../Components/home/lostCivilization.css';
+import SeoHead from '../Components/common/SeoHead.jsx';
+import Breadcrumbs from '../Components/common/Breadcrumbs.jsx';
+import FloatingParticles from '../Components/home/FloatingParticles.jsx';
+import { CornerFiligree, TempleDivider } from '../Components/home/OrnamentDivider.jsx';
+import { AncientSunDisc } from '../Components/about/JungleCanopyVectors.jsx';
+import { institutionalPartners, teamMembers } from '../Components/home/homeData.js';
+import { ROUTE_PATHS, SITE_URL, buildBreadcrumbJsonLd } from '../config/siteConfig.js';
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 50 },
+  hidden: { opacity: 0, y: 36 },
   visible: (i) => ({
     opacity: 1,
     y: 0,
     transition: {
-      delay: i * 0.08,
-      duration: 0.7,
-      ease: "easeOut",
+      delay: Math.min(i * 0.06, 0.35),
+      duration: 0.6,
+      ease: [0.22, 1, 0.36, 1],
     },
   }),
 };
 
 const Team = () => {
+  const jsonLd = [
+    buildBreadcrumbJsonLd([
+      { name: 'Home', path: ROUTE_PATHS.home },
+      { name: 'Leadership & Team', path: ROUTE_PATHS.team },
+    ]),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'AboutPage',
+      name: 'CROSSROADS 2027 Leadership & Organizing Team',
+      url: `${SITE_URL}/team`,
+      about: { '@id': `${SITE_URL}/#organization` },
+    },
+  ];
+
   return (
-    <section className="relative py-16 sm:py-20 md:py-28 bg-gradient-to-b from-[#0a0a0f] via-[#0d0d14] to-[#0a0a0f] text-slate-100 min-h-screen overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none opacity-40">
-        <div className="absolute left-0 top-1/4 w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px] -translate-x-1/2"></div>
-        <div className="absolute right-0 top-2/3 w-[400px] h-[400px] bg-purple-900/15 rounded-full blur-[100px] translate-x-1/3"></div>
-        <div className="absolute left-1/2 bottom-0 w-[350px] h-[350px] bg-indigo-900/20 rounded-full blur-[110px] translate-y-1/2"></div>
+    <main className="lc-root relative py-28 sm:py-32 px-4 sm:px-6 lg:px-8 bg-[#080D0B] text-[#E8DFC8] min-h-screen overflow-hidden selection:bg-[#C69B43] selection:text-[#080D0B]">
+      <SeoHead
+        title="Leadership Council & Faculty Team | CROSSROADS 2027 — HIET Ghaziabad"
+        description="Meet the HIET Ghaziabad executive leadership council, advisory board, and heads of department guiding CROSSROADS 2027 and Team Tech Fusion."
+        path={ROUTE_PATHS.team}
+        jsonLd={jsonLd}
+      />
+
+      {/* Atmospheric Lost Civilization Sanctuary Backdrop */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-20"
+        style={{
+          backgroundImage: "url('/assets/lost-civilization/stone-texture.webp')",
+          backgroundSize: '420px 420px',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(198,155,67,0.14)_0%,rgba(16,29,22,0.72)_45%,rgba(8,13,11,0.98)_100%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 w-[36rem] h-[36rem] opacity-[0.07] text-[#C69B43]"
+      >
+        <AncientSunDisc className="w-full h-full lc-animate-spin-slow" />
       </div>
+      <FloatingParticles density="sparse" />
 
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]"></div>
+      <div className="relative z-10 max-w-7xl mx-auto">
+        <div className="text-center mb-12 sm:mb-16">
+          <div className="mb-5 flex justify-center">
+            <Breadcrumbs
+              items={[
+                { name: 'Home', path: ROUTE_PATHS.home },
+                { name: 'Leadership & Team' },
+              ]}
+            />
+          </div>
 
-      <div className="relative container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 max-w-7xl">
-        <div className="text-center mb-12 sm:mb-16 md:mb-20">
           <Motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-950/30 border border-blue-800/30 mb-6"
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-sm bg-[#101D16]/90 border border-[#C69B43]/40 mb-5"
           >
-            <Sparkles className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-300 font-medium">Leadership Excellence</span>
+            <Compass className="w-3.5 h-3.5 text-[#C69B43]" />
+            <span className="text-[11px] uppercase tracking-[0.24em] text-[#E8C574] font-semibold">
+              HIET Council &amp; Patronage
+            </span>
           </Motion.div>
 
-          <Motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.9 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200 bg-clip-text text-transparent mb-4 sm:mb-6 tracking-tight leading-tight"
+          <Motion.h1
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="lc-font-display text-3xl sm:text-5xl lg:text-6xl font-black tracking-wide text-[#E8DFC8] mb-3"
           >
-            Meet Our Team & Leadership
-          </Motion.h2>
+            COUNCIL &amp; <span className="lc-gold-text">LEADERSHIP TEAM</span>
+          </Motion.h1>
+
+          <TempleDivider className="my-4" />
 
           <Motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.25, duration: 0.8 }}
-            className="text-base sm:text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed px-4"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.65 }}
+            className="text-sm sm:text-lg text-[#E8DFC8]/80 max-w-2xl mx-auto leading-relaxed px-2"
           >
-            Visionary leaders, advisory board, and academic department heads driving innovation, excellence, and academic distinction
+            Visionary patrons, advisory board members, and academic department heads mentoring Team
+            Tech Fusion across CROSSROADS 2027 at HIET Ghaziabad.
           </Motion.p>
 
-          {/* Institutional, Academic & Technical Society Logos */}
-          <Motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.35, duration: 0.8 }}
-            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-10"
-          >
-            {/* HIET Logo Card */}
-            <a
-              href="https://hiet.org/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-orange-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
-            >
-              <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
-                <img
-                  src="/hiet.png"
-                  alt="HIET Ghaziabad"
-                  className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
-                />
-              </div>
-              <div className="text-left">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-orange-400 font-bold block">
-                  Host Institution
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-white group-hover:text-orange-300 transition-colors block">
-                  HIET Ghaziabad
-                </span>
-              </div>
-            </a>
-
-            {/* Sunstone Logo Card */}
-            <a
-              href="https://sunstone.in/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-pink-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
-            >
-              <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
-                <img
-                  src="/sunstone.jpg"
-                  alt="Sunstone"
-                  className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
-                />
-              </div>
-              <div className="text-left">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-pink-400 font-bold block">
-                  Academic Partner
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-white group-hover:text-pink-300 transition-colors block">
-                  Sunstone
-                </span>
-              </div>
-            </a>
-
-            {/* Tech Fusion Logo Card */}
-            <a
-              href="https://linkedin.com/company/hiet-techfusion"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-cyan-500/50 hover:bg-slate-800/80 transition-all duration-300 shadow-lg shadow-black/40 hover:-translate-y-0.5"
-            >
-              <div className="bg-white p-1.5 rounded-xl flex items-center justify-center shadow-sm">
-                <img
-                  src="/techfusion.png"
-                  alt="Team Tech Fusion"
-                  className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
-                />
-              </div>
-              <div className="text-left">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold block">
-                  Technical Club
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-300 transition-colors block">
-                  Team Tech Fusion
-                </span>
-              </div>
-            </a>
-          </Motion.div>
+          {/* Institutional, Academic & Technical Society Cards */}
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5 mt-8">
+            {institutionalPartners.map((partner) => (
+              <a
+                key={partner.title}
+                href={partner.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[#101D16]/90 border border-[#C69B43]/30 hover:border-[#E8C574]/75 transition-all duration-300 shadow-lg hover:-translate-y-0.5"
+              >
+                <div className="bg-[#F6F1E4] p-1.5 rounded-md flex items-center justify-center shadow-sm">
+                  <img
+                    src={partner.logo}
+                    alt={`${partner.alt} Official Emblem`}
+                    className="h-8 sm:h-9 w-auto object-contain max-w-[110px]"
+                  />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-[#C69B43] font-bold block">
+                    {partner.eyebrow}
+                  </span>
+                  <span className="lc-font-heading text-xs sm:text-sm font-bold text-[#E8DFC8] group-hover:text-[#F3DDA0] transition-colors block">
+                    {partner.title}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-7 md:gap-8">
+        {/* Leadership Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-7">
           {teamMembers.map((member, index) => (
-            <Motion.div
+            <Motion.article
               key={member.name}
               custom={index}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: "-60px" }}
+              viewport={{ once: true, amount: 0.15 }}
               variants={cardVariants}
-              whileHover={{ y: -12 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="group relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-black/90 border border-slate-800/50 hover:border-blue-500/40 transition-all duration-500 shadow-xl shadow-black/60 hover:shadow-2xl hover:shadow-blue-950/40 backdrop-blur-md"
+              whileHover={{ y: -8 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+              className="group relative rounded-lg overflow-hidden lc-stone-surface lc-carved-border hover:border-[#E8C574]/70 transition-all duration-400 shadow-[0_24px_60px_rgba(4,7,5,0.75)] flex flex-col"
             >
+              <CornerFiligree className="top-2 left-2 z-20 opacity-65 group-hover:opacity-100 transition-opacity" />
+
               {member.featured && (
-                <div className="absolute top-4 right-4 z-10 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/90 to-yellow-500/90 backdrop-blur-sm shadow-lg">
-                  <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-sm bg-gradient-to-r from-[#DFB961] to-[#C69B43] shadow-md">
+                  <span className="text-[10px] font-extrabold text-[#080D0B] flex items-center gap-1 uppercase tracking-[0.14em]">
                     <Sparkles className="w-3 h-3" />
                     Leadership
                   </span>
                 </div>
               )}
 
-              <div className="relative h-64 sm:h-72 md:h-80 overflow-hidden bg-slate-950">
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity duration-500"></div>
+              <div className="relative h-64 sm:h-72 overflow-hidden bg-[#080D0B]">
                 <img
                   src={member.image}
-                  alt={member.name}
-                  className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-110 group-hover:rotate-1"
+                  alt={`${member.name} — ${member.role}, ${member.dept}`}
+                  loading="lazy"
+                  className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0D1711] via-transparent to-transparent opacity-85" />
               </div>
 
-              <div className="relative p-5 sm:p-6 text-center bg-gradient-to-b from-slate-900/50 to-slate-950/80">
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-950/0 via-blue-950/0 to-blue-950/0 group-hover:from-blue-950/10 group-hover:via-blue-950/5 transition-all duration-500"></div>
-
-                <div className="relative">
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2 group-hover:text-blue-200 transition-colors duration-300 leading-snug">
+              <div className="relative p-5 text-center border-t border-[#C69B43]/30 flex-1 flex flex-col justify-between">
+                <div>
+                  <h2 className="lc-font-heading text-lg font-bold text-[#E8DFC8] mb-2 group-hover:text-[#F3DDA0] transition-colors leading-snug">
                     {member.name}
-                  </h3>
-
-                  <div className="inline-block px-3 py-1 rounded-full bg-blue-950/50 border border-blue-800/30 mb-2">
-                    <p className="text-blue-300 font-semibold text-sm">
+                  </h2>
+                  <div className="inline-block px-3 py-1 rounded-sm bg-[#182B20] border border-[#C69B43]/40 mb-2">
+                    <span className="text-[#E8C574] font-semibold text-xs uppercase tracking-[0.1em]">
                       {member.role}
-                    </p>
+                    </span>
                   </div>
-
-                  <p className="text-slate-400 text-sm mt-2 leading-relaxed">
-                    {member.dept}
-                  </p>
                 </div>
+                <p className="text-[#E8DFC8]/70 text-xs mt-1 leading-relaxed">{member.dept}</p>
               </div>
-
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-blue-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-blue-500/5 transition-all duration-700 pointer-events-none"></div>
-
-              <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-blue-500/0 group-hover:from-blue-500/20 group-hover:via-purple-500/20 group-hover:to-blue-500/20 -z-10 blur-sm transition-all duration-700"></div>
-            </Motion.div>
+            </Motion.article>
           ))}
         </div>
 
-        <Motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          className="text-center mt-16 sm:mt-20 md:mt-24"
-        >
-          <div className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-slate-700/50 backdrop-blur-sm">
-            <p className="text-slate-300 text-sm sm:text-base">
-              Together, shaping the future of education & innovation
-            </p>
+        {/* Internal Cross-Links Band */}
+        <div className="mt-16 text-center lc-stone-surface lc-carved-border rounded-xl p-7 sm:p-9 max-w-4xl mx-auto">
+          <p className="text-[#E8DFC8]/85 text-sm sm:text-base mb-5">
+            Explore the arenas curated under our council&apos;s mentorship or lock your squad pass
+            for February 05–06, 2027.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3.5">
+            <Link
+              to={ROUTE_PATHS.register}
+              className="lc-gold-btn lc-font-heading px-6 py-3 rounded-sm font-extrabold text-xs uppercase tracking-[0.16em] inline-flex items-center gap-2"
+            >
+              <span>Register Your Squad</span>
+              <ArrowRight size={14} />
+            </Link>
+            <Link
+              to={ROUTE_PATHS.events}
+              className="lc-stone-btn lc-font-heading px-6 py-3 rounded-sm font-bold text-xs uppercase tracking-[0.16em] inline-flex items-center gap-2"
+            >
+              <span>Explore 11 Arenas</span>
+              <ArrowRight size={14} className="text-[#C69B43]" />
+            </Link>
+            <Link
+              to={ROUTE_PATHS.contact}
+              className="lc-stone-btn lc-font-heading px-6 py-3 rounded-sm font-bold text-xs uppercase tracking-[0.16em] inline-flex items-center gap-2"
+            >
+              <span>Contact Organizers</span>
+            </Link>
           </div>
-        </Motion.div>
+        </div>
       </div>
-    </section>
+    </main>
   );
 };
 

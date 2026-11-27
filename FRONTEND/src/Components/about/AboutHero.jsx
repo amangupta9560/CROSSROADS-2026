@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight, Award, Calendar, Compass, MapPin, Sparkles } 
 import { Link } from 'react-router-dom';
 import FloatingParticles from '../home/FloatingParticles.jsx';
 import { TempleDivider } from '../home/OrnamentDivider.jsx';
+import Breadcrumbs from '../common/Breadcrumbs.jsx';
 import { AncientSunDisc, JungleFoliageLeft, JungleFoliageRight } from './JungleCanopyVectors.jsx';
 import GhostTypeText from './GhostTypeText.jsx';
 
@@ -208,6 +209,14 @@ export default function AboutHero() {
           style={!prefersReducedMotion ? { y: scrollYShift } : undefined}
           className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-36 pb-10 flex-1 flex flex-col items-center justify-center text-center"
         >
+          <div className="mb-4 flex justify-center">
+            <Breadcrumbs
+              items={[
+                { name: 'Home', path: '/' },
+                { name: 'About' },
+              ]}
+            />
+          </div>
           <Motion.div
             initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -295,7 +304,7 @@ export default function AboutHero() {
             className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5 sm:gap-4 w-full max-w-lg mx-auto"
           >
             <Link
-              to="/event-registration"
+              to="/register"
               className="lc-gold-btn lc-font-heading flex-1 px-7 py-4 rounded-sm font-extrabold text-xs sm:text-sm tracking-[0.16em] uppercase inline-flex items-center justify-center gap-2.5 group cursor-pointer"
             >
               <span>Register Your Team</span>

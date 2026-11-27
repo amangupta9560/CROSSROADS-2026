@@ -28,7 +28,7 @@ export default function EligibilitySection() {
       >
         <img
           src="/assets/lost-civilization/parchment-map.webp"
-          alt=""
+          alt="Ancient Lost Civilization parchment treasure map texture"
           className="w-full h-full object-cover"
           loading="lazy"
         />

@@ -4,7 +4,9 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
+import SeoHead from './common/SeoHead.jsx';
 import FailedRegistrationsPanel from './admin/FailedRegistrationsPanel.jsx';
+import { SITE_URL } from '../config/siteConfig.js';
 import {
   Users, User, Mail, Phone, Trophy, Download, Upload, LogOut, Search, Home,
   Calendar, ChevronRight, Check, X, AlertTriangle, Info, Bell, Filter,
@@ -185,18 +187,22 @@ const AdminDashboard = () => {
     viewport: 'desktop'
   });
 
-  // Helper: Axios with Token
+  // Helper: Axios with session-scoped Admin Token
   const getAuthHeaders = () => {
-    const token = localStorage.getItem('adminToken');
+    const token = sessionStorage.getItem('adminToken') || localStorage.getItem('adminToken');
     return { headers: { 'x-auth-token': token } };
   };
 
   // Initial Data Fetch
   const fetchAllData = useCallback(async () => {
-    const token = localStorage.getItem('adminToken');
+    const token = sessionStorage.getItem('adminToken') || localStorage.getItem('adminToken');
     if (!token) {
       navigate('/admin/login');
       return;
+    }
+    if (!sessionStorage.getItem('adminToken') && localStorage.getItem('adminToken')) {
+      sessionStorage.setItem('adminToken', token);
+      localStorage.removeItem('adminToken');
     }
 
     try {
@@ -232,7 +238,8 @@ const AdminDashboard = () => {
         setFailedStats(failedRegsRes.data.stats || { total: 0, pending: 0, contacted: 0, resolved: 0, serverErrors: 0, conflicts: 0 });
       }
     } catch (err) {
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        sessionStorage.removeItem('adminToken');
         localStorage.removeItem('adminToken');
         toast.error('Session expired. Please log in again.');
         navigate('/admin/login');
@@ -313,6 +320,7 @@ const AdminDashboard = () => {
 
   // Logout Handler
   const handleLogout = () => {
+    sessionStorage.removeItem('adminToken');
     localStorage.removeItem('adminToken');
     toast.success('Logged out successfully');
     navigate('/admin/login');
@@ -659,7 +667,7 @@ const AdminDashboard = () => {
   // Filter-wise Excel Export (Formatted multi-sheet workbook with rowSpan & colSpan)
   const handleExportExcel = async (customParams = {}) => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = sessionStorage.getItem('adminToken') || localStorage.getItem('adminToken');
       const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
 
       const evParam = customParams.event ?? exportFilterEvent;
@@ -732,7 +740,7 @@ const AdminDashboard = () => {
 
       const res = await axios.post(`${backendUrl}/api/admin/upload-excel`, formData, {
         headers: {
-          'x-auth-token': localStorage.getItem('adminToken'),
+          'x-auth-token': sessionStorage.getItem('adminToken') || localStorage.getItem('adminToken'),
           'Content-Type': 'multipart/form-data'
         }
       });
@@ -860,7 +868,7 @@ const AdminDashboard = () => {
           headline: 'Official Event Schedule & Arrival Guidelines',
           message: `Dear Participants,\n\nPlease note the reporting time and schedule for your registered event at CROSSROADS 2027 (05 Feb & 06 Feb 2027).\n\n• Reporting Time: 09:00 AM sharp at the central registration desk\n• Document Required: College ID Card / Aadhaar Card & Team ID\n• In case of queries, reach out to techfusion@hietgroup.org or +91 8802323375.\n\nBest regards,\nTeam Tech Fusion • CROSSROADS 2027`,
           ctaText: 'View Schedule',
-          ctaLink: 'https://crossroads-hiet.netlify.app/schedule',
+          ctaLink: `${SITE_URL}/schedule`,
           urgency: 'normal'
         });
         break;
@@ -870,7 +878,7 @@ const AdminDashboard = () => {
           headline: 'Competition Guidelines & Judging Criteria',
           message: `Dear Team Leader & Members,\n\nPlease ensure your entire team reviews the official rulebook and guidelines before the competition.\n\n1. All team members must report together for physical verification.\n2. Disqualification criteria: Any plagiarism or violation of event time limits.\n3. The decisions of the judging panel will be final and binding.\n\nFollow @hiet.techfusion on Instagram and check the portal for real-time announcements.`,
           ctaText: 'View Event Rules',
-          ctaLink: 'https://crossroads-hiet.netlify.app/events',
+          ctaLink: `${SITE_URL}/events`,
           urgency: 'important'
         });
         break;
@@ -1143,7 +1151,13 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 text-gray-100 pt-6 sm:pt-8 pb-20 px-3 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 text-gray-100 pt-6 sm:pt-8 pb-20 px-3 sm:px-6 lg:px-8">
+      <SeoHead
+        title="Admin Control Portal | CROSSROADS 2027"
+        description="Restricted admin management dashboard for CROSSROADS 2027 registrations and email dispatches."
+        path="/admin/dashboard"
+        robots="noindex, nofollow"
+      />
 
       <div className="max-w-7xl mx-auto">
         {/* Top Header */}
@@ -3954,6 +3968,8 @@ const AdminDashboard = () => {
                     <iframe
                       title="Email HTML Preview"
                       srcDoc={reportPreview.html}
+                      sandbox=""
+                      referrerPolicy="no-referrer"
                       className={`bg-white rounded-xl border border-slate-700 shadow-2xl transition-all duration-300 ${
                         reportPreview.viewport === 'mobile' ? 'w-[375px] h-[72vh]' : 'w-full h-[72vh]'
                       }`}
@@ -3981,7 +3997,7 @@ const AdminDashboard = () => {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </main>
   );
 };
 

@@ -3,6 +3,7 @@ import { motion as Motion, useReducedMotion, useScroll, useTransform } from 'fra
 import { Calendar, Clock, Compass, Sparkles, Zap } from 'lucide-react';
 import FloatingParticles from '../home/FloatingParticles.jsx';
 import { CornerFiligree, TempleDivider } from '../home/OrnamentDivider.jsx';
+import Breadcrumbs from '../common/Breadcrumbs.jsx';
 import GhostTypeText from '../about/GhostTypeText.jsx';
 import {
   AncientSunDisc,
@@ -60,7 +61,7 @@ export default function ScheduleHero({
         />
         <img
           src="/assets/lost-civilization/parchment-map.webp"
-          alt=""
+          alt="Ancient Lost Civilization parchment trail map overlay"
           className="w-full h-full object-cover opacity-28 mix-blend-screen"
         />
         <div
@@ -100,6 +101,14 @@ export default function ScheduleHero({
         style={!prefersReduced ? { y: contentY } : undefined}
         className="relative z-10 max-w-5xl mx-auto text-center will-change-transform"
       >
+        <div className="mb-4 flex justify-center">
+          <Breadcrumbs
+            items={[
+              { name: 'Home', path: '/' },
+              { name: 'Schedule' },
+            ]}
+          />
+        </div>
         <Motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}

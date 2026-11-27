@@ -4,6 +4,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, Loader2, Lock, User } from 'lucide-react';
+import SeoHead from './common/SeoHead.jsx';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -39,7 +40,8 @@ const AdminLogin = () => {
         toast.error(msg);
         return;
       }
-      localStorage.setItem('adminToken', res.data.token);
+      localStorage.removeItem('adminToken');
+      sessionStorage.setItem('adminToken', res.data.token);
       toast.success('Login successful!');
       navigate('/admin/dashboard');
     } catch (err) {
@@ -55,7 +57,13 @@ const AdminLogin = () => {
   const inputClasses = "w-full bg-white/5 border-2 border-orange-500/20 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 transition-all duration-300 backdrop-blur-sm hover:border-orange-500/40";
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-950 via-blue-950 to-slate-900 overflow-hidden pt-8 pb-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+    <main className="min-h-screen bg-linear-to-br from-slate-950 via-blue-950 to-slate-900 overflow-hidden pt-8 pb-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <SeoHead
+        title="Admin Login | CROSSROADS 2027 Portal"
+        description="Restricted administrator login for CROSSROADS 2027 management dashboard."
+        path="/admin/login"
+        robots="noindex, nofollow"
+      />
       <Motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -126,7 +134,7 @@ const AdminLogin = () => {
           </div>
         </form>
       </Motion.div>
-    </div>
+    </main>
   );
 };
 

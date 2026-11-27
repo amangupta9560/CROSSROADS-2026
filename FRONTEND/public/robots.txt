@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /attendance
+Disallow: /attendence
 
 Sitemap: https://crossroads-hiet.netlify.app/sitemap.xml

@@ -22,7 +22,7 @@ const IDENTITY = {
   registrationWindow: 'January 10 – January 31, 2027'
 };
 
-// Discover all configured SMTP credentials (SMTP_1..SMTP_N + defaults + EMAIL_USER/PASS)
+// Discover all configured SMTP credentials from environment variables ONLY (never hardcode secrets)
 const buildSmtpConfigs = () => {
   const configs = [];
   const seenUsers = new Set();
@@ -37,27 +37,12 @@ const buildSmtpConfigs = () => {
     configs.push({ name, user: cleanUser, pass: cleanPass });
   };
 
-  addConfig(
-    'SMTP 1 (hackathonhiet)',
-    process.env.SMTP_1_USER || 'hackathonhiet@gmail.com',
-    process.env.SMTP_1_PASS || 'kuwahyfqzwlfqtmw'
-  );
-  addConfig(
-    'SMTP 2 (techfusion9560)',
-    process.env.SMTP_2_USER || 'techfusion9560@gmail.com',
-    process.env.SMTP_2_PASS || 'frkyojklfplrxrjz'
-  );
-  addConfig(
-    'SMTP 3 (crossroads20255)',
-    process.env.SMTP_3_USER || 'crossroads20255@gmail.com',
-    process.env.SMTP_3_PASS || 'lmrldubacijhcuqa'
-  );
-
-  for (let i = 4; i <= 20; i++) {
+  for (let i = 1; i <= 20; i++) {
     const envUser = process.env[`SMTP_${i}_USER`];
     const envPass = process.env[`SMTP_${i}_PASS`];
     if (envUser && envPass) {
-      addConfig(`SMTP ${i} (${envUser.split('@')[0]})`, envUser, envPass);
+      const label = envUser.split('@')[0];
+      addConfig(`SMTP ${i} (${label})`, envUser, envPass);
     }
   }
 
@@ -108,6 +93,9 @@ const sendMailRoundRobin = async (mailOptions, optionsMeta = {}) => {
   }
 
   const { preferredSmtpUser = null, fromLabel = BRAND_NAME } = optionsMeta;
+  const safeFromLabel = String(fromLabel || BRAND_NAME).replace(/[\r\n"]/g, ' ').trim();
+  const safeSubject = mailOptions.subject ? String(mailOptions.subject).replace(/[\r\n]+/g, ' ').trim() : '';
+  const safeReplyTo = String(mailOptions.replyTo || IDENTITY.email).replace(/[\r\n]+/g, '').trim();
 
   let orderedQueue = [];
   if (preferredSmtpUser) {
@@ -132,8 +120,9 @@ const sendMailRoundRobin = async (mailOptions, optionsMeta = {}) => {
     try {
       const options = {
         ...mailOptions,
-        from: `"${fromLabel}" <${smtp.user}>`,
-        replyTo: mailOptions.replyTo || IDENTITY.email
+        subject: safeSubject,
+        from: `"${safeFromLabel}" <${smtp.user}>`,
+        replyTo: safeReplyTo
       };
 
       const info = await smtp.transporter.sendMail(options);

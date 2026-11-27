@@ -353,7 +353,7 @@ export default function HeroSection({ timeLeft, registrationOpen }) {
         >
           {registrationOpen ? (
             <Link
-              to="/event-registration"
+              to="/register"
               className="lc-gold-btn lc-font-heading flex-1 px-7 py-4 rounded-sm font-extrabold text-xs sm:text-sm tracking-[0.18em] uppercase inline-flex items-center justify-center gap-2.5 group cursor-pointer"
             >
               <Sparkles size={16} className="text-[#080D0B] shrink-0" />

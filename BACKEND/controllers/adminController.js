@@ -1,4 +1,6 @@
 // controllers/adminController.js
+const path = require('path');
+const mongoose = require('mongoose');
 const EventTeam = require('../models/EventTeam');
 const EmailLog = require('../models/EmailLog');
 const FailedRegistration = require('../models/FailedRegistration');
@@ -27,10 +29,19 @@ const { buildFormattedRegistrationWorkbook } = require('../utils/excelReport');
 const {
   TECHNICAL_EVENTS,
   REGISTRATION_STATUSES,
+  asString,
   getIstTodayRange,
   buildRegistrationFilterQuery,
   queryTeamsSmart
 } = require('../utils/queryBuilder');
+
+const ensureValidObjectId = (id, res) => {
+  if (!mongoose.isValidObjectId(id)) {
+    res.status(400).json({ msg: 'Invalid record ID format' });
+    return false;
+  }
+  return true;
+};
 const {
   enqueueEmail,
   enqueueBatchEmails,
@@ -405,18 +416,19 @@ const parseEmailList = (input) => {
   return valid;
 };
 
-// Admin Login (authenticates against seeded Admin credentials in MongoDB)
+// Admin Login (authenticates against seeded Admin credentials in MongoDB with persisted lockout)
 const login = async (req, res) => {
   try {
     const { email, username, password } = req.body || {};
     const jwtSecret = process.env.JWT_SECRET;
 
     if (!jwtSecret) {
-      return res.status(500).json({ msg: 'JWT_SECRET is not configured on the server' });
+      return res.status(500).json({ msg: 'Authentication configuration missing on server' });
     }
 
-    const inputEmail = String(email || username || '').trim().toLowerCase();
-    if (!inputEmail || !password) {
+    const rawEmail = typeof email === 'string' ? email : typeof username === 'string' ? username : '';
+    const inputEmail = rawEmail.trim().toLowerCase();
+    if (!inputEmail || typeof password !== 'string' || !password) {
       return res.status(400).json({ msg: 'Email and password are required' });
     }
 
@@ -428,17 +440,33 @@ const login = async (req, res) => {
       admin = await Admin.findOne({ email: inputEmail, isActive: true }).select('+passwordHash');
     }
 
-    if (!admin || !admin.verifyPassword(String(password))) {
+    if (admin?.lockUntil && admin.lockUntil > new Date()) {
+      const waitMins = Math.max(1, Math.ceil((admin.lockUntil.getTime() - Date.now()) / 60000));
+      return res.status(423).json({
+        msg: `Account temporarily locked due to repeated failed attempts. Retry in ${waitMins} minute(s).`
+      });
+    }
+
+    if (!admin || !admin.verifyPassword(password)) {
+      if (admin) {
+        admin.failedLoginAttempts = (admin.failedLoginAttempts || 0) + 1;
+        if (admin.failedLoginAttempts >= 5) {
+          admin.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+        }
+        await admin.save();
+      }
       return res.status(401).json({ msg: 'Invalid credentials' });
     }
 
+    admin.failedLoginAttempts = 0;
+    admin.lockUntil = null;
     admin.lastLoginAt = new Date();
     await admin.save();
 
     const token = jwt.sign(
-      { id: admin._id, role: 'admin', email: admin.email, username: admin.email },
+      { id: admin._id, role: admin.role || 'admin', email: admin.email, username: admin.email },
       jwtSecret,
-      { expiresIn: '12h' }
+      { algorithm: 'HS256', expiresIn: '8h' }
     );
 
     return res.json({
@@ -450,7 +478,7 @@ const login = async (req, res) => {
     });
   } catch (err) {
     console.error('Admin login error:', err);
-    return res.status(500).json({ msg: 'Authentication failed', error: err.message });
+    return res.status(500).json({ msg: 'Authentication failed' });
   }
 };
 
@@ -472,7 +500,7 @@ const getAnalytics = async (req, res) => {
     res.json(summary);
   } catch (err) {
     console.error('Analytics $facet error:', err);
-    res.status(500).json({ msg: 'Server error fetching analytics', error: err.message });
+    res.status(500).json({ msg: 'Server error fetching analytics' });
   }
 };
 const getDashboardStats = getAnalytics;
@@ -492,7 +520,7 @@ const getAdvancedInsights = async (req, res) => {
     });
   } catch (err) {
     console.error('Advanced insights error:', err);
-    res.status(500).json({ msg: 'Error computing advanced insights', error: err.message });
+    res.status(500).json({ msg: 'Error computing advanced insights' });
   }
 };
 
@@ -503,7 +531,7 @@ const getTeams = async (req, res) => {
     res.json({ teams, total: teams.length, usedTextIndex });
   } catch (err) {
     console.error('Error fetching teams:', err);
-    res.status(500).json({ msg: 'Error fetching teams', error: err.message });
+    res.status(500).json({ msg: 'Error fetching teams' });
   }
 };
 const getAllRegistrations = getTeams;
@@ -511,39 +539,70 @@ const getAllRegistrations = getTeams;
 // Get single team details
 const getTeamById = async (req, res) => {
   try {
+    if (!ensureValidObjectId(req.params.id, res)) return;
     const team = await EventTeam.findById(req.params.id);
     if (!team) return res.status(404).json({ msg: 'Team not found' });
     res.json(team);
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error('getTeamById error:', err);
+    res.status(500).json({ msg: 'Error retrieving team record' });
   }
 };
 
-// Update team details (whitelisted fields only)
+// Update team details (strictly sanitized fields only)
 const updateTeam = async (req, res) => {
   try {
-    const allowedFields = [
-      'teamName',
-      'leader',
-      'college',
-      'branch',
-      'year',
-      'event',
-      'teamSize',
-      'members',
-      'exported',
-      'status',
-      'adminNotes'
-    ];
+    if (!ensureValidObjectId(req.params.id, res)) return;
+    const body = req.body || {};
     const updates = {};
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+
+    if (typeof body.teamName === 'string' && body.teamName.trim()) {
+      updates.teamName = body.teamName.trim().slice(0, 120);
+    }
+    if (typeof body.college === 'string' && body.college.trim()) {
+      updates.college = body.college.trim().slice(0, 180);
+    }
+    if (typeof body.branch === 'string' && body.branch.trim()) {
+      updates.branch = body.branch.trim().slice(0, 120);
+    }
+    if (typeof body.year === 'string' && body.year.trim()) {
+      updates.year = body.year.trim().slice(0, 40);
+    }
+    if (typeof body.event === 'string' && Object.prototype.hasOwnProperty.call(EVENT_DISPLAY_NAMES, body.event)) {
+      updates.event = body.event;
+    }
+    if (body.teamSize !== undefined) {
+      const sz = Number(body.teamSize);
+      if (Number.isInteger(sz) && sz >= 1 && sz <= 8) {
+        updates.teamSize = sz;
       }
     }
-    if (updates.status) {
+    if (typeof body.exported === 'boolean') {
+      updates.exported = body.exported;
+    }
+    if (typeof body.adminNotes === 'string') {
+      updates.adminNotes = body.adminNotes.trim().slice(0, 1000);
+    }
+    if (body.leader && typeof body.leader === 'object' && !Array.isArray(body.leader)) {
+      updates.leader = {
+        name: asString(body.leader.name).slice(0, 120),
+        email: asString(body.leader.email).toLowerCase().slice(0, 180),
+        mobile: asString(body.leader.mobile).slice(0, 20),
+        whatsapp: asString(body.leader.whatsapp).slice(0, 20)
+      };
+    }
+    if (Array.isArray(body.members)) {
+      updates.members = body.members.slice(0, 7).map((m) => ({
+        name: asString(m?.name).slice(0, 120),
+        email: asString(m?.email).toLowerCase().slice(0, 180),
+        mobile: asString(m?.mobile).slice(0, 20)
+      }));
+    }
+    if (typeof body.status === 'string' && REGISTRATION_STATUSES.includes(body.status)) {
+      updates.status = body.status;
       updates.statusUpdatedAt = new Date();
     }
+
     const updated = await EventTeam.findByIdAndUpdate(
       req.params.id,
       updates,
@@ -552,13 +611,15 @@ const updateTeam = async (req, res) => {
     if (!updated) return res.status(404).json({ msg: 'Team not found' });
     res.json({ msg: 'Team updated successfully', team: updated });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error('updateTeam error:', err);
+    res.status(500).json({ msg: 'Failed to update team record' });
   }
 };
 
 // Dedicated Registration Status Update (Pending / Verified / Checked-In / Rejected)
 const updateRegistrationStatus = async (req, res) => {
   try {
+    if (!ensureValidObjectId(req.params.id, res)) return;
     const { status, adminNotes } = req.body || {};
     if (!REGISTRATION_STATUSES.includes(status)) {
       return res.status(400).json({
@@ -567,7 +628,7 @@ const updateRegistrationStatus = async (req, res) => {
     }
 
     const updateFields = { status, statusUpdatedAt: new Date() };
-    if (adminNotes !== undefined) updateFields.adminNotes = String(adminNotes).trim();
+    if (typeof adminNotes === 'string') updateFields.adminNotes = adminNotes.trim().slice(0, 1000);
 
     const updated = await EventTeam.findByIdAndUpdate(
       req.params.id,
@@ -583,24 +644,27 @@ const updateRegistrationStatus = async (req, res) => {
     });
   } catch (err) {
     console.error('Status update error:', err);
-    res.status(500).json({ msg: 'Failed to update registration status', error: err.message });
+    res.status(500).json({ msg: 'Failed to update registration status' });
   }
 };
 
 // Delete team
 const deleteTeam = async (req, res) => {
   try {
+    if (!ensureValidObjectId(req.params.id, res)) return;
     const deleted = await EventTeam.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ msg: 'Team not found' });
     res.json({ msg: 'Team deleted successfully' });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error('deleteTeam error:', err);
+    res.status(500).json({ msg: 'Failed to delete team record' });
   }
 };
 
 // Resend confirmation email to team (TO: leader, CC: all members) via EmailLog + Round Robin
 const resendConfirmationEmail = async (req, res) => {
   try {
+    if (!ensureValidObjectId(req.params.id, res)) return;
     const team = await EventTeam.findById(req.params.id);
     if (!team) return res.status(404).json({ msg: 'Team not found' });
 
@@ -625,7 +689,7 @@ const resendConfirmationEmail = async (req, res) => {
     });
   } catch (err) {
     console.error('Resend email error:', err);
-    res.status(500).json({ msg: 'Failed to send confirmation email', error: err.message });
+    res.status(500).json({ msg: 'Failed to send confirmation email' });
   }
 };
 
@@ -665,7 +729,7 @@ const sendBulkConfirmations = async (req, res) => {
     });
   } catch (err) {
     console.error('Bulk confirmation error:', err);
-    res.status(500).json({ msg: 'Failed to dispatch bulk confirmation emails', error: err.message });
+    res.status(500).json({ msg: 'Failed to dispatch bulk confirmation emails' });
   }
 };
 
@@ -705,18 +769,31 @@ const exportExcel = async (req, res) => {
     res.end();
   } catch (err) {
     console.error('Export error:', err);
-    res.status(500).json({ msg: 'Excel export failed', error: err.message });
+    res.status(500).json({ msg: 'Excel export failed' });
   }
 };
 
-// Filter-wise Excel Upload (Bulk Import)
+// Filter-wise Excel Upload (Bulk Import with extension + binary signature verification)
 const uploadExcel = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ msg: 'Please select an Excel file (.xlsx or .xls) to upload' });
+    if (!req.file || !req.file.buffer?.length) {
+      return res.status(400).json({ msg: 'Please select an Excel (.xlsx) file to upload' });
     }
 
-    const { targetEvent, defaultCollege } = req.body;
+    const ext = path.extname(String(req.file.originalname || '')).toLowerCase();
+    const headerHex = req.file.buffer.subarray(0, 4).toString('hex');
+    if (ext !== '.xlsx' || headerHex !== '504b0304') {
+      return res.status(400).json({
+        msg: 'Invalid workbook binary signature. Please upload a standard .xlsx spreadsheet file.'
+      });
+    }
+
+    const { targetEvent, defaultCollege } = req.body || {};
+    const safeTargetEvent =
+      typeof targetEvent === 'string' && Object.prototype.hasOwnProperty.call(EVENT_DISPLAY_NAMES, targetEvent)
+        ? targetEvent
+        : '';
+    const safeDefaultCollege = typeof defaultCollege === 'string' ? defaultCollege.trim().slice(0, 180) : '';
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
@@ -724,6 +801,9 @@ const uploadExcel = async (req, res) => {
     const worksheet = workbook.worksheets[0];
     if (!worksheet) {
       return res.status(400).json({ msg: 'The uploaded Excel file contains no worksheets' });
+    }
+    if (worksheet.rowCount > 5000) {
+      return res.status(400).json({ msg: 'Excel file exceeds the maximum limit of 5000 rows per upload' });
     }
 
     let headerRowIndex = -1;
@@ -782,7 +862,7 @@ const uploadExcel = async (req, res) => {
       const leaderEmail = getColVal(row, ['leaderemail', 'email', 'emailid', 'mail']);
       const leaderMobile = getColVal(row, ['leadermobile', 'mobile', 'phone', 'contact', 'whatsapp']) || '9999999999';
       const leaderWhatsapp = getColVal(row, ['whatsapp']) || leaderMobile;
-      const college = getColVal(row, ['college', 'institution', 'collegename']) || defaultCollege || 'HIET Ghaziabad';
+      const college = getColVal(row, ['college', 'institution', 'collegename']) || safeDefaultCollege || 'HIET Ghaziabad';
       const branch = getColVal(row, ['branch', 'department', 'dept', 'course']) || 'CSE';
       const year = getColVal(row, ['year', 'academicyear']) || '3rd Year';
       const rawEvent = getColVal(row, ['event', 'eventname', 'competition']);
@@ -828,7 +908,7 @@ const uploadExcel = async (req, res) => {
 
     for (const r of rowsToProcess) {
       try {
-        let eventKey = targetEvent;
+        let eventKey = safeTargetEvent;
         if (!eventKey && r.rawEvent) {
           const cleanEv = r.rawEvent.toLowerCase().trim().replace(/\s+/g, '-');
           const matched = Object.keys(EVENT_DISPLAY_NAMES).find((k) => cleanEv.includes(k) || k.includes(cleanEv));
@@ -903,7 +983,7 @@ const uploadExcel = async (req, res) => {
     });
   } catch (err) {
     console.error('Excel upload error:', err);
-    res.status(500).json({ msg: 'Failed to process Excel upload', error: err.message });
+    res.status(500).json({ msg: 'Failed to process Excel upload' });
   }
 };
 
@@ -1007,7 +1087,7 @@ const sendConditionalEmail = async (req, res) => {
     });
   } catch (err) {
     console.error('Conditional email error:', err);
-    res.status(500).json({ msg: 'Failed to send conditional emails', error: err.message });
+    res.status(500).json({ msg: 'Failed to send conditional emails' });
   }
 };
 
@@ -1123,7 +1203,7 @@ const sendBroadcast = async (req, res) => {
     });
   } catch (err) {
     console.error('Broadcast error:', err);
-    res.status(500).json({ msg: 'Broadcast publication failed', error: err.message });
+    res.status(500).json({ msg: 'Broadcast publication failed' });
   }
 };
 
@@ -1140,10 +1220,12 @@ const getBroadcasts = async (req, res) => {
 // Delete broadcast
 const deleteBroadcast = async (req, res) => {
   try {
+    if (!ensureValidObjectId(req.params.id, res)) return;
     await Broadcast.findByIdAndDelete(req.params.id);
     res.json({ msg: 'Broadcast deleted' });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error('deleteBroadcast error:', err);
+    res.status(500).json({ msg: 'Failed to delete broadcast' });
   }
 };
 
@@ -1153,26 +1235,71 @@ const getSettings = async (req, res) => {
     const settings = await SiteSetting.getSettings();
     res.json(settings);
   } catch (err) {
-    res.status(500).json({ msg: 'Failed to load settings', error: err.message });
+    console.error('getSettings error:', err);
+    res.status(500).json({ msg: 'Failed to load settings' });
   }
 };
 
 const updateSettings = async (req, res) => {
   try {
-    let settings = await SiteSetting.getSettings();
-    const { registrationOpen, closedMessage, eventStatus, broadcastBanner, authorityContacts } = req.body;
+    const settings = await SiteSetting.getSettings();
+    const { registrationOpen, closedMessage, eventStatus, broadcastBanner, authorityContacts } = req.body || {};
 
-    if (registrationOpen !== undefined) settings.registrationOpen = registrationOpen;
-    if (closedMessage !== undefined) settings.closedMessage = closedMessage;
-    if (eventStatus !== undefined) settings.eventStatus = eventStatus;
-    if (broadcastBanner !== undefined) settings.broadcastBanner = broadcastBanner;
-    if (authorityContacts !== undefined) settings.authorityContacts = authorityContacts;
+    if (typeof registrationOpen === 'boolean') settings.registrationOpen = registrationOpen;
+    if (typeof closedMessage === 'string') settings.closedMessage = closedMessage.trim().slice(0, 1000);
+
+    if (eventStatus && typeof eventStatus === 'object' && !Array.isArray(eventStatus)) {
+      for (const [evKey, val] of Object.entries(eventStatus)) {
+        if (Object.prototype.hasOwnProperty.call(EVENT_DISPLAY_NAMES, evKey) && typeof val === 'boolean') {
+          settings.eventStatus.set(evKey, val);
+        }
+      }
+    }
+
+    if (broadcastBanner && typeof broadcastBanner === 'object' && !Array.isArray(broadcastBanner)) {
+      const level = ['info', 'warning', 'urgent', 'success'].includes(broadcastBanner.level)
+        ? broadcastBanner.level
+        : settings.broadcastBanner?.level || 'info';
+      const linkStr = asString(broadcastBanner.link);
+      const safeLink = linkStr.startsWith('/') ? linkStr.slice(0, 120) : '/events';
+      settings.broadcastBanner = {
+        enabled: Boolean(broadcastBanner.enabled),
+        text: asString(broadcastBanner.text).slice(0, 300),
+        link: safeLink,
+        level
+      };
+    }
+
+    if (authorityContacts && typeof authorityContacts === 'object' && !Array.isArray(authorityContacts)) {
+      const allowedContactKeys = [
+        'directorEmail',
+        'directorName',
+        'chairmanEmail',
+        'chairmanName',
+        'secretaryEmail',
+        'secretaryName',
+        'hodCseEmail',
+        'hodCseName',
+        'hodMcaEmail',
+        'hodMcaName',
+        'hodEeEmail',
+        'hodEeName',
+        'culturalHeadEmail',
+        'culturalHeadName'
+      ];
+      for (const key of allowedContactKeys) {
+        if (typeof authorityContacts[key] === 'string') {
+          settings.authorityContacts[key] = authorityContacts[key].trim().slice(0, 180);
+        }
+      }
+    }
 
     await settings.save();
     SiteSetting.invalidateCache();
     res.json({ msg: 'Website settings updated successfully', settings });
   } catch (err) {
-    res.status(500).json({ msg: 'Failed to update settings', error: err.message });
+    console.error('updateSettings error:', err);
+    res.status(500).json({ msg: 'Failed to update settings' });
   }
 };
 
@@ -1603,7 +1730,7 @@ const handleRegistrationReportDispatch = async (req, res, isLegacyOrStakeholder 
     });
   } catch (err) {
     console.error('Registration report dispatch error:', err);
-    res.status(500).json({ msg: 'Failed to send registration report', error: err.message });
+    res.status(500).json({ msg: 'Failed to send registration report' });
   }
 };
 
@@ -1614,12 +1741,17 @@ const sendStakeholderReport = (req, res) => handleRegistrationReportDispatch(req
 // Email Queue & Audit Logs Endpoints
 const getEmailLogs = async (req, res) => {
   try {
-    const { status = 'all', category = 'all', search = '', limit = 100 } = req.query;
+    const status = asString(req.query?.status) || 'all';
+    const category = asString(req.query?.category) || 'all';
+    const search = asString(req.query?.search);
+    const limit = req.query?.limit;
     const query = {};
-    if (status && status !== 'all') query.status = status;
+    if (status && status !== 'all' && ['queued', 'sending', 'sent', 'failed'].includes(status)) {
+      query.status = status;
+    }
     if (category && category !== 'all') query.category = category;
-    if (search && String(search).trim()) {
-      const rx = new RegExp(String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    if (search) {
+      const rx = new RegExp(search.slice(0, 120).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       query.$or = [
         { to: rx },
         { cc: rx },
@@ -1657,12 +1789,13 @@ const getEmailLogs = async (req, res) => {
     res.json({ logs, stats: counts });
   } catch (err) {
     console.error('Email logs fetch error:', err);
-    res.status(500).json({ msg: 'Failed to load email logs', error: err.message });
+    res.status(500).json({ msg: 'Failed to load email logs' });
   }
 };
 
 const resendEmailLog = async (req, res) => {
   try {
+    if (!ensureValidObjectId(req.params.id, res)) return;
     const result = await resendEmailLogById(req.params.id);
     if (!result) {
       return res.status(404).json({ msg: 'Email log record not found' });
@@ -1682,7 +1815,7 @@ const resendEmailLog = async (req, res) => {
     });
   } catch (err) {
     console.error('Resend email log error:', err);
-    res.status(500).json({ msg: 'Failed to resend email', error: err.message });
+    res.status(500).json({ msg: 'Failed to resend email' });
   }
 };
 
@@ -1697,21 +1830,32 @@ const processEmailQueueNow = async (req, res) => {
     });
   } catch (err) {
     console.error('Queue drain error:', err);
-    res.status(500).json({ msg: 'Failed to process pending email queue', error: err.message });
+    res.status(500).json({ msg: 'Failed to process pending email queue' });
   }
 };
 
 // Failed / Interrupted Registrations Recovery Endpoints
 const getFailedRegistrations = async (req, res) => {
   try {
-    const { status = 'all', errorType = 'all', search = '', limit = 120 } = req.query;
+    const status = asString(req.query?.status) || 'all';
+    const errorType = asString(req.query?.errorType) || 'all';
+    const search = asString(req.query?.search);
+    const limit = req.query?.limit;
     const query = {};
-    if (status && status !== 'all') query.followUpStatus = status;
-    if (errorType && errorType !== 'all') query.errorType = errorType;
+    if (status && status !== 'all' && ['pending', 'contacted', 'resolved'].includes(status)) {
+      query.followUpStatus = status;
+    }
+    if (
+      errorType &&
+      errorType !== 'all' &&
+      ['server_error', 'validation_conflict', 'closed_gate', 'network_timeout', 'client_submit_error'].includes(errorType)
+    ) {
+      query.errorType = errorType;
+    }
 
-    if (search && String(search).trim()) {
+    if (search) {
       const rx = new RegExp(
-        String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+        search.slice(0, 120).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
         'i'
       );
       query.$or = [
@@ -1766,19 +1910,20 @@ const getFailedRegistrations = async (req, res) => {
     res.json({ logs, stats });
   } catch (err) {
     console.error('Failed registrations fetch error:', err);
-    res.status(500).json({ msg: 'Failed to load registration issue logs', error: err.message });
+    res.status(500).json({ msg: 'Failed to load registration issue logs' });
   }
 };
 
 const updateFailedRegistration = async (req, res) => {
   try {
+    if (!ensureValidObjectId(req.params.id, res)) return;
     const { followUpStatus, adminNote } = req.body || {};
     const updates = {};
     if (followUpStatus && ['pending', 'contacted', 'resolved'].includes(followUpStatus)) {
       updates.followUpStatus = followUpStatus;
     }
-    if (adminNote !== undefined) {
-      updates.adminNote = String(adminNote).trim();
+    if (typeof adminNote === 'string') {
+      updates.adminNote = adminNote.trim().slice(0, 1000);
     }
 
     const updated = await FailedRegistration.findByIdAndUpdate(
@@ -1794,17 +1939,20 @@ const updateFailedRegistration = async (req, res) => {
       log: updated
     });
   } catch (err) {
-    res.status(500).json({ msg: 'Failed to update registration issue', error: err.message });
+    console.error('updateFailedRegistration error:', err);
+    res.status(500).json({ msg: 'Failed to update registration issue' });
   }
 };
 
 const deleteFailedRegistration = async (req, res) => {
   try {
+    if (!ensureValidObjectId(req.params.id, res)) return;
     const deleted = await FailedRegistration.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ msg: 'Failed registration record not found' });
     res.json({ success: true, msg: 'Issue log removed' });
   } catch (err) {
-    res.status(500).json({ msg: 'Failed to delete issue log', error: err.message });
+    console.error('deleteFailedRegistration error:', err);
+    res.status(500).json({ msg: 'Failed to delete issue log' });
   }
 };
 

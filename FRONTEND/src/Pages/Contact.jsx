@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion as Motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import '../Components/home/lostCivilization.css';
+import SeoHead from '../Components/common/SeoHead.jsx';
 import StackingChapter from '../Components/about/StackingChapter.jsx';
 import FloatingParticles from '../Components/home/FloatingParticles.jsx';
 import { TempleDivider } from '../Components/home/OrnamentDivider.jsx';
@@ -10,6 +11,12 @@ import { AncientSunDisc } from '../Components/about/JungleCanopyVectors.jsx';
 import ContactScrollProgress from '../Components/contact/ContactScrollProgress.jsx';
 import ContactHero from '../Components/contact/ContactHero.jsx';
 import ContactFormSection from '../Components/contact/ContactFormSection.jsx';
+import {
+  ROUTE_PATHS,
+  SITE_URL,
+  buildBreadcrumbJsonLd,
+  buildOrganizationJsonLd,
+} from '../config/siteConfig.js';
 
 export default function Contact() {
   const [formSuccess, setFormSuccess] = useState(false);
@@ -25,6 +32,24 @@ export default function Contact() {
   });
   const portalScale = useTransform(gatewayScroll, [0, 1], [1.14, 1.0]);
   const portalDiscRotate = useTransform(gatewayScroll, [0, 1], [-18, 28]);
+
+  const jsonLd = useMemo(
+    () => [
+      buildBreadcrumbJsonLd([
+        { name: 'Home', path: ROUTE_PATHS.home },
+        { name: 'Contact', path: ROUTE_PATHS.contact },
+      ]),
+      buildOrganizationJsonLd(),
+      {
+        '@context': 'https://schema.org',
+        '@type': 'ContactPage',
+        name: 'Contact CROSSROADS 2027 — HIET Ghaziabad',
+        url: `${SITE_URL}/contact`,
+        mainEntity: { '@id': `${SITE_URL}/#organization` },
+      },
+    ],
+    []
+  );
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -69,6 +94,12 @@ export default function Contact() {
 
   return (
     <main className="lc-root min-h-[100dvh] overflow-x-clip relative selection:bg-[#C69B43] selection:text-[#080D0B]">
+      <SeoHead
+        title="Contact Team Tech Fusion & HIET Campus Directions | CROSSROADS 2027"
+        description="Reach the CROSSROADS 2027 organizing committee via WhatsApp (+91 8802323375), email (techfusion@hietgroup.org), or visit HIET Ghaziabad on NH-9."
+        path={ROUTE_PATHS.contact}
+        jsonLd={jsonLd}
+      />
       <ContactScrollProgress />
 
       {/* Chapter 01: Dispatch Beacon Hero & Direct Channels */}
@@ -140,7 +171,7 @@ export default function Contact() {
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5 max-w-md mx-auto">
               <Link
-                to="/event-registration"
+                to={ROUTE_PATHS.register}
                 className="lc-gold-btn lc-font-heading flex-1 px-7 py-4 rounded-sm font-extrabold text-xs sm:text-sm uppercase tracking-[0.16em] inline-flex items-center justify-center gap-2 group"
               >
                 <span>Register Your Squad</span>

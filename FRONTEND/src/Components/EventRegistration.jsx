@@ -34,8 +34,15 @@ import {
   X,
 } from 'lucide-react';
 import './home/lostCivilization.css';
+import SeoHead from './common/SeoHead.jsx';
+import Breadcrumbs from './common/Breadcrumbs.jsx';
 import FloatingParticles from './home/FloatingParticles.jsx';
 import { CornerFiligree } from './home/OrnamentDivider.jsx';
+import {
+  ROUTE_PATHS,
+  SITE_URL,
+  buildBreadcrumbJsonLd,
+} from '../config/siteConfig.js';
 import {
   ALL_EVENTS,
   BRANCHES,
@@ -313,8 +320,8 @@ const EventRegistration = () => {
             // ignore
           }
         }
-      } catch (err) {
-        console.warn('Could not fetch settings, using defaults', err);
+      } catch {
+        // Fallback to cached or default settings if API is temporarily unreachable
       }
     };
     fetchSettings();
@@ -759,7 +766,6 @@ const EventRegistration = () => {
         });
       }
     } catch (err) {
-      console.error('Registration submission failed:', err);
       const errData = err.response?.data;
       const msg =
         errData?.message ||
@@ -836,16 +842,34 @@ const EventRegistration = () => {
 
   return (
     <main className="lc-root min-h-[100dvh] pt-[84px] sm:pt-[92px] pb-8 px-3 sm:px-6 lg:px-8 relative overflow-hidden bg-[#080D0B] flex flex-col justify-center selection:bg-[#C69B43] selection:text-[#080D0B]">
+      <SeoHead
+        title="Register Your Squad (Free Entry) | CROSSROADS 2027 — HIET Ghaziabad"
+        description="Complete free online registration for CROSSROADS 2027 at HIET Ghaziabad (Jan 10 – Jan 31, 2027). Autosave enabled, duplicate protection, and instant team email pass."
+        path={ROUTE_PATHS.register}
+        jsonLd={[
+          buildBreadcrumbJsonLd([
+            { name: 'Home', path: ROUTE_PATHS.home },
+            { name: 'Events', path: ROUTE_PATHS.events },
+            { name: 'Register', path: ROUTE_PATHS.register },
+          ]),
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: 'CROSSROADS 2027 Event Registration',
+            url: `${SITE_URL}/register`,
+          },
+        ]}
+      />
       {/* Distinct Lost Civilization Temple Gateway & Moss Stone Background */}
       <div aria-hidden="true" className="fixed inset-0 pointer-events-none z-0">
         <img
           src="/assets/lost-civilization/temple-gateway.webp"
-          alt=""
+          alt="Ancient Lost Civilization stone temple gateway entrance"
           className="w-full h-full object-cover opacity-26"
         />
         <img
           src="/assets/lost-civilization/moss-stone-texture.webp"
-          alt=""
+          alt="Moss-covered stone temple wall texture"
           className="w-full h-full object-cover opacity-16 mix-blend-overlay"
         />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(198,155,67,0.14)_0%,rgba(12,22,17,0.82)_55%,rgba(8,13,11,0.97)_100%)]" />
@@ -870,6 +894,15 @@ const EventRegistration = () => {
 
       {/* Compact Viewport-First Container */}
       <div className="relative z-10 w-full max-w-6xl mx-auto">
+        <div className="mb-2.5 flex justify-center md:justify-start">
+          <Breadcrumbs
+            items={[
+              { name: 'Home', path: ROUTE_PATHS.home },
+              { name: 'Events', path: ROUTE_PATHS.events },
+              { name: 'Squad Registration' },
+            ]}
+          />
+        </div>
         {/* Compact Header Strip + Live Autosave Indicator */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 mb-3.5 sm:mb-4">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
@@ -1084,7 +1117,7 @@ const EventRegistration = () => {
                         label="Leader Email *"
                         name="leaderEmail"
                         type="email"
-                        placeholder="leader@example.com"
+                        placeholder="captain@college.edu"
                         value={formData.leaderEmail}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
@@ -1330,7 +1363,7 @@ const EventRegistration = () => {
                                 label="Email Address *"
                                 name={`members.${idx}.email`}
                                 type="email"
-                                placeholder="teammate@example.com"
+                                placeholder="teammate@college.edu"
                                 value={member.email}
                                 onChange={(e) =>
                                   handleMemberChange(idx, 'email', e.target.value)

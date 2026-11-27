@@ -153,7 +153,7 @@ export default function FinalGateway({ registrationOpen }) {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5 sm:gap-4 max-w-lg mx-auto">
           {registrationOpen ? (
             <Link
-              to="/event-registration"
+              to="/register"
               className="lc-gold-btn lc-font-heading flex-1 px-8 py-4 rounded-sm font-extrabold text-xs sm:text-sm uppercase tracking-[0.18em] inline-flex items-center justify-center gap-2.5 group cursor-pointer"
             >
               <Sparkles size={16} className="text-[#080D0B]" />

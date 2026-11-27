@@ -38,7 +38,7 @@ const failedRegistrationSchema = new mongoose.Schema(
     branch: { type: String, default: '' },
     year: { type: String, default: '' },
     event: { type: String, default: '' },
-    teamSize: { type: Number, default: 1 },
+    teamSize: { type: Number, default: 1, min: 1, max: 8 },
     members: [
       {
         name: { type: String, default: '' },

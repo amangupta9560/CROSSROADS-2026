@@ -1,7 +1,10 @@
 const express = require('express');
+const crypto = require('crypto');
 const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
+
+mongoose.set('sanitizeFilter', true);
 
 const eventRoutes = require('./routes/event');
 const adminRoutes = require('./routes/adminRoutes');
@@ -60,16 +63,49 @@ async function connectToDatabase() {
 }
 
 const app = express();
+app.disable('x-powered-by');
 app.set('trust proxy', 1);
+
+const stripNoSqlOperators = (value, depth = 0) => {
+  if (depth > 8 || value === null || value === undefined) return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => stripNoSqlOperators(item, depth + 1));
+  }
+  if (typeof value === 'object') {
+    const clean = {};
+    for (const [key, val] of Object.entries(value)) {
+      if (
+        key.startsWith('$') ||
+        key.includes('.') ||
+        key === '__proto__' ||
+        key === 'constructor' ||
+        key === 'prototype'
+      ) {
+        continue;
+      }
+      clean[key] = stripNoSqlOperators(val, depth + 1);
+    }
+    return clean;
+  }
+  return value;
+};
+
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-XSS-Protection', '0');
+  next();
+});
 
 const defaultOrigins = [
   'https://crossroads-hiet.netlify.app',
-  'https://hiet-crossroads.online',
   'http://localhost:5173',
   'http://localhost:4173'
 ];
 const envOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean)
+  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter((o) => o && o !== '*')
   : [];
 const allowedOriginSet = new Set([...defaultOrigins, ...envOrigins]);
 
@@ -78,7 +114,7 @@ app.use(
     origin: (requestOrigin, callback) => {
       if (!requestOrigin) return callback(null, true);
       const cleanOrigin = requestOrigin.replace(/\/+$/, '');
-      if (allowedOriginSet.has(cleanOrigin) || allowedOriginSet.has('*')) {
+      if (allowedOriginSet.has(cleanOrigin)) {
         return callback(null, true);
       }
       const err = new Error(`Origin ${cleanOrigin} not allowed by CORS`);
@@ -91,8 +127,16 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Strip MongoDB $ operators & prototype keys globally from JSON payloads before route handlers
+app.use((req, _res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    req.body = stripNoSqlOperators(req.body);
+  }
+  next();
+});
 
 // Global burst shield before database access
 const globalApiLimiter = createRateLimiter({
@@ -120,34 +164,34 @@ app.use('/api/admin', adminRoutes);
 
 app.get('/api/cron/process-email-queue', async (req, res) => {
   try {
-    if (
-      process.env.CRON_SECRET &&
-      req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`
-    ) {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = String(req.headers.authorization || '');
+    const expected = cronSecret ? `Bearer ${cronSecret}` : '';
+    const isAuthorized =
+      Boolean(cronSecret) &&
+      authHeader.length === expected.length &&
+      crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+
+    if (!isAuthorized) {
       return res.status(401).json({ message: 'Unauthorized cron trigger' });
     }
     const result = await processPendingEmailQueue(25);
     return res.status(200).json({ ok: true, ...result });
-  } catch (err) {
-    return res.status(500).json({ ok: false, message: err.message });
+  } catch {
+    return res.status(500).json({ ok: false, message: 'Queue processing failed' });
   }
 });
 
-// Readiness & Queue Health Probe
-app.get('/api/health', async (req, res) => {
+// Readiness Probe (minimal non-sensitive health status)
+app.get('/api/health', async (_req, res) => {
   try {
     const dbReady = mongoose.connection.readyState === 1;
-    const queuedEmails = dbReady ? await EmailLog.countDocuments({ status: 'queued' }) : 0;
-    const memMb = Math.round(process.memoryUsage().rss / (1024 * 1024));
     res.status(dbReady ? 200 : 503).json({
       status: dbReady ? 'healthy' : 'degraded',
-      dbConnected: dbReady,
-      queuedEmails,
-      uptimeSec: Math.round(process.uptime()),
-      memoryRssMb: memMb
+      dbConnected: dbReady
     });
-  } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+  } catch {
+    res.status(500).json({ status: 'error' });
   }
 });
 

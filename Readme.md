@@ -4,7 +4,7 @@ A full-stack MERN web application built to manage a college technical fest, allo
 </h3>
 
 <p align="center">
-  <a href="https://hiet-crossroads.online/"><b>🌐 Live Website</b></a>
+  <a href="https://crossroads-hiet.netlify.app/"><b>🌐 Live Website</b></a>
 </p>
 
 <p align="center">

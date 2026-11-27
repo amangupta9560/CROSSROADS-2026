@@ -11,7 +11,7 @@ import event11 from '../../assets/dance.jpg';
 import event12 from '../../assets/tresure.jpeg';
 import event13 from '../../assets/film.jpeg';
 
-// Winner Images
+// Hall of Fame Archive Images
 import w1 from '../../assets/w1.jpg';
 import w2 from '../../assets/w2.jpg';
 import w3 from '../../assets/w3.jpg';
@@ -42,8 +42,11 @@ export const eventsList = [
     imageSrc: event1,
     name: 'Code Puzzle',
     category: 'Technical',
+    urlSlug: 'code-puzzle',
     eventSlug: 'code-puzzle',
     dayBadge: 'Feb 05, 2027',
+    startDateIso: '2027-02-05T10:00:00+05:30',
+    endDateIso: '2027-02-05T14:00:00+05:30',
     rulesPdf: codeRules,
     details: {
       description:
@@ -59,8 +62,11 @@ export const eventsList = [
     imageSrc: event2,
     name: 'Project Exhibition / Project Evolution',
     category: 'Technical',
+    urlSlug: 'project-exhibition',
     eventSlug: 'project-exhibition',
     dayBadge: 'Feb 05, 2027',
+    startDateIso: '2027-02-05T10:00:00+05:30',
+    endDateIso: '2027-02-05T14:00:00+05:30',
     details: {
       description:
         'Showcase innovative student projects, prototypes, and engineering solutions (1–4 members) to judges and visitors.',
@@ -75,8 +81,11 @@ export const eventsList = [
     imageSrc: event3,
     name: 'Robo Race',
     category: 'Technical',
+    urlSlug: 'robo-race',
     eventSlug: 'robo-race',
     dayBadge: 'Feb 05, 2027',
+    startDateIso: '2027-02-05T10:00:00+05:30',
+    endDateIso: '2027-02-05T14:00:00+05:30',
     rulesPdf: roboRules,
     details: {
       description:
@@ -92,8 +101,11 @@ export const eventsList = [
     imageSrc: event11,
     name: 'Dance Competition',
     category: 'Cultural',
+    urlSlug: 'dance-competition',
     eventSlug: 'dance-competition',
     dayBadge: 'Feb 05, 2027',
+    startDateIso: '2027-02-05T14:00:00+05:30',
+    endDateIso: '2027-02-05T16:00:00+05:30',
     details: {
       description:
         'High-energy solo (3–5 min) and group (5–8 min) dance performances across classical, Bollywood, hip-hop, and fusion styles.',
@@ -109,8 +121,11 @@ export const eventsList = [
     imageSrc: event5,
     name: 'Rangoli Competition',
     category: 'Cultural',
+    urlSlug: 'rangoli-competition',
     eventSlug: 'rangoli-competition',
     dayBadge: 'Feb 05, 2027',
+    startDateIso: '2027-02-05T10:00:00+05:30',
+    endDateIso: '2027-02-05T11:30:00+05:30',
     rulesPdf: rangoliRules,
     details: {
       description:
@@ -127,8 +142,11 @@ export const eventsList = [
     imageSrc: event6,
     name: 'Food Without Fire',
     category: 'Cultural',
+    urlSlug: 'food-without-fire',
     eventSlug: 'food-without-fire',
     dayBadge: 'Feb 06, 2027',
+    startDateIso: '2027-02-06T10:00:00+05:30',
+    endDateIso: '2027-02-06T14:00:00+05:30',
     rulesPdf: foodRules,
     details: {
       description:
@@ -144,8 +162,11 @@ export const eventsList = [
     imageSrc: event9,
     name: 'Technical Poster Competition',
     category: 'Technical',
+    urlSlug: 'technical-poster',
     eventSlug: 'technical-poster',
     dayBadge: 'Feb 05, 2027',
+    startDateIso: '2027-02-05T10:00:00+05:30',
+    endDateIso: '2027-02-05T14:00:00+05:30',
     rulesPdf: posterRules,
     details: {
       description:
@@ -162,8 +183,11 @@ export const eventsList = [
     imageSrc: event10,
     name: 'Rock Band / Cultural Performances',
     category: 'Cultural',
+    urlSlug: 'rock-band',
     eventSlug: 'rock-band',
     dayBadge: 'Feb 05, 2027',
+    startDateIso: '2027-02-05T18:00:00+05:30',
+    endDateIso: '2027-02-05T20:00:00+05:30',
     details: {
       description:
         'Live rock band performances and cultural acts (1–4 core registered performers) energizing the amphitheatre crowd.',
@@ -178,8 +202,11 @@ export const eventsList = [
     imageSrc: event13,
     name: 'Short Film Making',
     category: 'Cultural',
+    urlSlug: 'short-film-making',
     eventSlug: 'short-film-maker',
     dayBadge: 'Feb 06, 2027',
+    startDateIso: '2027-02-06T10:00:00+05:30',
+    endDateIso: '2027-02-06T14:00:00+05:30',
     rulesPdf: shortFilmRules,
     details: {
       description:
@@ -196,8 +223,11 @@ export const eventsList = [
     imageSrc: event12,
     name: 'Treasure Hunt',
     category: 'Adventure',
+    urlSlug: 'treasure-hunt',
     eventSlug: 'treasure-hunt',
     dayBadge: 'Feb 06, 2027',
+    startDateIso: '2027-02-06T11:00:00+05:30',
+    endDateIso: '2027-02-06T14:00:00+05:30',
     rulesPdf: treasureRules,
     details: {
       description:
@@ -213,8 +243,11 @@ export const eventsList = [
     imageSrc: event4,
     name: 'Crossroads Award & Closing',
     category: 'Ceremony',
+    urlSlug: 'closing-ceremony',
     eventSlug: null,
     dayBadge: 'Feb 06, 2027',
+    startDateIso: '2027-02-06T16:00:00+05:30',
+    endDateIso: '2027-02-06T18:00:00+05:30',
     details: {
       description:
         'Grand closing ceremony recognizing overall fest champions, academic awards, and rolling trophy presentations.',
@@ -227,20 +260,90 @@ export const eventsList = [
 ];
 
 export const winnersList = [
-  { id: 1, imageSrc: w1, name: 'Winner 1' },
-  { id: 2, imageSrc: w2, name: 'Winner 2' },
-  { id: 3, imageSrc: w3, name: 'Winner 3' },
-  { id: 4, imageSrc: w4, name: 'Winner 4' },
-  { id: 5, imageSrc: w5, name: 'Winner 5' },
-  { id: 6, imageSrc: w6, name: 'Winner 6' },
-  { id: 7, imageSrc: w7, name: 'Winner 7' },
-  { id: 8, imageSrc: w8, name: 'Winner 8' },
-  { id: 9, imageSrc: w9, name: 'Winner 9' },
-  { id: 10, imageSrc: w10, name: 'Winner 10' },
-  { id: 11, imageSrc: w11, name: 'Winner 11' },
-  { id: 12, imageSrc: w12, name: 'Winner 12' },
-  { id: 13, imageSrc: w13, name: 'Winner 13' },
-  { id: 14, imageSrc: w14, name: 'Winner 14' },
+  {
+    id: 1,
+    imageSrc: w1,
+    name: 'CROSSROADS Champions Podium — Overall Trophy Felicitations',
+    edition: 'Past Edition Highlight',
+  },
+  {
+    id: 2,
+    imageSrc: w2,
+    name: 'Project Exhibition Winning Hardware Team with Faculty Jury',
+    edition: 'Technical Arena',
+  },
+  {
+    id: 3,
+    imageSrc: w3,
+    name: 'Code Puzzle Top Algorithm Finisher Receiving Merit Certificate',
+    edition: 'Coding Arena',
+  },
+  {
+    id: 4,
+    imageSrc: w4,
+    name: 'Robo Race Track Champions Showcasing Custom Bot Chassis',
+    edition: 'Robotics Arena',
+  },
+  {
+    id: 5,
+    imageSrc: w5,
+    name: 'Technical Poster Presentation Winning Innovators at HIET Block 3',
+    edition: 'Design & Research',
+  },
+  {
+    id: 6,
+    imageSrc: w6,
+    name: 'Amphitheatre Cultural Night Dance Competition Awardees',
+    edition: 'Cultural Arena',
+  },
+  {
+    id: 7,
+    imageSrc: w7,
+    name: 'Rock Band Live Finale Performers and Stage Honours',
+    edition: 'Main Stage Night',
+  },
+  {
+    id: 8,
+    imageSrc: w8,
+    name: 'Rangoli Art Competition Nature-Theme Winners Display',
+    edition: 'Fine Arts Arena',
+  },
+  {
+    id: 9,
+    imageSrc: w9,
+    name: 'Food Without Fire Culinary Creativity Prize Distribution',
+    edition: 'Culinary Arena',
+  },
+  {
+    id: 10,
+    imageSrc: w10,
+    name: 'Campus Treasure Hunt Winning Squad Celebrating Final Checkpoint',
+    edition: 'Adventure Arena',
+  },
+  {
+    id: 11,
+    imageSrc: w11,
+    name: 'Short Film Making Directors Receiving Storytelling Honours',
+    edition: 'Media & Cinema',
+  },
+  {
+    id: 12,
+    imageSrc: w12,
+    name: 'Departmental Merit & Academic Excellence Award Recipients',
+    edition: 'Closing Ceremony',
+  },
+  {
+    id: 13,
+    imageSrc: w13,
+    name: 'HIET Director and HODs Honouring Inter-College Squads',
+    edition: 'Leadership Council',
+  },
+  {
+    id: 14,
+    imageSrc: w14,
+    name: 'Team Tech Fusion Closing Ceremony Group Photograph at Amphitheatre',
+    edition: 'Festival Closing',
+  },
 ];
 
 export const CATEGORY_BADGE_MAP = {

@@ -1,42 +1,41 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { MotionConfig } from 'framer-motion';
 import SoundProvider from './context/SoundProvider.jsx';
 import Navbar from './Pages/Navbar.jsx';
 import Footer from './Pages/Footer.jsx';
 import BroadcastBanner from './Components/BroadcastBanner.jsx';
 
-// Pages with navbar + footer
-import Home from './Pages/Home.jsx';
-import About from './Pages/About.jsx';
-import Contact from './Pages/Contact.jsx';
-import Events from './Pages/Events.jsx';
-import Schedule from './Pages/Schedule.jsx';
-import Team from './Pages/Team.jsx';
-import EventRegistration from './Components/EventRegistration.jsx';
+// Route-level code splitting for faster initial load and smaller bundles
+const Home = lazy(() => import('./Pages/Home.jsx'));
+const About = lazy(() => import('./Pages/About.jsx'));
+const Contact = lazy(() => import('./Pages/Contact.jsx'));
+const Events = lazy(() => import('./Pages/Events.jsx'));
+const Schedule = lazy(() => import('./Pages/Schedule.jsx'));
+const Team = lazy(() => import('./Pages/Team.jsx'));
+const EventRegistration = lazy(() => import('./Components/EventRegistration.jsx'));
+const AdminLogin = lazy(() => import('./Components/AdminLogin.jsx'));
+const AdminDashboard = lazy(() => import('./Components/AdminDashboard.jsx'));
+const Attendance = lazy(() => import('./Pages/Attendence.jsx'));
+const NotFound = lazy(() => import('./Pages/NotFound.jsx'));
 
-// Special pages
-import AdminLogin from './Components/AdminLogin.jsx';
-import AdminDashboard from './Components/AdminDashboard.jsx';
-import Attendance from './Pages/Attendence.jsx';
-
-const NotFound = () => (
-  <div className="min-h-[80dvh] bg-[#040711] text-white flex flex-col items-center justify-center px-4 pt-28 pb-16 text-center">
-    <span className="px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-xs uppercase tracking-widest mb-4">
-      Error 404 • Route Not Found
+const RouteLoader = () => (
+  <div
+    role="status"
+    aria-label="Loading page"
+    className="min-h-[85dvh] bg-[#080D0B] text-[#E8C574] flex flex-col items-center justify-center px-4 pt-28"
+  >
+    <div className="w-10 h-10 rounded-full border-2 border-[#C69B43]/25 border-t-[#E8C574] animate-spin mb-3" />
+    <span className="lc-font-heading text-xs uppercase tracking-[0.24em] text-[#E8C574]/85">
+      Entering Chamber...
     </span>
-    <h1 className="text-4xl sm:text-6xl font-black tracking-tight mb-4">Page Not Found</h1>
-    <p className="text-slate-400 max-w-md mb-8 text-sm sm:text-base">
-      The page you are looking for does not exist or may have been moved.
-    </p>
-    <Link
-      to="/"
-      className="px-6 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-indigo-500 text-slate-950 font-bold text-sm hover:opacity-95 transition"
-    >
-      Return to Home
-    </Link>
   </div>
 );
+
+const LegacyRegisterRedirect = () => {
+  const location = useLocation();
+  return <Navigate to={`/register${location.search || ''}`} replace />;
+};
 
 // Reusable layout with coordinated top Broadcast Banner + Navbar stack and Footer
 const MainLayout = ({ children }) => {
@@ -59,24 +58,29 @@ const App = () => {
     <MotionConfig reducedMotion="user">
       <Router>
         <SoundProvider>
-          <Routes>
-            {/* Public Pages */}
-            <Route path="/" element={<MainLayout><Home /></MainLayout>} />
-            <Route path="/about" element={<MainLayout><About /></MainLayout>} />
-            <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} />
-            <Route path="/events" element={<MainLayout><Events /></MainLayout>} />
-            <Route path="/schedule" element={<MainLayout><Schedule /></MainLayout>} />
-            <Route path="/team" element={<MainLayout><Team /></MainLayout>} />
-            <Route path="/event-registration" element={<MainLayout><EventRegistration /></MainLayout>} />
-            <Route path="/attendence" element={<Attendance />} />
+          <Suspense fallback={<RouteLoader />}>
+            <Routes>
+              {/* Public Pages */}
+              <Route path="/" element={<MainLayout><Home /></MainLayout>} />
+              <Route path="/about" element={<MainLayout><About /></MainLayout>} />
+              <Route path="/events" element={<MainLayout><Events /></MainLayout>} />
+              <Route path="/events/:eventSlug" element={<MainLayout><Events /></MainLayout>} />
+              <Route path="/schedule" element={<MainLayout><Schedule /></MainLayout>} />
+              <Route path="/team" element={<MainLayout><Team /></MainLayout>} />
+              <Route path="/register" element={<MainLayout><EventRegistration /></MainLayout>} />
+              <Route path="/event-registration" element={<LegacyRegisterRedirect />} />
+              <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} />
+              <Route path="/attendance" element={<Attendance />} />
+              <Route path="/attendence" element={<Navigate to="/attendance" replace />} />
 
-            {/* Admin Pages — Dedicated workspace without public Navbar or Footer */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              {/* Admin Pages — Dedicated workspace without public Navbar or Footer */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
-            {/* Fallback */}
-            <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
-          </Routes>
+              {/* Custom Lost Civilization 404 Page */}
+              <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+            </Routes>
+          </Suspense>
         </SoundProvider>
       </Router>
     </MotionConfig>

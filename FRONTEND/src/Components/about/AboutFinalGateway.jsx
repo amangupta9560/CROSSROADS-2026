@@ -170,7 +170,7 @@ export default function AboutFinalGateway() {
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3.5 sm:gap-4 max-w-lg mx-auto mb-14">
           <Link
-            to="/event-registration"
+            to="/register"
             className="lc-gold-btn lc-font-heading flex-1 px-8 py-4 rounded-sm font-extrabold text-xs sm:text-sm tracking-[0.16em] uppercase inline-flex items-center justify-center gap-2.5 group cursor-pointer"
           >
             <span>REGISTER YOUR TEAM</span>

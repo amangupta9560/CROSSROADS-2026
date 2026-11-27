@@ -17,6 +17,7 @@ const navItems = [
   { name: 'About', path: '/about' },
   { name: 'Events', path: '/events' },
   { name: 'Schedule', path: '/schedule' },
+  { name: 'Team', path: '/team' },
   { name: 'Contact', path: '/contact' },
 ];
 
@@ -188,7 +189,13 @@ export default function Navbar() {
     };
   }, [open]);
 
-  const isRegistrationPage = location.pathname === '/event-registration';
+  const isRegistrationPage =
+    location.pathname === '/register' || location.pathname === '/event-registration';
+
+  const isNavItemActive = (itemPath) => {
+    if (itemPath === '/') return location.pathname === '/';
+    return location.pathname === itemPath || location.pathname.startsWith(`${itemPath}/`);
+  };
 
   return (
     <>
@@ -231,7 +238,7 @@ export default function Navbar() {
                   <AnimatedNavLink
                     key={item.name}
                     item={item}
-                    isActive={location.pathname === item.path}
+                    isActive={isNavItemActive(item.path)}
                     reducedMotion={!!prefersReduced}
                   />
                 ))}
@@ -266,7 +273,7 @@ export default function Navbar() {
               </button>
 
               <NavLink
-                to="/event-registration"
+                to="/register"
                 className={`lc-gold-btn lc-font-heading group relative inline-flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 rounded-full font-extrabold text-xs uppercase tracking-[0.14em] transition-all duration-300 ${
                   isRegistrationPage
                     ? 'ring-2 ring-[#FFF3C4]/70 shadow-[0_0_26px_rgba(232,197,116,0.45)]'
@@ -354,7 +361,7 @@ export default function Navbar() {
               {/* Subtle carved stone texture backdrop inside drawer */}
               <img
                 src="/assets/lost-civilization/stone-texture.webp"
-                alt=""
+                alt="Carved temple stone texture backdrop in mobile drawer"
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-12"
               />
@@ -420,7 +427,7 @@ export default function Navbar() {
 
               <div className="relative z-10 pt-6 border-t border-[#C69B43]/25 space-y-3">
                 <NavLink
-                  to="/event-registration"
+                  to="/register"
                   onClick={() => setOpen(false)}
                   className="lc-gold-btn lc-font-heading flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-sm font-extrabold text-xs uppercase tracking-[0.16em] shadow-lg"
                 >

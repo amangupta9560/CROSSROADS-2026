@@ -305,7 +305,7 @@ export default function PrizeShowcase() {
 
             <div className="text-center">
               <Link
-                to="/event-registration"
+                to="/register"
                 className="lc-gold-btn lc-font-heading w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-sm font-extrabold text-xs sm:text-sm uppercase tracking-[0.18em] cursor-pointer"
               >
                 <Sparkles size={16} className="text-[#080D0B]" />
@@ -357,7 +357,7 @@ export default function PrizeShowcase() {
           </div>
 
           <Link
-            to="/event-registration"
+            to="/register"
             className="lc-gold-btn lc-font-heading inline-flex items-center gap-2 px-6 py-3 rounded-sm font-extrabold text-xs uppercase tracking-[0.18em] cursor-pointer shrink-0"
           >
             <Sparkles size={15} className="text-[#080D0B]" />

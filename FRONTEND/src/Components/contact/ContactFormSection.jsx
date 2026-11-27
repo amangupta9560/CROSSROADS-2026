@@ -69,7 +69,7 @@ export default function ContactFormSection({
       >
         <img
           src="/assets/lost-civilization/moss-stone-texture.webp"
-          alt=""
+          alt="Moss-covered carved temple stone wall background"
           loading="lazy"
           className="w-full h-full object-cover opacity-22"
         />

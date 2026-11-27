@@ -2,6 +2,7 @@ const TECHNICAL_EVENTS = ['code-puzzle', 'project-exhibition', 'robo-race', 'tec
 const REGISTRATION_STATUSES = ['pending', 'verified', 'checked-in', 'rejected'];
 
 const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const asString = (val) => (typeof val === 'string' ? val.trim() : '');
 
 /**
  * Compute start & end of the current calendar day in IST (Asia/Kolkata, UTC+05:30),
@@ -19,42 +20,46 @@ const getIstTodayRange = () => {
 
 /**
  * Build MongoDB filter query uniformly from query params or filter objects.
- * Supports event, track, collegeType/specificCollege, branch, year, teamType,
- * export status ('exported'/'unexported'), verification status ('pending'/'verified'/'checked-in'/'rejected'),
- * dateFrom/dateTo, and optional search regex.
+ * Strictly coerces primitive types to neutralize NoSQL operator injection ($ne, $gt, etc.).
  */
 const buildRegistrationFilterQuery = (filters = {}, options = { includeSearchRegex: true }) => {
-  const {
-    event,
-    track,
-    college,
-    collegeType,
-    specificCollege,
-    branch,
-    year,
-    teamType,
-    status,
-    regStatus,
-    dateFrom,
-    dateTo,
-    search
-  } = filters;
+  const safe = filters && typeof filters === 'object' ? filters : {};
+  const eventRaw = safe.event;
+  const track = asString(safe.track);
+  const college = asString(safe.college);
+  const collegeType = asString(safe.collegeType);
+  const specificCollege = asString(safe.specificCollege);
+  const branch = asString(safe.branch);
+  const year = asString(safe.year);
+  const teamType = asString(safe.teamType);
+  const status = asString(safe.status);
+  const regStatus = asString(safe.regStatus);
+  const dateFrom = asString(safe.dateFrom);
+  const dateTo = asString(safe.dateTo);
+  const search = asString(safe.search);
 
   const query = {};
 
-  if (event && event !== 'all') {
-    query.event = Array.isArray(event) ? { $in: event } : event;
-  } else if (track && track !== 'all') {
-    if (track === 'technical') query.event = { $in: TECHNICAL_EVENTS };
-    else if (track === 'cultural') query.event = { $nin: TECHNICAL_EVENTS };
-    else if (track === 'robotics') query.event = 'robo-race';
+  if (Array.isArray(eventRaw)) {
+    const cleanEvents = eventRaw.map((e) => asString(e)).filter((e) => e && e !== 'all');
+    if (cleanEvents.length > 0) query.event = { $in: cleanEvents };
+  } else {
+    const eventStr = asString(eventRaw);
+    if (eventStr && eventStr !== 'all') {
+      query.event = eventStr;
+    } else if (track && track !== 'all') {
+      if (track === 'technical') query.event = { $in: TECHNICAL_EVENTS };
+      else if (track === 'cultural') query.event = { $nin: TECHNICAL_EVENTS };
+      else if (track === 'robotics') query.event = 'robo-race';
+    }
   }
 
-  const resolvedCollegeFilter = specificCollege && specificCollege !== 'all'
-    ? specificCollege
-    : collegeType && collegeType !== 'all'
-      ? collegeType
-      : college;
+  const resolvedCollegeFilter =
+    specificCollege && specificCollege !== 'all'
+      ? specificCollege
+      : collegeType && collegeType !== 'all'
+        ? collegeType
+        : college;
 
   if (resolvedCollegeFilter && resolvedCollegeFilter !== 'all') {
     if (resolvedCollegeFilter === 'hiet') {
@@ -62,7 +67,7 @@ const buildRegistrationFilterQuery = (filters = {}, options = { includeSearchReg
     } else if (resolvedCollegeFilter === 'outside') {
       query.college = { $not: { $regex: /hi-?tech|hiet/i } };
     } else {
-      query.college = { $regex: new RegExp(`^${escapeRegex(resolvedCollegeFilter.trim())}$`, 'i') };
+      query.college = { $regex: new RegExp(`^${escapeRegex(resolvedCollegeFilter)}$`, 'i') };
     }
   }
 
@@ -72,17 +77,17 @@ const buildRegistrationFilterQuery = (filters = {}, options = { includeSearchReg
   if (teamType === 'solo') query.teamSize = 1;
   else if (teamType === 'group') query.teamSize = { $gt: 1 };
 
-  // Support both export status and verification/check-in status cleanly without collisions
-  const resolvedRegStatus = regStatus && regStatus !== 'all'
-    ? regStatus
-    : REGISTRATION_STATUSES.includes(status)
-      ? status
-      : null;
+  const resolvedRegStatus =
+    regStatus && regStatus !== 'all'
+      ? regStatus
+      : REGISTRATION_STATUSES.includes(status)
+        ? status
+        : null;
 
   if (resolvedRegStatus && resolvedRegStatus !== 'all') {
     if (resolvedRegStatus === 'pending') {
       query.status = { $in: ['pending', null] };
-    } else {
+    } else if (REGISTRATION_STATUSES.includes(resolvedRegStatus)) {
       query.status = resolvedRegStatus;
     }
   }
@@ -91,17 +96,25 @@ const buildRegistrationFilterQuery = (filters = {}, options = { includeSearchReg
   else if (status === 'unexported') query.exported = false;
 
   if (dateFrom || dateTo) {
-    query.appliedAt = {};
-    if (dateFrom) query.appliedAt.$gte = new Date(dateFrom);
+    const dateRange = {};
+    if (dateFrom) {
+      const fromD = new Date(dateFrom);
+      if (!Number.isNaN(fromD.getTime())) dateRange.$gte = fromD;
+    }
     if (dateTo) {
       const toD = new Date(dateTo);
-      toD.setHours(23, 59, 59, 999);
-      query.appliedAt.$lte = toD;
+      if (!Number.isNaN(toD.getTime())) {
+        toD.setHours(23, 59, 59, 999);
+        dateRange.$lte = toD;
+      }
+    }
+    if (Object.keys(dateRange).length > 0) {
+      query.appliedAt = dateRange;
     }
   }
 
-  if (options.includeSearchRegex && search && String(search).trim()) {
-    const regex = new RegExp(escapeRegex(String(search).trim()), 'i');
+  if (options.includeSearchRegex && search) {
+    const regex = new RegExp(escapeRegex(search.slice(0, 120)), 'i');
     query.$or = [
       { teamId: regex },
       { teamName: regex },
@@ -122,7 +135,7 @@ const buildRegistrationFilterQuery = (filters = {}, options = { includeSearchReg
  * lookups, with seamless regex fallback for partial strings/phone digits or unindexed stores.
  */
 const queryTeamsSmart = async (EventTeamModel, filters = {}, { lean = false } = {}) => {
-  const trimmedSearch = filters.search ? String(filters.search).trim() : '';
+  const trimmedSearch = asString(filters?.search);
 
   if (!trimmedSearch) {
     const query = buildRegistrationFilterQuery(filters, { includeSearchRegex: false });
@@ -159,6 +172,7 @@ module.exports = {
   TECHNICAL_EVENTS,
   REGISTRATION_STATUSES,
   escapeRegex,
+  asString,
   getIstTodayRange,
   buildRegistrationFilterQuery,
   queryTeamsSmart

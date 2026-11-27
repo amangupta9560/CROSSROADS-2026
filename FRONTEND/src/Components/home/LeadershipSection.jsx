@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { AnimatePresence, motion as Motion, useReducedMotion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { institutionalPartners, teamMembers } from './homeData.js';
 import { CornerFiligree, TempleDivider } from './OrnamentDivider.jsx';
 
@@ -187,6 +188,16 @@ export default function LeadershipSection({ teamCategory, setTeamCategory }) {
             ))}
           </AnimatePresence>
         </Motion.div>
+
+        <div className="mt-10 text-center">
+          <Link
+            to="/team"
+            className="lc-stone-btn lc-font-heading inline-flex items-center gap-2 px-6 py-3 rounded-sm font-bold text-xs uppercase tracking-[0.16em]"
+          >
+            <span>View Full Leadership Council Page</span>
+            <ArrowRight size={14} className="text-[#C69B43]" />
+          </Link>
+        </div>
       </div>
     </section>
   );

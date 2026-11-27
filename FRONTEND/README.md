@@ -1,16 +1,13 @@
-# React + Vite
+# CROSSROADS 2027 — THE LOST CIVILIZATION
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Official web application for **CROSSROADS 2027**, the annual inter-college technical and cultural festival hosted by **Hi-Tech Institute of Engineering & Technology (HIET), Ghaziabad** and organized by **Team Tech Fusion** (`05 Feb & 06 Feb 2027`).
 
-Currently, two official plugins are available:
+- **Canonical URL:** https://crossroads-hiet.netlify.app/
+- **Contact:** techfusion@hietgroup.org
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Frontend Scripts
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `npm run dev` — Start local development server
+- `npm run build` — Build optimized production bundle (`dist/`) without source maps
+- `npm run lint` — Run ESLint checks across source files
+- `npm run preview` — Preview production bundle locally

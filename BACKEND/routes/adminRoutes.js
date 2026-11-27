@@ -1,7 +1,9 @@
 const express = require('express');
+const path = require('path');
 const router = express.Router();
 const multer = require('multer');
 const protect = require('../middleware/auth');
+const { createRateLimiter } = require('../middleware/rateLimit');
 const {
   login,
   getSmtpStatus,
@@ -35,14 +37,48 @@ const {
   deleteFailedRegistration
 } = require('../controllers/adminController');
 
-// Multer in-memory storage for Excel uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit
+const loginLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  message: 'Too many login attempts from this network. Please wait 15 minutes and try again.'
 });
 
-// Authentication & SMTP Pool Status
-router.post('/login', login);
+const ALLOWED_EXCEL_EXTS = new Set(['.xlsx', '.xls']);
+const ALLOWED_EXCEL_MIMES = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel'
+]);
+
+// Multer in-memory storage for Excel uploads with strict extension, MIME, and 5MB cap
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(String(file?.originalname || '')).toLowerCase();
+    const mime = String(file?.mimetype || '').toLowerCase();
+    if (!ALLOWED_EXCEL_EXTS.has(ext) || !ALLOWED_EXCEL_MIMES.has(mime)) {
+      const err = new Error('Only valid Excel (.xlsx or .xls) files are permitted');
+      err.status = 400;
+      return cb(err);
+    }
+    return cb(null, true);
+  }
+});
+
+const handleExcelUpload = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(err.status || 400).json({ msg: err.message || 'Invalid Excel file upload' });
+    }
+    return next();
+  });
+};
+
+// Authentication (brute-force rate limited) & SMTP Pool Status
+router.post('/login', loginLimiter, login);
 router.get('/smtp-status', protect, getSmtpStatus);
 
 // Analytics ($facet single-query pipeline), Advanced Insights & Registrations Management ($text full-text)
@@ -73,7 +109,7 @@ router.delete('/failed-registrations/:id', protect, deleteFailedRegistration);
 
 // Excel Operations (Filter-wise Upload & In-Memory Formatted RowSpan/ColSpan Export)
 router.get('/export', protect, exportExcel);
-router.post('/upload-excel', protect, upload.single('file'), uploadExcel);
+router.post('/upload-excel', protect, handleExcelUpload, uploadExcel);
 
 // Conditional Email & Broadcast Messaging (Queued + Round Robin Logged)
 router.post('/send-conditional-email', protect, sendConditionalEmail);

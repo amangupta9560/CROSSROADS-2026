@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import '../Components/home/lostCivilization.css';
+import SeoHead from '../Components/common/SeoHead.jsx';
 import AboutScrollProgress from '../Components/about/AboutScrollProgress.jsx';
 import StackingChapter from '../Components/about/StackingChapter.jsx';
 import AboutHero from '../Components/about/AboutHero.jsx';
@@ -14,10 +15,30 @@ import EligibilitySection from '../Components/about/EligibilitySection.jsx';
 import WhyJoinSection from '../Components/about/WhyJoinSection.jsx';
 import ExpeditionTimeline from '../Components/about/ExpeditionTimeline.jsx';
 import AboutFinalGateway from '../Components/about/AboutFinalGateway.jsx';
+import { ROUTE_PATHS, SITE_URL, buildBreadcrumbJsonLd } from '../config/siteConfig.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const About = () => {
+  const jsonLd = useMemo(
+    () => [
+      buildBreadcrumbJsonLd([
+        { name: 'Home', path: ROUTE_PATHS.home },
+        { name: 'About', path: ROUTE_PATHS.about },
+      ]),
+      {
+        '@context': 'https://schema.org',
+        '@type': 'AboutPage',
+        name: 'About CROSSROADS 2027 — THE LOST CIVILIZATION',
+        url: `${SITE_URL}/about`,
+        description:
+          'Discover the origins, vision, eligibility criteria, prize milestones, and Team Tech Fusion organizing heritage behind CROSSROADS 2027 at HIET Ghaziabad.',
+        mainEntity: { '@id': `${SITE_URL}/#festival` },
+      },
+    ],
+    []
+  );
+
   useEffect(() => {
     const id = window.setTimeout(() => ScrollTrigger.refresh(), 350);
     let cancelled = false;
@@ -34,6 +55,13 @@ const About = () => {
 
   return (
     <main className="lc-root min-h-[100dvh] overflow-x-clip relative selection:bg-[#C69B43] selection:text-[#080D0B]">
+      <SeoHead
+        title="About CROSSROADS 2027 — Story, Vision & Rules | HIET Ghaziabad"
+        description="Discover the story behind CROSSROADS 2027 at HIET Ghaziabad: eligibility guidelines, ₹1,00,000+ prize pool, 11 competition chambers, and Team Tech Fusion milestones."
+        path={ROUTE_PATHS.about}
+        jsonLd={jsonLd}
+      />
+
       <AboutScrollProgress />
 
       {/* Chapter 01: Opening Hero (Stacks cleanly under ScrollJourney) */}

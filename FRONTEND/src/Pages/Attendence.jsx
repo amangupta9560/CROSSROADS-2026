@@ -1,9 +1,9 @@
-// Attendance.jsx (or rename file to Attendance.jsx)
 import React from 'react';
+import SeoHead from '../Components/common/SeoHead.jsx';
 
 const Attendance = () => {
   return (
-    <div
+    <main
       style={{
         width: '100vw',
         height: '100vh',
@@ -11,12 +11,19 @@ const Attendance = () => {
         padding: 0,
         overflow: 'hidden',
         position: 'fixed',
-        inset: 0,           // top/right/bottom/left = 0
+        inset: 0,
       }}
     >
+      <SeoHead
+        title="Attendance Verification Portal | CROSSROADS 2027"
+        description="Official squad attendance and QR check-in portal for CROSSROADS 2027 at HIET Ghaziabad."
+        path="/attendance"
+        robots="noindex, nofollow"
+      />
+      <h1 className="sr-only">CROSSROADS 2027 Attendance Verification Portal</h1>
       <iframe
         src="https://attendence-crossroads.lovable.app"
-        title="Attendance Scanner"
+        title="CROSSROADS 2027 Attendance Scanner"
         style={{
           width: '100%',
           height: '100%',
@@ -24,9 +31,8 @@ const Attendance = () => {
           display: 'block',
         }}
         allow="camera; microphone; fullscreen; geolocation"
-        allowFullScreen
       />
-    </div>
+    </main>
   );
 };
 
