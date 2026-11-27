@@ -7,6 +7,7 @@ const { buildFormattedRegistrationWorkbook } = require('./excelReport');
 
 let workerInterval = null;
 let isDraining = false;
+let retriggerRequested = false;
 
 /**
  * Reconstruct optional formatted Excel attachment for queued/resent report emails
@@ -27,7 +28,10 @@ const buildAttachmentsForLog = async (logDoc) => {
   const teams = await EventTeam.find(query).sort({ appliedAt: -1 }).lean();
   if (teams.length === 0) return [];
 
-  const workbook = await buildFormattedRegistrationWorkbook(teams, params.scopeLabel || 'All Registrations');
+  const workbook = await buildFormattedRegistrationWorkbook(
+    teams,
+    params.scopeLabel || 'All Registrations'
+  );
   const buffer = await workbook.xlsx.writeBuffer();
   return [
     {
@@ -39,14 +43,22 @@ const buildAttachmentsForLog = async (logDoc) => {
 };
 
 /**
- * Atomically claim and dispatch a single EmailLog entry via persistent Round Robin SMTP,
- * recording exact `sentVia`, `messageId`, or `lastError` for full observability & 1-click resend.
+ * Atomically claim and dispatch a single EmailLog entry via pooled Round Robin SMTP.
+ * Applies exponential backoff retries (`nextRetryAt`) on transient failures before marking `'failed'`.
  */
 const processSingleEmailLog = async (logOrId) => {
-  const logId = typeof logOrId === 'string' || logOrId instanceof mongoose.Types.ObjectId ? logOrId : logOrId._id;
+  const logId =
+    typeof logOrId === 'string' || logOrId instanceof mongoose.Types.ObjectId
+      ? logOrId
+      : logOrId._id;
 
+  const now = new Date();
   const claimed = await EmailLog.findOneAndUpdate(
-    { _id: logId, status: { $in: ['queued', 'failed'] } },
+    {
+      _id: logId,
+      status: { $in: ['queued', 'failed'] },
+      $or: [{ nextRetryAt: null }, { nextRetryAt: { $lte: now } }]
+    },
     { $set: { status: 'sending', lastError: '' }, $inc: { attempts: 1 } },
     { new: true }
   );
@@ -74,24 +86,34 @@ const processSingleEmailLog = async (logOrId) => {
 
     claimed.status = 'sent';
     claimed.sentVia = result.sentVia || '';
-    claimed.messageId = result.messageId || '';
+    claimed.messageId = result.info?.messageId || result.messageId || '';
     claimed.sentAt = new Date();
+    claimed.nextRetryAt = null;
     claimed.lastError = '';
     await claimed.save();
 
     return { success: true, log: claimed, sentVia: result.sentVia };
   } catch (err) {
-    claimed.status = 'failed';
-    claimed.lastError = String(err.message || 'SMTP delivery failed').slice(0, 600);
+    const errMsg = String(err.message || 'SMTP delivery failed').slice(0, 600);
+    const maxAttempts = claimed.maxAttempts || 4;
+    if (claimed.attempts < maxAttempts) {
+      claimed.status = 'queued';
+      claimed.nextRetryAt = new Date(Date.now() + claimed.attempts * 15000);
+    } else {
+      claimed.status = 'failed';
+      claimed.nextRetryAt = null;
+    }
+    claimed.lastError = errMsg;
     await claimed.save();
 
-    return { success: false, log: claimed, error: claimed.lastError };
+    return { success: false, log: claimed, error: errMsg };
   }
 };
 
 /**
- * Create an EmailLog entry (`queued`) and optionally attempt immediate delivery
- * (ideal for Vercel serverless where background intervals don't outlive the HTTP response).
+ * Create an EmailLog entry (`queued`) cleanly in MongoDB.
+ * When `sendImmediately` is false (default for fast high-concurrency bursts),
+ * delivery is dispatched non-blockingly in the background via `triggerBackgroundQueueDrain()`.
  */
 const enqueueEmail = async (payload, { sendImmediately = true } = {}) => {
   const doc = await EmailLog.create({
@@ -110,6 +132,7 @@ const enqueueEmail = async (payload, { sendImmediately = true } = {}) => {
     hasAttachment: Boolean(payload.hasAttachment || payload.reportParams?.attachExcel),
     attachmentFilename: payload.attachmentFilename || '',
     reportParams: payload.reportParams || null,
+    nextRetryAt: null,
     queuedAt: new Date()
   });
 
@@ -121,9 +144,7 @@ const enqueueEmail = async (payload, { sendImmediately = true } = {}) => {
 };
 
 /**
- * Queue a batch of EmailLog entries and process as many as safely fit within
- * Vercel's inline execution budget using pooled Round Robin concurrency.
- * Any remaining items stay safely `queued` for manual drain, Cron, or local worker.
+ * Insert a batch of EmailLog entries and dispatch smoothly via pooled Round Robin concurrency.
  */
 const enqueueBatchEmails = async (payloads, { maxInlineDurationMs = 7500 } = {}) => {
   if (!Array.isArray(payloads) || payloads.length === 0) {
@@ -146,6 +167,7 @@ const enqueueBatchEmails = async (payloads, { maxInlineDurationMs = 7500 } = {})
     hasAttachment: Boolean(p.hasAttachment),
     attachmentFilename: p.attachmentFilename || '',
     reportParams: p.reportParams || null,
+    nextRetryAt: null,
     queuedAt: new Date()
   }));
 
@@ -188,11 +210,16 @@ const enqueueBatchEmails = async (payloads, { maxInlineDurationMs = 7500 } = {})
 };
 
 /**
- * Drain pending queued emails in batches of `batchSize` (default 15),
- * rescuing any stale `sending` entries older than 2 minutes.
+ * Drain eligible queued emails using pooled SMTP concurrency with stale-sending rescue
+ * and automatic re-drain if new items arrive mid-batch.
  */
-const processPendingEmailQueue = async (batchSize = 15, { maxDurationMs = 8000 } = {}) => {
-  if (isDraining || mongoose.connection.readyState !== 1) {
+const processPendingEmailQueue = async (batchSize = 25, { maxDurationMs = 9000 } = {}) => {
+  if (mongoose.connection.readyState !== 1) {
+    return { busy: false, processed: 0, sent: 0, failed: 0 };
+  }
+
+  if (isDraining) {
+    retriggerRequested = true;
     return { busy: true, processed: 0, sent: 0, failed: 0 };
   }
 
@@ -200,14 +227,17 @@ const processPendingEmailQueue = async (batchSize = 15, { maxDurationMs = 8000 }
   const startTime = Date.now();
 
   try {
-    // Re-queue orphaned 'sending' rows stuck > 2 minutes (e.g. abrupt lambda termination)
+    const now = new Date();
     const staleCutoff = new Date(Date.now() - 2 * 60 * 1000);
     await EmailLog.updateMany(
-      { status: 'sending', updatedAt: { $lt: staleCutoff }, attempts: { $lt: 3 } },
-      { $set: { status: 'queued' } }
+      { status: 'sending', updatedAt: { $lt: staleCutoff }, attempts: { $lt: 4 } },
+      { $set: { status: 'queued', nextRetryAt: null } }
     );
 
-    const pending = await EmailLog.find({ status: 'queued' })
+    const pending = await EmailLog.find({
+      status: 'queued',
+      $or: [{ nextRetryAt: null }, { nextRetryAt: { $lte: now } }]
+    })
       .sort({ queuedAt: 1 })
       .limit(batchSize)
       .select('_id')
@@ -237,12 +267,28 @@ const processPendingEmailQueue = async (batchSize = 15, { maxDurationMs = 8000 }
     return { busy: false, processed, sent, failed, remainingQueued };
   } finally {
     isDraining = false;
+    if (retriggerRequested) {
+      retriggerRequested = false;
+      setImmediate(() => {
+        processPendingEmailQueue(batchSize).catch((err) => {
+          console.warn('[EmailWorker Retrigger]', err.message);
+        });
+      });
+    }
   }
 };
 
 /**
- * Re-queue and immediately resend a specific EmailLog entry by ID.
+ * Trigger an asynchronous non-blocking background drain right away.
  */
+const triggerBackgroundQueueDrain = () => {
+  setImmediate(() => {
+    processPendingEmailQueue(25).catch((err) => {
+      console.warn('[EmailWorker Background Trigger]', err.message);
+    });
+  });
+};
+
 const resendEmailLogById = async (logId) => {
   const existing = await EmailLog.findById(logId);
   if (!existing) {
@@ -250,6 +296,7 @@ const resendEmailLogById = async (logId) => {
   }
 
   existing.status = 'queued';
+  existing.nextRetryAt = null;
   existing.lastError = '';
   existing.queuedAt = new Date();
   await existing.save();
@@ -258,17 +305,16 @@ const resendEmailLogById = async (logId) => {
 };
 
 /**
- * Start a 15-second background worker polling loop for non-serverless Node environments.
- * On Vercel serverless, inline dispatch + `/api/admin/email-logs/process-queue` handle queue draining.
+ * Snappy 4-second worker loop drains queued confirmation & admin emails cleanly without blocking HTTP requests.
  */
 const startEmailWorker = () => {
   if (process.env.VERCEL || workerInterval) return;
 
   workerInterval = setInterval(() => {
-    processPendingEmailQueue(15).catch((err) => {
+    processPendingEmailQueue(25).catch((err) => {
       console.warn('[EmailWorker] Queue drain error:', err.message);
     });
-  }, 15000);
+  }, 4000);
 
   if (typeof workerInterval.unref === 'function') {
     workerInterval.unref();
@@ -287,6 +333,7 @@ module.exports = {
   enqueueEmail,
   enqueueBatchEmails,
   processPendingEmailQueue,
+  triggerBackgroundQueueDrain,
   resendEmailLogById,
   startEmailWorker,
   stopEmailWorker

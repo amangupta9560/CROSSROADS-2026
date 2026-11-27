@@ -1099,6 +1099,7 @@ const sendBroadcast = async (req, res) => {
         level: urgency === 'urgent' ? 'urgent' : urgency === 'important' ? 'warning' : 'info'
       };
       await settings.save();
+      SiteSetting.invalidateCache();
     }
 
     const broadcastRecord = await Broadcast.create({
@@ -1167,6 +1168,7 @@ const updateSettings = async (req, res) => {
     if (authorityContacts !== undefined) settings.authorityContacts = authorityContacts;
 
     await settings.save();
+    SiteSetting.invalidateCache();
     res.json({ msg: 'Website settings updated successfully', settings });
   } catch (err) {
     res.status(500).json({ msg: 'Failed to update settings', error: err.message });

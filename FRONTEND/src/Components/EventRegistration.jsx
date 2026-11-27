@@ -108,6 +108,8 @@ function resizeMembersList(
   return updated.slice(0, requiredAdditional);
 }
 
+const SETTINGS_CACHE_KEY = 'cr2027_settings_cache';
+
 const EventRegistration = () => {
   const [searchParams] = useSearchParams();
   const urlEvent = searchParams.get('event');
@@ -115,6 +117,7 @@ const EventRegistration = () => {
   const prefersReduced = useReducedMotion();
 
   const submitBtnRef = useRef(null);
+  const submittingRef = useRef(false);
   const [launchOrigin, setLaunchOrigin] = useState(null);
 
   const [webGLOk, setWebGLOk] = useState(() => checkWebGL());
@@ -131,10 +134,18 @@ const EventRegistration = () => {
   const [sameAsCalling, setSameAsCalling] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
 
-  const [siteSettings, setSiteSettings] = useState({
-    registrationOpen: true,
-    closedMessage: '',
-    eventStatus: {},
+  const [siteSettings, setSiteSettings] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem(SETTINGS_CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      // ignore storage errors
+    }
+    return {
+      registrationOpen: true,
+      closedMessage: '',
+      eventStatus: {},
+    };
   });
 
   const [formData, setFormData] = useState(() => {
@@ -219,8 +230,15 @@ const EventRegistration = () => {
     const fetchSettings = async () => {
       try {
         const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
-        const res = await axios.get(`${backendUrl}/api/settings`);
-        if (res.data) setSiteSettings(res.data);
+        const res = await axios.get(`${backendUrl}/api/settings`, { timeout: 5000 });
+        if (res.data) {
+          setSiteSettings(res.data);
+          try {
+            sessionStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(res.data));
+          } catch {
+            // ignore storage errors
+          }
+        }
       } catch (err) {
         console.warn('Could not fetch settings, using defaults', err);
       }
@@ -491,6 +509,8 @@ const EventRegistration = () => {
   };
 
   const submitForm = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -534,7 +554,20 @@ const EventRegistration = () => {
       };
 
       const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
-      const res = await axios.post(`${backendUrl}/api/event-register`, payload);
+      const endpoint = `${backendUrl}/api/event-register`;
+
+      let res;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          res = await axios.post(endpoint, payload, { timeout: 12000 });
+          break;
+        } catch (reqErr) {
+          const status = reqErr.response?.status;
+          const isTransient = !status || status >= 502 || status === 429;
+          if (!isTransient || attempt === 1) throw reqErr;
+          await new Promise((r) => setTimeout(r, 450 + Math.random() * 250));
+        }
+      }
 
       if (res.status === 201 || res.data?.teamId) {
         localStorage.removeItem(LS_KEY);
@@ -555,7 +588,17 @@ const EventRegistration = () => {
         'Registration failed. Please check network connection.';
       setError(msg);
     } finally {
+      submittingRef.current = false;
       setLoading(false);
+    }
+  };
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (step < STEPS.length - 1) {
+      nextStep();
+    } else {
+      submitForm();
     }
   };
 
@@ -677,7 +720,8 @@ const EventRegistration = () => {
             </div>
           </div>
 
-          {/* Step Body */}
+          {/* Step Body + Keyboard Submit Flow */}
+          <form onSubmit={handleFormSubmit} noValidate>
           <div className="p-4 sm:p-6 lg:px-7 lg:py-5">
             <AnimatePresence mode="wait">
               {step === 0 && (
@@ -1176,8 +1220,7 @@ const EventRegistration = () => {
 
             {step < STEPS.length - 1 ? (
               <button
-                type="button"
-                onClick={nextStep}
+                type="submit"
                 className="lc-gold-btn lc-font-heading w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-2.5 sm:py-3 rounded-sm font-extrabold text-xs uppercase tracking-[0.16em] cursor-pointer"
               >
                 <span>Continue</span>
@@ -1186,8 +1229,7 @@ const EventRegistration = () => {
             ) : (
               <button
                 ref={submitBtnRef}
-                type="button"
-                onClick={submitForm}
+                type="submit"
                 disabled={loading || !siteSettings.registrationOpen}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-9 py-2.5 sm:py-3 rounded-sm bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-600 hover:to-green-600 border border-emerald-400/70 text-white lc-font-heading font-extrabold text-xs uppercase tracking-[0.16em] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
@@ -1205,6 +1247,7 @@ const EventRegistration = () => {
               </button>
             )}
           </div>
+          </form>
         </div>
       </div>
 

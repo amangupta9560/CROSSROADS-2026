@@ -1,6 +1,4 @@
 const nodemailer = require('nodemailer');
-const mongoose = require('mongoose');
-const Counter = require('../models/Counter');
 
 const BRAND_NAME = 'CROSSROADS 2027';
 const THEME_TAGLINE = 'BEYOND THE KNOWN. INTO THE UNKNOWN.';
@@ -77,36 +75,28 @@ const transporters = smtpConfigs.map((cfg) => ({
   user: cfg.user,
   transporter: nodemailer.createTransport({
     service: 'gmail',
+    pool: true,
+    maxConnections: 3,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 4,
     auth: {
       user: cfg.user,
       pass: cfg.pass
     },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000
+    connectionTimeout: 6000,
+    greetingTimeout: 6000,
+    socketTimeout: 12000
   })
 }));
 
 let currentSmtpIndex = 0;
 
+// Fast lock-free Round Robin index distributes evenly across all SMTP pool accounts without DB write contention
 const getRoundRobinStartIndex = async () => {
   if (transporters.length === 0) {
     throw new Error('No SMTP transporters configured');
   }
-
-  if (mongoose.connection.readyState === 1) {
-    try {
-      const counter = await Counter.findByIdAndUpdate(
-        'smtp_round_robin',
-        { $inc: { seq: 1 } },
-        { new: true, upsert: true }
-      );
-      return Math.abs((counter.seq - 1) % transporters.length);
-    } catch (err) {
-      console.warn('[Round Robin Counter Fallback]', err.message);
-    }
-  }
-
   const idx = currentSmtpIndex % transporters.length;
   currentSmtpIndex = (currentSmtpIndex + 1) % transporters.length;
   return idx;

@@ -37,12 +37,14 @@ const emailLogSchema = new mongoose.Schema({
   // Stores filter parameters so report emails with live Excel workbooks can be resent on demand
   reportParams: { type: mongoose.Schema.Types.Mixed, default: null },
   attempts: { type: Number, default: 0 },
-  maxAttempts: { type: Number, default: 3 },
+  maxAttempts: { type: Number, default: 4 },
+  nextRetryAt: { type: Date, default: null },
   lastError: { type: String, default: '' },
   queuedAt: { type: Date, default: Date.now },
   sentAt: { type: Date }
 }, { timestamps: true });
 
+emailLogSchema.index({ status: 1, nextRetryAt: 1, queuedAt: 1 });
 emailLogSchema.index({ status: 1, queuedAt: 1 });
 emailLogSchema.index({ createdAt: -1 });
 emailLogSchema.index({ to: 1 });

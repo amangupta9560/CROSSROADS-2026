@@ -63,5 +63,6 @@ eventTeamSchema.index(
 eventTeamSchema.index({ appliedAt: -1 });
 eventTeamSchema.index({ event: 1, appliedAt: -1 });
 eventTeamSchema.index({ status: 1, appliedAt: -1 });
+eventTeamSchema.index({ 'leader.email': 1, event: 1 }, { name: 'leader_event_lookup_idx' });
 
 module.exports = mongoose.model('EventTeam', eventTeamSchema);
